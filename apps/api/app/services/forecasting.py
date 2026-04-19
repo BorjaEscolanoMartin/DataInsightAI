@@ -19,7 +19,7 @@ def run_forecast(content: bytes, date_col: str, target_col: str, horizon_days: i
     from statsmodels.tsa.holtwinters import ExponentialSmoothing  # type: ignore[import-untyped]
 
     df = pd.read_csv(io.BytesIO(content))
-    df[date_col] = pd.to_datetime(df[date_col], infer_datetime_format=True)
+    df[date_col] = pd.to_datetime(df[date_col], format="mixed", dayfirst=False)
     df = df[[date_col, target_col]].dropna().sort_values(date_col)
     df = df.groupby(date_col, as_index=False)[target_col].mean()
     df = df.set_index(date_col).asfreq("D").interpolate()
