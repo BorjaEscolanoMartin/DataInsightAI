@@ -1,3 +1,4 @@
+import json
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -16,12 +17,22 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     storage_bucket: str = "datasets"
 
-    cors_origins: list[str] = ["http://localhost:3000"]
+    cors_origins: str = "http://localhost:3000"
+
+    def get_cors_origins(self) -> list[str]:
+        v = self.cors_origins.strip()
+        if not v:
+            return ["http://localhost:3000"]
+        if v.startswith("["):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                pass
+        return [o.strip() for o in v.split(",") if o.strip()]
 
     @field_validator("database_url", mode="before")
     @classmethod
-    def normalise_db_url(cls, v: str) -> str:
-        # Supabase and Railway provide plain postgresql:// URLs; psycopg3 needs the driver prefix
+    def normalise_db_url(cls, v: object) -> object:
         if isinstance(v, str) and v.startswith("postgresql://"):
             return v.replace("postgresql://", "postgresql+psycopg://", 1)
         if isinstance(v, str) and v.startswith("postgres://"):
