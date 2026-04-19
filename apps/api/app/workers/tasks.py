@@ -17,14 +17,19 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
     if not numeric_cols:
         return None
 
+    forecast_result = None
     if date_col and len(numeric_cols) >= 1:
         from app.services.forecasting import run_forecast
         target = numeric_cols[0]
         try:
-            forecast = run_forecast(content, date_col, target, horizon_days=30)
-            return {"forecast": forecast, "regression": None}
+            forecast_result = run_forecast(content, date_col, target, horizon_days=30)
+            n_points = len(forecast_result.get("points", []))
+            print(f"[predictions] forecast OK: target={target} points={n_points}", flush=True)
         except Exception as exc:
             print(f"[tasks] forecast failed (non-fatal): {exc}", flush=True)
+
+    if forecast_result and len(forecast_result.get("points", [])) > 0:
+        return {"forecast": forecast_result, "regression": None}
 
     if len(numeric_cols) >= 2:
         from app.services.ml_baseline import run_regression
@@ -34,9 +39,13 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
         all_features = features + cat_cols
         try:
             regression = run_regression(content, target, all_features)
-            return {"forecast": None, "regression": regression}
+            print(f"[predictions] regression OK: target={target}", flush=True)
+            return {"forecast": forecast_result, "regression": regression}
         except Exception as exc:
             print(f"[tasks] regression failed (non-fatal): {exc}", flush=True)
+
+    if forecast_result:
+        return {"forecast": forecast_result, "regression": None}
 
     return None
 

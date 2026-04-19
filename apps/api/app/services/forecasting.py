@@ -35,34 +35,42 @@ def run_forecast(content: bytes, date_col: str, target_col: str, horizon_days: i
     train = series.iloc[:-test_size]
     test = series.iloc[-test_size:]
 
-    mape_val: float | None = None
-    try:
-        seasonal_periods = 7 if n >= 21 else None
-        trend = "add" if n >= 10 else None
-        seasonal = "add" if seasonal_periods and n >= seasonal_periods * 2 else None
-        model = ExponentialSmoothing(
-            train,
-            trend=trend,
-            seasonal=seasonal,
-            seasonal_periods=seasonal_periods,
+    seasonal_periods = 7 if n >= 21 else None
+    trend: str | None = "add" if n >= 10 else None
+    seasonal: str | None = "add" if seasonal_periods and n >= seasonal_periods * 2 else None
+
+    def _fit(s, tr, seas, sp):
+        return ExponentialSmoothing(
+            s,
+            trend=tr,
+            seasonal=seas,
+            seasonal_periods=sp,
             initialization_method="estimated",
         ).fit(optimized=True, disp=False)
+
+    mape_val: float | None = None
+    try:
+        model = _fit(train, trend, seasonal, seasonal_periods)
         backtest = model.forecast(test_size)
         mape_val = _mape(test.values, backtest.values)
     except Exception:
         pass
 
-    # Full model on all data
-    try:
-        model_full = ExponentialSmoothing(
-            series,
-            trend=trend,
-            seasonal=seasonal,
-            seasonal_periods=seasonal_periods,
-            initialization_method="estimated",
-        ).fit(optimized=True, disp=False)
-        forecast_vals = model_full.forecast(horizon_days)
-    except Exception:
+    # Full model on all data — try progressively simpler configs on failure
+    forecast_vals = None
+    for tr, seas, sp in [
+        (trend, seasonal, seasonal_periods),
+        (trend, None, None),
+        (None, None, None),
+    ]:
+        try:
+            model_full = _fit(series, tr, seas, sp)
+            forecast_vals = model_full.forecast(horizon_days)
+            break
+        except Exception:
+            continue
+
+    if forecast_vals is None:
         return {"target_column": target_col, "date_column": date_col, "mape": mape_val, "points": []}
 
     last_std = float(series.tail(max(7, test_size)).std()) if n > 1 else 0.0
