@@ -12,6 +12,7 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
     date_col: str | None = profile.get("date_column_candidate")
     columns: list[dict] = profile.get("columns", [])
     numeric_cols = [c["name"] for c in columns if c["type"] == "numeric"]
+    print(f"[predictions] date_col={date_col} numeric_cols={numeric_cols}", flush=True)
 
     if not numeric_cols:
         return None
