@@ -26,6 +26,7 @@ node_modules/
 .next/
 .turbo/
 out/
+apps/web/package-lock.json
 
 # OS
 .DS_Store
