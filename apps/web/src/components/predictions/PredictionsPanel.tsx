@@ -10,7 +10,9 @@ interface Props {
 
 export function PredictionsPanel({ predictions }: Props) {
   const { forecast, regression } = predictions
-  if (!forecast && !regression) return null
+  const hasForecast = forecast && forecast.points.length > 0
+  const hasRegression = regression && regression.feature_importance.length > 0
+  if (!hasForecast && !hasRegression) return null
 
   return (
     <div className="space-y-3">
@@ -21,21 +23,21 @@ export function PredictionsPanel({ predictions }: Props) {
         </span>
       </h2>
 
-      {forecast && forecast.points.length > 0 && (
+      {hasForecast && (
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
           <h3 className="mb-3 text-sm font-semibold text-violet-300">
             Forecasting — serie temporal
           </h3>
-          <ForecastChart forecast={forecast} />
+          <ForecastChart forecast={forecast!} />
         </div>
       )}
 
-      {regression && regression.feature_importance.length > 0 && (
+      {hasRegression && (
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
           <h3 className="mb-3 text-sm font-semibold text-violet-300">
             Regresión baseline (RandomForest) — importancia de variables
           </h3>
-          <FeatureImportance regression={regression} />
+          <FeatureImportance regression={regression!} />
         </div>
       )}
     </div>
