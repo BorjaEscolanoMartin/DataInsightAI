@@ -1,9 +1,9 @@
 import type { NextConfig } from "next";
-import path from "path";
+
+const isVercel = process.env.VERCEL === "1";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  outputFileTracingRoot: path.join(__dirname, "../../"),
+  output: isVercel ? undefined : "standalone",
 };
 
 export default nextConfig;
