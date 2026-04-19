@@ -1,0 +1,36 @@
+# Claude
+.claude/
+CLAUDE.md
+
+# Secrets
+.env
+.env.local
+.env*.local
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# Node
+node_modules/
+.next/
+.turbo/
+out/
+
+# OS
+.DS_Store
+Thumbs.db
+*:Zone.Identifier
+
+# Docker
+*.log
