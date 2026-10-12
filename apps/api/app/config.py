@@ -1,4 +1,5 @@
 import json
+from urllib.parse import urlparse
 
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -11,9 +12,8 @@ class Settings(BaseSettings):
     debug: bool = False
 
     anthropic_api_key: str = ""
-    supabase_url: str = ""
+    supabase_url: str
     supabase_service_role_key: str = ""
-    supabase_jwt_secret: str = ""
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/datainsight"
     redis_url: str = "redis://redis:6379/0"
     storage_bucket: str = "datasets"
@@ -30,6 +30,14 @@ class Settings(BaseSettings):
             except json.JSONDecodeError:
                 pass
         return [o.strip() for o in v.split(",") if o.strip()]
+
+    @field_validator("supabase_url")
+    @classmethod
+    def require_https_supabase_url(cls, v: str) -> str:
+        parsed = urlparse(v)
+        if parsed.scheme != "https" or not parsed.netloc:
+            raise ValueError("SUPABASE_URL must be an https:// URL")
+        return v
 
     @field_validator("database_url", mode="before")
     @classmethod

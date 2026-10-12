@@ -42,9 +42,8 @@ docker compose up --build
 | Variable | Descripción |
 |---|---|
 | `ANTHROPIC_API_KEY` | API key de [console.anthropic.com](https://console.anthropic.com) |
-| `SUPABASE_URL` | URL del proyecto Supabase |
+| `SUPABASE_URL` | URL del proyecto Supabase. Obligatoria y con `https://`: sin ella la API no arranca |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (Settings → API) |
-| `SUPABASE_JWT_SECRET` | JWT secret (Settings → API) |
 | `DATABASE_URL` | Conexión PostgreSQL (usar Supabase en prod) |
 | `REDIS_URL` | Conexión Redis |
 

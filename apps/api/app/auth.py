@@ -1,13 +1,18 @@
-import base64
 import functools
 import uuid
+from typing import Any
 
 import httpx
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
+from jose.exceptions import JOSEError
 
 from app.config import settings
+
+# Supabase signs access tokens with ES256 (ECC P-256). The accepted algorithms never come
+# from the token or the environment: changing this list requires a reviewed code change.
+ALLOWED_ALGORITHMS = ["ES256"]
 
 security = HTTPBearer()
 
@@ -21,25 +26,13 @@ def _fetch_jwks() -> dict:
     return resp.json()
 
 
-def _key_for_token(token: str):
-    """Return the appropriate verification key based on the JWT header."""
-    header = jwt.get_unverified_header(token)
-    alg = header.get("alg", "HS256")
-
-    if alg in ("RS256", "ES256"):
-        kid = header.get("kid")
-        jwks = _fetch_jwks()
-        key = next((k for k in jwks.get("keys", []) if k.get("kid") == kid), None)
-        if key is None:
-            raise JWTError(f"No JWKS key found for kid={kid}")
-        return key, alg
-
-    # HS256 fallback — secret is base64-encoded in Supabase dashboard
-    try:
-        secret = base64.b64decode(settings.supabase_jwt_secret)
-    except Exception:
-        secret = settings.supabase_jwt_secret.encode()
-    return secret, alg
+def _key_for_token(token: str) -> dict[str, Any]:
+    """Return the Supabase public key whose kid matches the token header."""
+    kid = jwt.get_unverified_header(token).get("kid")
+    key = next((k for k in _fetch_jwks().get("keys", []) if k.get("kid") == kid), None)
+    if key is None:
+        raise JWTError(f"No JWKS key found for kid={kid}")
+    return key
 
 
 def get_current_user(
@@ -47,20 +40,26 @@ def get_current_user(
 ) -> uuid.UUID:
     token = credentials.credentials
     try:
-        key, alg = _key_for_token(token)
         payload = jwt.decode(
             token,
-            key,
-            algorithms=[alg],
+            _key_for_token(token),
+            algorithms=ALLOWED_ALGORITHMS,
             audience="authenticated",
+            # python-jose only checks these claims when present; Supabase always sends them.
+            options={"require_exp": True, "require_aud": True, "require_sub": True},
         )
-        user_id: str | None = payload.get("sub")
-        if not user_id:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-        return uuid.UUID(user_id)
-    except JWTError as e:
-        print(f"[auth] JWTError: {e}", flush=True)
+    # Any token python-jose cannot process is the client's fault. JWKS download errors
+    # (httpx) are not caught here: a Supabase outage is a server error, not a 401.
+    except JOSEError as e:
+        print(f"[auth] JOSEError: {e}", flush=True)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
+
+    # require_sub guarantees the claim; an empty or malformed sub fails uuid.UUID below.
+    user_id: str = payload["sub"]
+    try:
+        return uuid.UUID(user_id)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")

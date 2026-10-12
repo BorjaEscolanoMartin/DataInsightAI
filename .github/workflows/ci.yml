@@ -39,9 +39,7 @@ jobs:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/datainsight_test
       # Tests never call external services: these stay empty on purpose.
       ANTHROPIC_API_KEY: ""
-      SUPABASE_URL: ""
       SUPABASE_SERVICE_ROLE_KEY: ""
-      SUPABASE_JWT_SECRET: ""
     steps:
       - uses: actions/checkout@v5
 
