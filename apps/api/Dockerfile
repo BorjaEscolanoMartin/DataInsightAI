@@ -15,6 +15,13 @@ ENV VIRTUAL_ENV=/opt/venv \
     UV_PYTHON_DOWNLOADS=never \
     UV_LINK_MODE=copy
 
+# Unprivileged runtime user with its own writable HOME (libraries cache under ~/.cache).
+# UID/GID 1000 match the usual host user, so files written to dev bind mounts stay theirs.
+ARG APP_UID=1000
+ARG APP_GID=1000
+RUN groupadd --gid "$APP_GID" app \
+    && useradd --uid "$APP_UID" --gid app --create-home --shell /usr/sbin/nologin app
+
 # ── Production dependencies (build stage only) ───────────────────────────────
 FROM base AS builder
 COPY --from=uv /uv /usr/local/bin/uv
@@ -25,15 +32,18 @@ RUN uv sync --locked --no-install-project --no-cache
 # ── Development (dev extras; keeps uv to manage dependencies) ────────────────
 FROM base AS dev
 COPY --from=uv /uv /usr/local/bin/uv
+# The dev venv belongs to app so dependencies can be managed from inside the container.
+RUN mkdir /opt/venv && chown app:app /opt/venv
 COPY pyproject.toml uv.lock ./
+USER app
 RUN uv sync --locked --no-install-project --no-cache --extra dev
 COPY . .
-RUN chmod +x start.sh
 CMD ["bash", "start.sh"]
 
 # ── Production (no uv, no dev extras) ────────────────────────────────────────
 FROM base AS prod
 COPY --from=builder /opt/venv /opt/venv
 COPY . .
-RUN chmod +x start.sh
+# Code and venv stay root-owned: the process can read them but not modify them.
+USER app
 CMD ["bash", "start.sh"]
