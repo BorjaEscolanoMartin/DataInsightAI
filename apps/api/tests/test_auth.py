@@ -25,7 +25,7 @@ def _b64url_uint(value: int, length: int) -> str:
     return base64.urlsafe_b64encode(value.to_bytes(length, "big")).rstrip(b"=").decode()
 
 
-def _ec_private_pem(key: ec.EllipticCurvePrivateKey) -> str:
+def _private_pem(key: ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey) -> str:
     return key.private_bytes(
         serialization.Encoding.PEM,
         serialization.PrivateFormat.PKCS8,
@@ -58,14 +58,6 @@ def _rsa_public_jwk(key: rsa.RSAPrivateKey, kid: str) -> dict[str, str]:
     }
 
 
-def _rsa_private_pem(key: rsa.RSAPrivateKey) -> str:
-    return key.private_bytes(
-        serialization.Encoding.PEM,
-        serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption(),
-    ).decode()
-
-
 def _claims(**overrides: Any) -> dict[str, Any]:
     claims: dict[str, Any] = {
         "sub": str(uuid.uuid4()),
@@ -95,7 +87,7 @@ def _es256_token(
     claims: dict[str, Any], key: ec.EllipticCurvePrivateKey, kid: str | None = KID
 ) -> str:
     headers = {"kid": kid} if kid is not None else None
-    return jwt.encode(claims, _ec_private_pem(key), algorithm="ES256", headers=headers)
+    return jwt.encode(claims, _private_pem(key), algorithm="ES256", headers=headers)
 
 
 def _authenticate(token: str) -> uuid.UUID:
@@ -135,8 +127,8 @@ def test_rejects_hs256_token_signed_with_legacy_secret(
     monkeypatch: pytest.MonkeyPatch, jwks: dict[str, Any]
 ) -> None:
     legacy_secret = b"legacy-supabase-hs256-secret-0123456789"
-    # Simulates a deployment that still has the legacy HS256 secret configured.
-    # vars() keeps the test valid once the setting no longer exists.
+    # Guards against bringing back the HS256 secret branch: the app no longer reads this
+    # injected setting. The algorithm allowlist itself is guarded by the RS256 test.
     monkeypatch.setitem(
         vars(settings), "supabase_jwt_secret", base64.b64encode(legacy_secret).decode()
     )
@@ -151,7 +143,8 @@ def test_rejects_hs256_token_signed_with_legacy_secret(
 def test_rejects_hs256_token_signed_with_empty_key(
     monkeypatch: pytest.MonkeyPatch, jwks: dict[str, Any]
 ) -> None:
-    # Simulates a deployment where the legacy HS256 secret was left empty.
+    # Guards against bringing back the HS256 secret branch with an empty secret. The app no
+    # longer reads this injected setting; the RS256 test guards the algorithm allowlist.
     monkeypatch.setitem(vars(settings), "supabase_jwt_secret", "")
     token = jwt.encode(_claims(), b"", algorithm="HS256")
 
@@ -166,7 +159,7 @@ def test_rejects_rs256_token_even_with_a_published_rsa_key(jwks: dict[str, Any])
     jwks["keys"].append(_rsa_public_jwk(rsa_key, "test-rs256-key"))
     token = jwt.encode(
         _claims(),
-        _rsa_private_pem(rsa_key),
+        _private_pem(rsa_key),
         algorithm="RS256",
         headers={"kid": "test-rs256-key"},
     )
@@ -202,7 +195,7 @@ def test_rejects_hs256_token_signed_with_the_jwks_public_key(
 ) -> None:
     """Algorithm confusion: an attacker uses the published public key as the HMAC secret.
 
-    der: regression for CVE-2026-85394 (DER keys without PEM armor).
+    der: regression for CVE-2026-85394, GHSA-3qf3-8w2g-rqmx (DER keys without PEM armor).
     pem: regression for CVE-2024-33663. Redundant with der while we use python-jose,
     which already refuses PEM keys as HMAC secrets; kept to check the switch to PyJWT.
     """
