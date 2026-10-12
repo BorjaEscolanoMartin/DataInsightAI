@@ -1,0 +1,11 @@
+# Keep secrets, local environments and caches out of the build context.
+.env
+.env.*
+.venv/
+venv/
+**/__pycache__/
+**/*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
