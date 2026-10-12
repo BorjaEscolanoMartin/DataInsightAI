@@ -57,9 +57,8 @@ def get_current_user(
             detail="Invalid or expired token",
         )
 
-    user_id: str | None = payload.get("sub")
-    if not user_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+    # require_sub guarantees the claim; an empty or malformed sub fails uuid.UUID below.
+    user_id: str = payload["sub"]
     try:
         return uuid.UUID(user_id)
     except ValueError:
