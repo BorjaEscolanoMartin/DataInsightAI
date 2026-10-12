@@ -345,3 +345,20 @@ def test_rejects_es256_token_whose_kid_names_a_non_ec_key(
         _authenticate(token)
 
     assert exc_info.value.status_code == 401
+
+
+def test_jwks_that_is_not_json_is_not_reported_as_401(
+    monkeypatch: pytest.MonkeyPatch,
+    jwks: dict[str, Any],
+    signing_key: ec.EllipticCurvePrivateKey,
+) -> None:
+    # A broken JWKS response is Supabase's fault: it must surface as a server error.
+    class _HtmlResponse(_FakeResponse):
+        def json(self) -> dict[str, Any]:
+            raise json.JSONDecodeError("Expecting value", "<html>", 0)
+
+    monkeypatch.setattr(auth.httpx, "get", lambda *args, **kwargs: _HtmlResponse({}))
+    token = _es256_token(_claims(), signing_key)
+
+    with pytest.raises(json.JSONDecodeError):
+        _authenticate(token)
