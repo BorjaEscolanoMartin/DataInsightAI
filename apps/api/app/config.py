@@ -13,7 +13,6 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     supabase_url: str = ""
     supabase_service_role_key: str = ""
-    supabase_jwt_secret: str = ""
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/datainsight"
     redis_url: str = "redis://redis:6379/0"
     storage_bucket: str = "datasets"
