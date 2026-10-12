@@ -23,7 +23,7 @@ Reglas:
 - description: 2-3 frases específicas con valores concretos del perfil.
 - columns: nombres exactos de las columnas mencionadas.
 - Responde todo en español.\
-"""
+"""  # noqa: E501
 
 
 def _build_prompt(profile: dict[str, Any]) -> str:

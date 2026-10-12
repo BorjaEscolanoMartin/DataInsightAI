@@ -48,11 +48,6 @@ target-version = "py312"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP"]
 
-[tool.ruff.lint.per-file-ignores]
-# Long lines inside triple-quoted strings; wrapping them would change the text.
-"app/services/insights_llm.py" = ["E501"]
-"tests/test_insights_llm.py" = ["E501"]
-
 [tool.mypy]
 strict = true
 python_version = "3.12"

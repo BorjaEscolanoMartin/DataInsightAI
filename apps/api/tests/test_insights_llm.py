@@ -39,7 +39,7 @@ VALID_RESPONSE = """{
   "anomalies": [{"title": "Outliers en ventas", "description": "Se detectaron 3 outliers por IQR.", "columns": ["ventas"]}],
   "correlations": [],
   "recommendations": [{"title": "Revisar categoría A", "description": "La categoría A domina con 40%.", "columns": ["categoria"]}]
-}"""
+}"""  # noqa: E501
 
 
 def test_build_prompt_contains_columns():
