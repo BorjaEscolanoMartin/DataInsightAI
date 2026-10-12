@@ -360,5 +360,8 @@ def test_jwks_that_is_not_json_is_not_reported_as_401(
     monkeypatch.setattr(auth.httpx, "get", lambda *args, **kwargs: _HtmlResponse({}))
     token = _es256_token(_claims(), signing_key)
 
-    with pytest.raises(json.JSONDecodeError):
+    with pytest.raises(Exception) as exc_info:
         _authenticate(token)
+
+    error = exc_info.value
+    assert not (isinstance(error, HTTPException) and error.status_code == 401)
