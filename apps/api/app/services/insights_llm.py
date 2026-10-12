@@ -1,9 +1,12 @@
 import json
 from typing import Any
+
 from anthropic import Anthropic
+
 from app.config import settings
 from app.schemas.insights import InsightsOut
 
+# Long lines are kept on purpose: wrapping them would change the prompt text.
 SYSTEM_PROMPT = """\
 Eres un analista de datos experto. Analiza el perfil estadístico de un dataset y genera insights accionables.
 
@@ -21,12 +24,13 @@ Reglas:
 - description: 2-3 frases específicas con valores concretos del perfil.
 - columns: nombres exactos de las columnas mencionadas.
 - Responde todo en español.\
-"""
+"""  # noqa: E501
 
 
 def _build_prompt(profile: dict[str, Any]) -> str:
     lines: list[str] = [
-        f"Dataset: {profile.get('row_count', '?')} filas × {profile.get('column_count', '?')} columnas",
+        f"Dataset: {profile.get('row_count', '?')} filas × "
+        f"{profile.get('column_count', '?')} columnas",
         "",
         "Columnas:",
     ]

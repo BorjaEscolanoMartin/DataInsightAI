@@ -5,19 +5,18 @@ from datetime import datetime
 from typing import Any
 
 from reportlab.lib import colors  # type: ignore[import-untyped]
+from reportlab.lib.enums import TA_LEFT  # type: ignore[import-untyped]
 from reportlab.lib.pagesizes import A4  # type: ignore[import-untyped]
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle  # type: ignore[import-untyped]
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet  # type: ignore[import-untyped]
 from reportlab.lib.units import cm  # type: ignore[import-untyped]
 from reportlab.platypus import (  # type: ignore[import-untyped]
-    SimpleDocTemplate,
+    HRFlowable,
     Paragraph,
+    SimpleDocTemplate,
     Spacer,
     Table,
     TableStyle,
-    HRFlowable,
 )
-from reportlab.lib.enums import TA_LEFT, TA_CENTER  # type: ignore[import-untyped]
-
 
 # ── Colour palette ────────────────────────────────────────────────────────────
 _BG       = colors.HexColor("#0f172a")
@@ -278,7 +277,10 @@ def generate_report(
             story.append(_stat_table(pred_stats, styles))
 
             points = forecast["points"][:5]
-            p_header = [Paragraph(h, styles["small"]) for h in ["Fecha", "Predicción", "IC inferior", "IC superior"]]
+            p_header = [
+                Paragraph(h, styles["small"])
+                for h in ["Fecha", "Predicción", "IC inferior", "IC superior"]
+            ]
             p_rows = [p_header] + [
                 [Paragraph(p["ds"], styles["body"]),
                  Paragraph(f"{p['yhat']:.2f}", styles["body"]),
@@ -299,7 +301,9 @@ def generate_report(
             ]))
             story.append(Spacer(1, 0.3 * cm))
             story.append(pt)
-            story.append(Paragraph("Mostrando los primeros 5 puntos del forecast.", styles["small"]))
+            story.append(
+                Paragraph("Mostrando los primeros 5 puntos del forecast.", styles["small"])
+            )
             story.append(Spacer(1, 0.4 * cm))
 
         if regression and regression.get("feature_importance"):
@@ -337,7 +341,8 @@ def generate_report(
     story.append(Spacer(1, 0.6 * cm))
     story.append(_hr())
     story.append(Paragraph(
-        "Generado automáticamente por DataInsight AI · Los insights han sido producidos por un modelo de lenguaje y deben verificarse.",
+        "Generado automáticamente por DataInsight AI · Los insights han sido producidos "
+        "por un modelo de lenguaje y deben verificarse.",
         styles["small"],
     ))
 

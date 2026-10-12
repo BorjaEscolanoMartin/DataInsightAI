@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
-from app.services.insights_llm import generate_insights, _build_prompt
 
+from app.services.insights_llm import _build_prompt, generate_insights
 
 SAMPLE_PROFILE = {
     "row_count": 100,
@@ -34,12 +34,13 @@ SAMPLE_PROFILE = {
     ],
 }
 
+# Long lines are kept on purpose: wrapping them would change the fixture text.
 VALID_RESPONSE = """{
   "trends": [{"title": "Ventas crecientes", "description": "Las ventas muestran tendencia al alza.", "columns": ["ventas"]}],
   "anomalies": [{"title": "Outliers en ventas", "description": "Se detectaron 3 outliers por IQR.", "columns": ["ventas"]}],
   "correlations": [],
   "recommendations": [{"title": "Revisar categoría A", "description": "La categoría A domina con 40%.", "columns": ["categoria"]}]
-}"""
+}"""  # noqa: E501
 
 
 def test_build_prompt_contains_columns():

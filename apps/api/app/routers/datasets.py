@@ -1,10 +1,12 @@
 import uuid
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
-from app.db.session import get_db
-from app.db.models import Project, Dataset, Analysis
+
 from app.auth import get_current_user
-from app.schemas.datasets import DatasetOut, AnalysisOut, DatasetWithAnalysisOut, DatasetProfileOut
+from app.db.models import Analysis, Dataset, Project
+from app.db.session import get_db
+from app.schemas.datasets import AnalysisOut, DatasetOut, DatasetProfileOut, DatasetWithAnalysisOut
 from app.storage.supabase_client import upload_file
 
 router = APIRouter(tags=["datasets"])
@@ -132,7 +134,11 @@ def get_dataset(
     if not dataset:
         raise HTTPException(status_code=404, detail="Dataset not found")
 
-    project = db.query(Project).filter(Project.id == dataset.project_id, Project.user_id == user_id).first()
+    project = (
+        db.query(Project)
+        .filter(Project.id == dataset.project_id, Project.user_id == user_id)
+        .first()
+    )
     if not project:
         raise HTTPException(status_code=403, detail="Forbidden")
 

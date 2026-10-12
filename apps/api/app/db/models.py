@@ -1,8 +1,10 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Text, DateTime, ForeignKey, BigInteger, Integer, func
+
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+
 from app.db.session import Base
 
 
@@ -18,13 +20,17 @@ class Project(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    datasets: Mapped[list["Dataset"]] = relationship(back_populates="project", cascade="all, delete-orphan")
+    datasets: Mapped[list["Dataset"]] = relationship(
+        back_populates="project", cascade="all, delete-orphan"
+    )
 
 
 class Dataset(Base):
     __tablename__ = "datasets"
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
@@ -33,10 +39,14 @@ class Dataset(Base):
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
     row_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
     column_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
 
     project: Mapped["Project"] = relationship(back_populates="datasets")
-    analyses: Mapped[list["Analysis"]] = relationship(back_populates="dataset", cascade="all, delete-orphan")
+    analyses: Mapped[list["Analysis"]] = relationship(
+        back_populates="dataset", cascade="all, delete-orphan"
+    )
 
 
 class Analysis(Base):

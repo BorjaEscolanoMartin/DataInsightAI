@@ -15,7 +15,9 @@ def _mape(actual: np.ndarray, predicted: np.ndarray) -> float | None:
     return float(np.mean(np.abs((actual[mask] - predicted[mask]) / actual[mask])) * 100)
 
 
-def run_forecast(content: bytes, date_col: str, target_col: str, horizon_days: int = 30) -> dict[str, Any]:
+def run_forecast(
+    content: bytes, date_col: str, target_col: str, horizon_days: int = 30
+) -> dict[str, Any]:
     from statsmodels.tsa.holtwinters import ExponentialSmoothing  # type: ignore[import-untyped]
 
     df = pd.read_csv(io.BytesIO(content))
@@ -71,7 +73,12 @@ def run_forecast(content: bytes, date_col: str, target_col: str, horizon_days: i
             continue
 
     if forecast_vals is None:
-        return {"target_column": target_col, "date_column": date_col, "mape": mape_val, "points": []}
+        return {
+            "target_column": target_col,
+            "date_column": date_col,
+            "mape": mape_val,
+            "points": [],
+        }
 
     last_std = float(series.tail(max(7, test_size)).std()) if n > 1 else 0.0
     ci_width = last_std * 1.96

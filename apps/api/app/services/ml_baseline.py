@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import io
-import math
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
 
 def run_regression(content: bytes, target_col: str, feature_cols: list[str]) -> dict[str, Any]:
     from sklearn.ensemble import RandomForestRegressor  # type: ignore[import-untyped]
-    from sklearn.model_selection import train_test_split  # type: ignore[import-untyped]
     from sklearn.metrics import r2_score, root_mean_squared_error  # type: ignore[import-untyped]
+    from sklearn.model_selection import train_test_split  # type: ignore[import-untyped]
     from sklearn.preprocessing import LabelEncoder  # type: ignore[import-untyped]
 
     df = pd.read_csv(io.BytesIO(content))
@@ -52,5 +50,7 @@ def run_regression(content: bytes, target_col: str, feature_cols: list[str]) -> 
         "target_column": target_col,
         "r2": r2,
         "rmse": rmse,
-        "feature_importance": [{"feature": f, "importance": round(imp, 4)} for f, imp in importance[:15]],
+        "feature_importance": [
+            {"feature": f, "importance": round(imp, 4)} for f, imp in importance[:15]
+        ],
     }

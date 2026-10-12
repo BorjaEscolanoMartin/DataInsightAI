@@ -1,7 +1,8 @@
 import textwrap
-import pytest
-from app.services.profiling import profile_csv
 
+import pytest
+
+from app.services.profiling import profile_csv
 
 CSV_NUMERIC = textwrap.dedent("""\
     fecha,ventas,categoria,activo
