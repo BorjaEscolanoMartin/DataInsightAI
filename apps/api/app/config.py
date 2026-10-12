@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     @field_validator("supabase_url")
     @classmethod
     def require_https_supabase_url(cls, v: str) -> str:
+        # Strip first so the check below sees the URL every caller will use.
+        v = v.rstrip("/")
         parsed = urlparse(v)
         if parsed.scheme != "https" or not parsed.netloc:
             raise ValueError("SUPABASE_URL must be an https:// URL")
