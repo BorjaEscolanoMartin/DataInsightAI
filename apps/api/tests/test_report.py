@@ -1,6 +1,5 @@
 from app.services.report import generate_report
 
-
 PROFILE = {
     "row_count": 200,
     "column_count": 3,

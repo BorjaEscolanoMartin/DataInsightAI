@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
-from app.services.insights_llm import generate_insights, _build_prompt
 
+from app.services.insights_llm import _build_prompt, generate_insights
 
 SAMPLE_PROFILE = {
     "row_count": 100,

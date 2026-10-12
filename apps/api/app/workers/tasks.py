@@ -1,11 +1,11 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from app.workers.celery_app import celery_app
-from app.db.session import SessionLocal
 from app.db.models import Analysis, Dataset
+from app.db.session import SessionLocal
 from app.services.profiling import profile_csv
 from app.storage.supabase_client import download_file
+from app.workers.celery_app import celery_app
 
 
 def _run_predictions(content: bytes, profile: dict) -> dict | None:
@@ -60,7 +60,7 @@ def run_analysis(self, analysis_id: str) -> None:
             return
 
         analysis.status = "running"
-        analysis.started_at = datetime.now(timezone.utc)
+        analysis.started_at = datetime.now(UTC)
         db.commit()
 
         dataset = db.query(Dataset).filter(Dataset.id == analysis.dataset_id).first()
@@ -93,7 +93,7 @@ def run_analysis(self, analysis_id: str) -> None:
         analysis.profile_json = profile
         analysis.insights_json = insights
         analysis.predictions_json = predictions
-        analysis.finished_at = datetime.now(timezone.utc)
+        analysis.finished_at = datetime.now(UTC)
         db.commit()
 
     except Exception as exc:
@@ -102,7 +102,7 @@ def run_analysis(self, analysis_id: str) -> None:
             try:
                 analysis.status = "failed"
                 analysis.error_message = str(exc)
-                analysis.finished_at = datetime.now(timezone.utc)
+                analysis.finished_at = datetime.now(UTC)
                 db.commit()
             except Exception:
                 db.rollback()

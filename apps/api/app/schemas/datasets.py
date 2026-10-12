@@ -1,7 +1,9 @@
 import uuid
 from datetime import datetime
 from typing import Any
+
 from pydantic import BaseModel
+
 from app.schemas.insights import InsightsOut
 from app.schemas.predictions import PredictionsOut
 

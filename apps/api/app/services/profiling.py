@@ -1,8 +1,9 @@
 import io
 import math
 from typing import Any
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 
 def _safe_float(val: Any) -> float | None:
@@ -54,7 +55,9 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
 
     numeric_cols = [c for c, t in col_types.items() if t == "numeric" and c in df.columns]
     cat_cols = [c for c, t in col_types.items() if t == "categorical" and c in df.columns]
-    date_candidate = next((c for c, t in col_types.items() if t == "date" and c in df.columns), None)
+    date_candidate = next(
+        (c for c, t in col_types.items() if t == "date" and c in df.columns), None
+    )
 
     # Histograms — max 6 numeric columns
     for col in numeric_cols[:6]:
@@ -118,7 +121,9 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         try:
             y_col = numeric_cols[0]
             df_ts = df[[date_candidate, y_col]].copy()
-            df_ts[date_candidate] = pd.to_datetime(df_ts[date_candidate], format="mixed", dayfirst=False, errors="coerce")
+            df_ts[date_candidate] = pd.to_datetime(
+                df_ts[date_candidate], format="mixed", dayfirst=False, errors="coerce"
+            )
             df_ts = df_ts.dropna().sort_values(date_candidate)
             if len(df_ts) > 500:
                 step = max(1, len(df_ts) // 500)

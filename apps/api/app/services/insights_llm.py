@@ -1,6 +1,8 @@
 import json
 from typing import Any
+
 from anthropic import Anthropic
+
 from app.config import settings
 from app.schemas.insights import InsightsOut
 
@@ -26,7 +28,8 @@ Reglas:
 
 def _build_prompt(profile: dict[str, Any]) -> str:
     lines: list[str] = [
-        f"Dataset: {profile.get('row_count', '?')} filas × {profile.get('column_count', '?')} columnas",
+        f"Dataset: {profile.get('row_count', '?')} filas × "
+        f"{profile.get('column_count', '?')} columnas",
         "",
         "Columnas:",
     ]
