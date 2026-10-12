@@ -1,5 +1,6 @@
-import functools
+import threading
 import uuid
+from time import monotonic
 from typing import Any
 
 import httpx
@@ -17,19 +18,73 @@ ALLOWED_ALGORITHMS = ["ES256"]
 security = HTTPBearer()
 
 
-@functools.lru_cache(maxsize=1)
-def _fetch_jwks() -> dict:
-    """Fetch Supabase public keys — cached for the lifetime of the process."""
+# Minimum gap between two JWKS download attempts, failed ones included: tokens with invented
+# kids can force at most one download per cooldown. Supabase's edge caches the JWKS for 10
+# minutes, so refetching more often would rarely return new keys.
+JWKS_REFETCH_COOLDOWN_SECONDS = 60
+
+
+class JwksUnavailableError(RuntimeError):
+    """The JWKS could not be downloaded: a server error, never an invalid token."""
+
+
+def _download_jwks() -> dict[str | None, dict[str, Any]]:
+    """Download Supabase public keys, indexed by kid."""
     url = f"{settings.supabase_auth_url}/.well-known/jwks.json"
     resp = httpx.get(url, timeout=10)
     resp.raise_for_status()
-    return resp.json()
+    return {k.get("kid"): k for k in resp.json().get("keys", [])}
+
+
+class _JwksCache:
+    """Supabase public keys, downloaded again when a token names an unknown kid.
+
+    FastAPI runs sync endpoints in a thread pool: lookups of a cached kid read an immutable
+    snapshot without locking, and downloads happen under a lock, one at a time.
+    """
+
+    def __init__(self) -> None:
+        self._keys: dict[str | None, dict[str, Any]] = {}
+        self._last_attempt: float | None = None
+        self._last_error: Exception | None = None
+        self._lock = threading.Lock()
+
+    def key(self, kid: str | None) -> dict[str, Any] | None:
+        key = self._keys.get(kid)
+        if key is not None:
+            return key
+        with self._lock:
+            # Another thread may have downloaded the JWKS while this one waited for the lock.
+            key = self._keys.get(kid)
+            if key is not None:
+                return key
+            if self._in_cooldown():
+                if self._last_error is not None:
+                    raise JwksUnavailableError("JWKS download failed") from self._last_error
+                return None
+            self._last_attempt = monotonic()
+            try:
+                self._keys = _download_jwks()
+            except Exception as error:
+                self._last_error = error
+                raise
+            self._last_error = None
+            return self._keys.get(kid)
+
+    def _in_cooldown(self) -> bool:
+        return (
+            self._last_attempt is not None
+            and monotonic() - self._last_attempt < JWKS_REFETCH_COOLDOWN_SECONDS
+        )
+
+
+_jwks_cache = _JwksCache()
 
 
 def _key_for_token(token: str) -> dict[str, Any]:
     """Return the Supabase public key whose kid matches the token header."""
     kid = jwt.get_unverified_header(token).get("kid")
-    key = next((k for k in _fetch_jwks().get("keys", []) if k.get("kid") == kid), None)
+    key = _jwks_cache.key(kid)
     if key is None:
         raise JWTError(f"No JWKS key found for kid={kid}")
     return key
