@@ -3,8 +3,9 @@ FROM node:24-alpine AS base
 WORKDIR /app
 
 FROM base AS deps
-COPY package.json package-lock.json* ./
-RUN npm install
+COPY package.json package-lock.json ./
+# npm ci installs exactly what package-lock.json pins and fails when it is out of sync.
+RUN npm ci
 
 FROM base AS dev
 # Run as the image's unprivileged node user (UID/GID 1000), so files written to the dev
