@@ -1,10 +1,11 @@
 import base64
+import copy
 import hashlib
 import hmac
 import json
+import threading
 import time
 import uuid
-from collections.abc import Iterator
 from typing import Any
 
 import httpx
@@ -19,6 +20,13 @@ from app import auth
 from app.config import settings
 
 KID = "test-es256-key"
+# conftest.py sets SUPABASE_URL to https://example.supabase.co.
+ISSUER = "https://example.supabase.co/auth/v1"
+# Minimum gap between two JWKS download attempts (S3).
+COOLDOWN_SECONDS = 60
+# Age after which the cached JWKS is downloaded again even for a known kid (S4).
+MAX_AGE_SECONDS = 600
+STALE_KEYS_WARNING = "[auth] JWKS refresh failed"
 
 
 def _b64url_uint(value: int, length: int) -> str:
@@ -63,6 +71,7 @@ def _claims(**overrides: Any) -> dict[str, Any]:
         "sub": str(uuid.uuid4()),
         "aud": "authenticated",
         "exp": int(time.time()) + 300,
+        "iss": ISSUER,
     }
     claims.update(overrides)
     return claims
@@ -111,16 +120,59 @@ def signing_key() -> ec.EllipticCurvePrivateKey:
     return ec.generate_private_key(ec.SECP256R1())
 
 
+class _JwksServer:
+    """Fake Supabase JWKS endpoint that counts downloads and serves a fresh copy each time."""
+
+    def __init__(self, keys: dict[str, Any]) -> None:
+        self.keys = keys
+        self.downloads = 0
+        self.error: Exception | None = None
+        # When set, a download blocks until the test releases it.
+        self.gate: threading.Event | None = None
+        self.entered = threading.Event()
+        self._lock = threading.Lock()
+
+    def get(self, *args: Any, **kwargs: Any) -> _FakeResponse:
+        with self._lock:
+            self.downloads += 1
+        self.entered.set()
+        if self.gate is not None:
+            self.gate.wait(timeout=5)
+        if self.error is not None:
+            raise self.error
+        return _FakeResponse(copy.deepcopy(self.keys))
+
+
+class _Clock:
+    def __init__(self) -> None:
+        self.now = 1000.0
+
+    def __call__(self) -> float:
+        return self.now
+
+
 @pytest.fixture
-def jwks(
+def clock(monkeypatch: pytest.MonkeyPatch) -> _Clock:
+    """Control the monotonic clock the JWKS cache uses for its cooldown."""
+    fake = _Clock()
+    monkeypatch.setattr(auth, "monotonic", fake)
+    return fake
+
+
+@pytest.fixture
+def jwks_server(
     monkeypatch: pytest.MonkeyPatch, signing_key: ec.EllipticCurvePrivateKey
-) -> Iterator[dict[str, Any]]:
+) -> _JwksServer:
     """Serve a JWKS with the test ES256 key instead of calling Supabase."""
-    keys: dict[str, Any] = {"keys": [_ec_public_jwk(signing_key, KID)]}
-    monkeypatch.setattr(auth.httpx, "get", lambda *args, **kwargs: _FakeResponse(keys))
-    auth._fetch_jwks.cache_clear()
-    yield keys
-    auth._fetch_jwks.cache_clear()
+    server = _JwksServer({"keys": [_ec_public_jwk(signing_key, KID)]})
+    monkeypatch.setattr(auth.httpx, "get", server.get)
+    monkeypatch.setattr(auth, "_jwks_cache", auth._JwksCache())
+    return server
+
+
+@pytest.fixture
+def jwks(jwks_server: _JwksServer) -> dict[str, Any]:
+    return jwks_server.keys
 
 
 def test_rejects_hs256_token_signed_with_legacy_secret(
@@ -246,7 +298,18 @@ def test_rejects_token_for_another_audience(
     assert exc_info.value.status_code == 401
 
 
-@pytest.mark.parametrize("claim", ["exp", "aud"])
+def test_rejects_token_from_another_issuer(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    token = _es256_token(_claims(iss="https://another.supabase.co/auth/v1"), signing_key)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.parametrize("claim", ["exp", "aud", "iss"])
 def test_rejects_token_missing_a_required_claim(
     jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, claim: str
 ) -> None:
@@ -300,6 +363,23 @@ def test_rejects_token_whose_kid_is_not_in_the_jwks(
     jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, kid: str | None
 ) -> None:
     token = _es256_token(_claims(), signing_key, kid=kid)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "kid", [[KID], {"kid": KID}], ids=["list", "object"]
+)
+def test_rejects_token_whose_kid_is_not_a_string(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, kid: Any
+) -> None:
+    # The kid comes from the unverified header: a malformed one is a bad token, not a 500.
+    token = jwt.encode(
+        _claims(), _private_pem(signing_key), algorithm="ES256", headers={"kid": kid}
+    )
 
     with pytest.raises(HTTPException) as exc_info:
         _authenticate(token)
@@ -370,3 +450,172 @@ def test_jwks_that_is_not_json_is_not_reported_as_401(
     assert not (isinstance(error, HTTPException) and error.status_code == 401)
     # The failure must come from parsing the JWKS, not from an unrelated error.
     assert len(json_calls) == 1
+
+
+def test_fetches_jwks_from_the_supabase_auth_url(
+    monkeypatch: pytest.MonkeyPatch, jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    urls: list[str] = []
+
+    def fake_get(url: str, *args: Any, **kwargs: Any) -> _FakeResponse:
+        urls.append(url)
+        return _FakeResponse(jwks)
+
+    monkeypatch.setattr(auth.httpx, "get", fake_get)
+    _authenticate(_es256_token(_claims(), signing_key))
+
+    assert urls == [f"{ISSUER}/.well-known/jwks.json"]
+
+
+def test_accepts_token_signed_with_a_key_published_after_the_first_download(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    new_key = ec.generate_private_key(ec.SECP256R1())
+    jwks_server.keys["keys"].append(_ec_public_jwk(new_key, "rotated-key"))
+    clock.now += COOLDOWN_SECONDS + 1
+    user_id = uuid.uuid4()
+
+    token = _es256_token(_claims(sub=str(user_id)), new_key, kid="rotated-key")
+
+    assert _authenticate(token) == user_id
+    assert jwks_server.downloads == 2
+
+
+def test_unknown_kids_within_the_cooldown_do_not_download_the_jwks_again(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    clock.now += COOLDOWN_SECONDS - 1
+
+    for i in range(5):
+        with pytest.raises(HTTPException) as exc_info:
+            _authenticate(_es256_token(_claims(), signing_key, kid=f"invented-{i}"))
+        assert exc_info.value.status_code == 401
+
+    assert jwks_server.downloads == 1
+
+
+def test_unknown_kid_after_the_cooldown_downloads_the_jwks_again(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    clock.now += COOLDOWN_SECONDS + 1
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(_es256_token(_claims(), signing_key, kid="invented"))
+
+    assert exc_info.value.status_code == 401
+    assert jwks_server.downloads == 2
+
+
+def test_jwks_refresh_failure_on_unknown_kid_is_not_reported_as_401(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    jwks_server.error = httpx.ConnectError("Supabase unavailable")
+    clock.now += COOLDOWN_SECONDS + 1
+
+    with pytest.raises(httpx.HTTPError):
+        _authenticate(_es256_token(_claims(), signing_key, kid="rotated-key"))
+
+    assert jwks_server.downloads == 2
+
+
+def test_failed_download_counts_for_the_cooldown_and_is_not_reported_as_401(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    jwks_server.error = httpx.ConnectError("Supabase unavailable")
+    token = _es256_token(_claims(), signing_key)
+    with pytest.raises(httpx.HTTPError):
+        _authenticate(token)
+    clock.now += COOLDOWN_SECONDS - 1
+
+    with pytest.raises(auth.JwksUnavailableError) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.__cause__ is jwks_server.error
+    assert jwks_server.downloads == 1
+
+
+def test_concurrent_requests_with_a_new_kid_download_the_jwks_once(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    new_key = ec.generate_private_key(ec.SECP256R1())
+    jwks_server.keys["keys"].append(_ec_public_jwk(new_key, "rotated-key"))
+    clock.now += COOLDOWN_SECONDS + 1
+    token = _es256_token(_claims(), new_key, kid="rotated-key")
+    jwks_server.gate = threading.Event()
+    jwks_server.entered.clear()
+    results: list[object] = []
+
+    def authenticate() -> None:
+        try:
+            results.append(_authenticate(token))
+        except Exception as error:
+            results.append(error)
+
+    threads = [threading.Thread(target=authenticate) for _ in range(8)]
+    for thread in threads:
+        thread.start()
+    # Hold the refresh open so the other threads pile up behind it.
+    jwks_server.entered.wait(timeout=5)
+    threading.Event().wait(0.1)
+    jwks_server.gate.set()
+    for thread in threads:
+        thread.join(timeout=5)
+
+    assert all(isinstance(result, uuid.UUID) for result in results), results
+    assert len(results) == 8
+    assert jwks_server.downloads == 2
+
+
+def test_key_removed_from_the_jwks_is_rejected_after_the_max_age(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    token = _es256_token(_claims(), signing_key)
+    _authenticate(token)
+    jwks_server.keys["keys"] = []
+    clock.now += MAX_AGE_SECONDS + 1
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+    assert jwks_server.downloads == 2
+
+
+def test_cached_key_is_used_with_a_warning_when_the_refresh_after_the_max_age_fails(
+    jwks_server: _JwksServer,
+    signing_key: ec.EllipticCurvePrivateKey,
+    clock: _Clock,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    user_id = uuid.uuid4()
+    token = _es256_token(_claims(sub=str(user_id)), signing_key)
+    _authenticate(token)
+    jwks_server.error = httpx.ConnectError("Supabase unavailable")
+    clock.now += MAX_AGE_SECONDS + 1
+    capsys.readouterr()
+
+    # The request that attempts the refresh, then one inside the cooldown that follows it.
+    assert _authenticate(token) == user_id
+    assert _authenticate(token) == user_id
+
+    assert jwks_server.downloads == 2
+    # One line per failed refresh, not per request: an outage must not flood the logs.
+    assert capsys.readouterr().out.count(STALE_KEYS_WARNING) == 1
+
+
+def test_unknown_kid_when_the_refresh_after_the_max_age_fails_is_not_reported_as_401(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    jwks_server.error = httpx.ConnectError("Supabase unavailable")
+    clock.now += MAX_AGE_SECONDS + 1
+
+    with pytest.raises(httpx.HTTPError):
+        _authenticate(_es256_token(_claims(), signing_key, kid="rotated-key"))
+
+    assert jwks_server.downloads == 2
