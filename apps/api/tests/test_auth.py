@@ -246,6 +246,20 @@ def test_rejects_token_for_another_audience(
     assert exc_info.value.status_code == 401
 
 
+@pytest.mark.parametrize("claim", ["exp", "aud"])
+def test_rejects_token_missing_a_required_claim(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, claim: str
+) -> None:
+    claims = _claims()
+    del claims[claim]
+    token = _es256_token(claims, signing_key)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
 def test_rejects_token_without_sub(
     jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
 ) -> None:

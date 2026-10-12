@@ -45,6 +45,8 @@ def get_current_user(
             _key_for_token(token),
             algorithms=ALLOWED_ALGORITHMS,
             audience="authenticated",
+            # python-jose only checks these claims when present; Supabase always sends them.
+            options={"require_exp": True, "require_aud": True, "require_sub": True},
         )
     # Any token python-jose cannot process is the client's fault. JWKS download errors
     # (httpx) are not caught here: a Supabase outage is a server error, not a 401.
