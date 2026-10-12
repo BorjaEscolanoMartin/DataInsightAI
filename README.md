@@ -36,6 +36,26 @@ docker compose up --build
 #   api  → http://localhost:8000/docs
 ```
 
+### Usuario de los contenedores
+
+Los contenedores no corren como root, así que los ficheros que crean en tu carpeta (por ejemplo `.next/`) son tuyos:
+
+- **api y worker**: usuario `app`, con UID y GID 1000.
+- **web**: usuario `node` de la imagen oficial de Node, con UID y GID 1000. No se puede cambiar al construir.
+
+Si tu usuario no tiene el UID 1000 (`id -u`), construye la API con el tuyo:
+
+```bash
+docker compose build --build-arg APP_UID=$(id -u) --build-arg APP_GID=$(id -g) api worker
+```
+
+Después levanta con `docker compose up` sin `--build`: `--build` volvería a construir con el UID 1000.
+
+Si antes levantaste el proyecto con contenedores que corrían como root:
+
+- Los volúmenes que llenaron siguen siendo de root y hay que recrearlos. Por ejemplo: `docker compose down` y después `docker volume rm datainsightai_web_node_modules`. No uses `docker compose down -v`, que borra también la base de datos local.
+- Los ficheros de root que dejaron en tu carpeta también: `.next/` se puede borrar, porque se regenera.
+
 ### Variables de entorno
 
 **`apps/api/.env`**

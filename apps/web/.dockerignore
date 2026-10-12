@@ -1,0 +1,6 @@
+# Keep secrets, installed packages and build output out of the build context.
+.env
+.env.*
+node_modules/
+.next/
+npm-debug.log*
