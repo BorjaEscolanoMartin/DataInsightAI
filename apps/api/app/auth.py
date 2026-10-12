@@ -20,7 +20,7 @@ security = HTTPBearer()
 @functools.lru_cache(maxsize=1)
 def _fetch_jwks() -> dict:
     """Fetch Supabase public keys — cached for the lifetime of the process."""
-    url = f"{settings.supabase_url}/auth/v1/.well-known/jwks.json"
+    url = f"{settings.supabase_auth_url}/.well-known/jwks.json"
     resp = httpx.get(url, timeout=10)
     resp.raise_for_status()
     return resp.json()
@@ -45,8 +45,14 @@ def get_current_user(
             _key_for_token(token),
             algorithms=ALLOWED_ALGORITHMS,
             audience="authenticated",
+            issuer=settings.supabase_auth_url,
             # python-jose only checks these claims when present; Supabase always sends them.
-            options={"require_exp": True, "require_aud": True, "require_sub": True},
+            options={
+                "require_exp": True,
+                "require_aud": True,
+                "require_iss": True,
+                "require_sub": True,
+            },
         )
     # Any token python-jose cannot process is the client's fault. JWKS download errors
     # (httpx) are not caught here: a Supabase outage is a server error, not a 401.

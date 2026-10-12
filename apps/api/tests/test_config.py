@@ -46,3 +46,11 @@ def test_strips_trailing_slashes_from_supabase_url(
     monkeypatch.setenv("SUPABASE_URL", url)
 
     assert _settings().supabase_url == "https://abcdefgh.supabase.co"
+
+
+def test_derives_supabase_auth_url_without_a_double_slash(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("SUPABASE_URL", "https://abcdefgh.supabase.co/")
+
+    assert _settings().supabase_auth_url == "https://abcdefgh.supabase.co/auth/v1"

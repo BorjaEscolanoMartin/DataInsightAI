@@ -19,6 +19,8 @@ from app import auth
 from app.config import settings
 
 KID = "test-es256-key"
+# conftest.py sets SUPABASE_URL to https://example.supabase.co.
+ISSUER = "https://example.supabase.co/auth/v1"
 
 
 def _b64url_uint(value: int, length: int) -> str:
@@ -63,6 +65,7 @@ def _claims(**overrides: Any) -> dict[str, Any]:
         "sub": str(uuid.uuid4()),
         "aud": "authenticated",
         "exp": int(time.time()) + 300,
+        "iss": ISSUER,
     }
     claims.update(overrides)
     return claims
@@ -246,7 +249,18 @@ def test_rejects_token_for_another_audience(
     assert exc_info.value.status_code == 401
 
 
-@pytest.mark.parametrize("claim", ["exp", "aud"])
+def test_rejects_token_from_another_issuer(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    token = _es256_token(_claims(iss="https://another.supabase.co/auth/v1"), signing_key)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.parametrize("claim", ["exp", "aud", "iss"])
 def test_rejects_token_missing_a_required_claim(
     jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, claim: str
 ) -> None:
@@ -370,3 +384,18 @@ def test_jwks_that_is_not_json_is_not_reported_as_401(
     assert not (isinstance(error, HTTPException) and error.status_code == 401)
     # The failure must come from parsing the JWKS, not from an unrelated error.
     assert len(json_calls) == 1
+
+
+def test_fetches_jwks_from_the_supabase_auth_url(
+    monkeypatch: pytest.MonkeyPatch, jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    urls: list[str] = []
+
+    def fake_get(url: str, *args: Any, **kwargs: Any) -> _FakeResponse:
+        urls.append(url)
+        return _FakeResponse(jwks)
+
+    monkeypatch.setattr(auth.httpx, "get", fake_get)
+    _authenticate(_es256_token(_claims(), signing_key))
+
+    assert urls == [f"{ISSUER}/.well-known/jwks.json"]

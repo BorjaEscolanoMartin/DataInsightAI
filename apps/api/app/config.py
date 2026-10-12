@@ -20,6 +20,11 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:3000"
 
+    @property
+    def supabase_auth_url(self) -> str:
+        """Base URL of Supabase Auth: the JWKS location and the expected token issuer."""
+        return f"{self.supabase_url}/auth/v1"
+
     def get_cors_origins(self) -> list[str]:
         v = self.cors_origins.strip()
         if not v:
