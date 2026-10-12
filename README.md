@@ -79,7 +79,7 @@ DataInsightAI/
 │           ├── components/   # charts, insights, predictions, upload
 │           └── lib/          # queries (TanStack Query), api client
 ├── docker-compose.yml
-└── railway.json              # Configuración de deploy en Railway
+└── .railway/railway.ts       # Infraestructura en Railway (IaC): API y worker de Celery
 ```
 
 ### Flujo de análisis
