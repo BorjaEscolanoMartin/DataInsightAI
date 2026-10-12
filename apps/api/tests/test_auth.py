@@ -353,8 +353,11 @@ def test_jwks_that_is_not_json_is_not_reported_as_401(
     signing_key: ec.EllipticCurvePrivateKey,
 ) -> None:
     # A broken JWKS response is Supabase's fault: it must surface as a server error.
+    json_calls: list[None] = []
+
     class _HtmlResponse(_FakeResponse):
         def json(self) -> dict[str, Any]:
+            json_calls.append(None)
             raise json.JSONDecodeError("Expecting value", "<html>", 0)
 
     monkeypatch.setattr(auth.httpx, "get", lambda *args, **kwargs: _HtmlResponse({}))
@@ -365,3 +368,5 @@ def test_jwks_that_is_not_json_is_not_reported_as_401(
 
     error = exc_info.value
     assert not (isinstance(error, HTTPException) and error.status_code == 401)
+    # The failure must come from parsing the JWKS, not from an unrelated error.
+    assert len(json_calls) == 1
