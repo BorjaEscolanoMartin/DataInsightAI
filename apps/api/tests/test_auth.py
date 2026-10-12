@@ -24,6 +24,9 @@ KID = "test-es256-key"
 ISSUER = "https://example.supabase.co/auth/v1"
 # Minimum gap between two JWKS download attempts (S3).
 COOLDOWN_SECONDS = 60
+# Age after which the cached JWKS is downloaded again even for a known kid (S4).
+MAX_AGE_SECONDS = 600
+STALE_KEYS_WARNING = "[auth] JWKS refresh failed"
 
 
 def _b64url_uint(value: int, length: int) -> str:
@@ -549,4 +552,54 @@ def test_concurrent_requests_with_a_new_kid_download_the_jwks_once(
 
     assert all(isinstance(result, uuid.UUID) for result in results), results
     assert len(results) == 8
+    assert jwks_server.downloads == 2
+
+
+def test_key_removed_from_the_jwks_is_rejected_after_the_max_age(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    token = _es256_token(_claims(), signing_key)
+    _authenticate(token)
+    jwks_server.keys["keys"] = []
+    clock.now += MAX_AGE_SECONDS + 1
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+    assert jwks_server.downloads == 2
+
+
+def test_cached_key_is_used_with_a_warning_when_the_refresh_after_the_max_age_fails(
+    jwks_server: _JwksServer,
+    signing_key: ec.EllipticCurvePrivateKey,
+    clock: _Clock,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    user_id = uuid.uuid4()
+    token = _es256_token(_claims(sub=str(user_id)), signing_key)
+    _authenticate(token)
+    jwks_server.error = httpx.ConnectError("Supabase unavailable")
+    clock.now += MAX_AGE_SECONDS + 1
+    capsys.readouterr()
+
+    # The request that attempts the refresh, then one inside the cooldown that follows it.
+    assert _authenticate(token) == user_id
+    assert _authenticate(token) == user_id
+
+    assert jwks_server.downloads == 2
+    # One line per failed refresh, not per request: an outage must not flood the logs.
+    assert capsys.readouterr().out.count(STALE_KEYS_WARNING) == 1
+
+
+def test_unknown_kid_when_the_refresh_after_the_max_age_fails_is_not_reported_as_401(
+    jwks_server: _JwksServer, signing_key: ec.EllipticCurvePrivateKey, clock: _Clock
+) -> None:
+    _authenticate(_es256_token(_claims(), signing_key))
+    jwks_server.error = httpx.ConnectError("Supabase unavailable")
+    clock.now += MAX_AGE_SECONDS + 1
+
+    with pytest.raises(httpx.HTTPError):
+        _authenticate(_es256_token(_claims(), signing_key, kid="rotated-key"))
+
     assert jwks_server.downloads == 2
