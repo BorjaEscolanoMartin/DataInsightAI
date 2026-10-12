@@ -370,6 +370,23 @@ def test_rejects_token_whose_kid_is_not_in_the_jwks(
     assert exc_info.value.status_code == 401
 
 
+@pytest.mark.parametrize(
+    "kid", [[KID], {"kid": KID}], ids=["list", "object"]
+)
+def test_rejects_token_whose_kid_is_not_a_string(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, kid: Any
+) -> None:
+    # The kid comes from the unverified header: a malformed one is a bad token, not a 500.
+    token = jwt.encode(
+        _claims(), _private_pem(signing_key), algorithm="ES256", headers={"kid": kid}
+    )
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
 def test_rejects_token_signed_by_another_key_with_a_known_kid(jwks: dict[str, Any]) -> None:
     attacker_key = ec.generate_private_key(ec.SECP256R1())
     token = _es256_token(_claims(), attacker_key)
@@ -514,11 +531,10 @@ def test_failed_download_counts_for_the_cooldown_and_is_not_reported_as_401(
         _authenticate(token)
     clock.now += COOLDOWN_SECONDS - 1
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(auth.JwksUnavailableError) as exc_info:
         _authenticate(token)
 
-    error = exc_info.value
-    assert not (isinstance(error, HTTPException) and error.status_code == 401)
+    assert exc_info.value.__cause__ is jwks_server.error
     assert jwks_server.downloads == 1
 
 

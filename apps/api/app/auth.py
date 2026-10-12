@@ -104,6 +104,9 @@ _jwks_cache = _JwksCache()
 def _key_for_token(token: str) -> dict[str, Any]:
     """Return the Supabase public key whose kid matches the token header."""
     kid = jwt.get_unverified_header(token).get("kid")
+    # The header is not verified yet: a kid that is not a string cannot name any key.
+    if kid is not None and not isinstance(kid, str):
+        raise JWTError("Malformed kid in token header")
     key = _jwks_cache.key(kid)
     if key is None:
         raise JWTError(f"No JWKS key found for kid={kid}")
