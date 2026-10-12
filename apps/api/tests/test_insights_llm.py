@@ -34,6 +34,7 @@ SAMPLE_PROFILE = {
     ],
 }
 
+# Long lines are kept on purpose: wrapping them would change the fixture text.
 VALID_RESPONSE = """{
   "trends": [{"title": "Ventas crecientes", "description": "Las ventas muestran tendencia al alza.", "columns": ["ventas"]}],
   "anomalies": [{"title": "Outliers en ventas", "description": "Se detectaron 3 outliers por IQR.", "columns": ["ventas"]}],

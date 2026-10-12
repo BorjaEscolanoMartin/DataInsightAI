@@ -11,6 +11,7 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
+  # Cancel superseded runs only on pull requests; every push to main gets a full CI result.
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:

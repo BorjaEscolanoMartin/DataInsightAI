@@ -6,6 +6,7 @@ from anthropic import Anthropic
 from app.config import settings
 from app.schemas.insights import InsightsOut
 
+# Long lines are kept on purpose: wrapping them would change the prompt text.
 SYSTEM_PROMPT = """\
 Eres un analista de datos experto. Analiza el perfil estadístico de un dataset y genera insights accionables.
 
