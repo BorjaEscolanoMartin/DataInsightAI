@@ -277,6 +277,17 @@ def test_rejects_token_whose_sub_is_not_a_uuid(
     assert exc_info.value.status_code == 401
 
 
+def test_rejects_token_whose_sub_is_not_a_string(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    token = _es256_token(_claims(sub=123), signing_key)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
 @pytest.mark.parametrize("kid", ["unknown-kid", None], ids=["unknown", "missing"])
 def test_rejects_token_whose_kid_is_not_in_the_jwks(
     jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, kid: str | None
