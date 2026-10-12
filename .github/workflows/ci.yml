@@ -37,9 +37,10 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/datainsight_test
+      # Settings require an https SUPABASE_URL; tests never call it.
+      SUPABASE_URL: https://example.supabase.co
       # Tests never call external services: these stay empty on purpose.
       ANTHROPIC_API_KEY: ""
-      SUPABASE_URL: ""
       SUPABASE_SERVICE_ROLE_KEY: ""
     steps:
       - uses: actions/checkout@v5
