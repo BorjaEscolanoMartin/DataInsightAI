@@ -415,3 +415,52 @@ def test_the_same_csv_always_gets_the_same_interval():
     second = run_forecast(_daily_csv(), "fecha", "ventas")
 
     assert first["points"] == second["points"]
+
+
+@pytest.mark.parametrize(
+    ("history_start", "expected"),
+    [(0, (0, 0, 0)), (-1, (-5, -5, -5))],
+    ids=["no-negatives", "with-a-negative"],
+)
+def test_forecast_and_interval_are_cut_at_zero_only_without_negative_history(
+    monkeypatch, history_start, expected
+):
+    _forecast_always(monkeypatch, -5)
+    rows = [(d, history_start + i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    for p in result["points"]:
+        assert (p["yhat_lower"], p["yhat"], p["yhat_upper"]) == expected
+
+
+def test_a_declining_series_keeps_its_forecast_inside_the_band():
+    noise = np.random.default_rng(0).normal(0, 5, 100)
+    rows = [(d, max(0.0, 300 - 3 * i + noise[i])) for i, d in enumerate(_days(100))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    for p in result["points"]:
+        assert 0 <= p["yhat_lower"] <= p["yhat"] <= p["yhat_upper"]
+
+
+def test_backtest_measures_the_forecast_cut_at_zero(monkeypatch):
+    # History 0..59 has no negatives; the backtest holds 48..59 and the model says -5,
+    # which is shown as 0, so the errors are the actual values themselves.
+    _forecast_always(monkeypatch, -5)
+    rows = [(d, i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    assert result["wape"] == pytest.approx(100)
+    assert result["mae"] == pytest.approx(sum(range(48, 60)) / 12)
+
+
+def test_backtest_keeps_negative_forecasts_when_the_history_has_negatives(monkeypatch):
+    # History -1..58: the -5 forecast is kept, so each error is the actual value plus 5.
+    _forecast_always(monkeypatch, -5)
+    rows = [(d, i - 1) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    assert result["mae"] == pytest.approx(sum(range(47, 59)) / 12 + 5)

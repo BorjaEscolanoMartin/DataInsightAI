@@ -79,6 +79,11 @@ def _start_after_last_long_gap(missing: np.ndarray) -> int:
     return start
 
 
+def _cut_at_zero(values: np.ndarray, never_negative: bool) -> np.ndarray:
+    """A series that was never negative is not forecast below 0, nor is its band."""
+    return np.maximum(values, 0) if never_negative else values
+
+
 def _seasonal_periods(frequency: _Frequency, n: int) -> int | None:
     if frequency.season and n >= 3 * frequency.season:
         return frequency.season
@@ -120,6 +125,7 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
 
     values = series.to_numpy()
     horizon = frequency.horizon
+    never_negative = bool(by_date.min() >= 0)
 
     # Backtest on last 20% (min 5, max 30)
     test_size = max(5, min(30, n // 5))
@@ -145,7 +151,7 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
     trend, seasonal, seasonal_periods = _config(len(train))
     try:
         model = _fit(train, trend, seasonal, seasonal_periods)
-        backtest = model.forecast(test_size)
+        backtest = _cut_at_zero(np.asarray(model.forecast(test_size)), never_negative)
         wape, mae = _backtest_errors(test[test_observed], backtest[test_observed])
     except Exception as exc:
         _warn_fit_failed("backtest", trend, seasonal, seasonal_periods, exc)
@@ -187,8 +193,10 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
         rng=np.random.default_rng(FORECAST_SEED),
     )
     lower, upper = np.percentile(np.asarray(simulated), [2.5, 97.5], axis=1)
-    if by_date.min() >= 0:
-        lower = np.maximum(lower, 0)
+    lower, forecast_vals, upper = (
+        _cut_at_zero(np.asarray(a, dtype=float), never_negative)
+        for a in (lower, forecast_vals, upper)
+    )
 
     last_period = series.index[-1]
     for i, yhat in enumerate(forecast_vals):

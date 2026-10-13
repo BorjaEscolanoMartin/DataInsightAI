@@ -99,11 +99,19 @@ export interface ForecastPoint {
   yhat_upper: number
 }
 
+export type ForecastFrequency = "D" | "W" | "M" | "Q" | "Y"
+
 export interface ForecastOut {
   target_column: string
   date_column: string
-  mape: number | null
-  horizon_days: number
+  aggregation?: "none" | "sum" | null
+  frequency?: ForecastFrequency | null
+  horizon?: number | null
+  wape?: number | null
+  mae?: number | null
+  // Only in analyses stored before the forecast measured WAPE and MAE per frequency.
+  mape?: number | null
+  horizon_days?: number | null
   points: ForecastPoint[]
 }
 
