@@ -28,7 +28,7 @@ dependencies = [
     "scipy>=1.13",
     "celery[redis]>=5.4",
     "anthropic>=0.40",
-    "statsmodels>=0.14",
+    "statsmodels>=0.15",
     "scikit-learn>=1.5",
     "reportlab>=4.2",
 ]
