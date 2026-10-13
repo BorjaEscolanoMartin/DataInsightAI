@@ -2,8 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from app.services import forecasting, ml_baseline
+from app.db.models import Analysis
+from app.services import forecasting, insights_llm, ml_baseline
+from app.workers import tasks
 from app.workers.tasks import _run_predictions
+from tests.conftest import USER_A
 
 CONTENT = b"csv bytes"
 
@@ -60,3 +63,25 @@ def test_without_a_date_column_the_last_numeric_column_is_regressed(forecast, re
     assert result == {"forecast": None, "regression": regression.return_value}
     regression.assert_called_once_with(CONTENT, "precio", ["superficie", "habitaciones", "zona"])
     forecast.assert_not_called()
+
+
+def test_analysis_downloads_the_storage_path_saved_with_the_dataset(
+    db_session, make_dataset, monkeypatch
+):
+    # Datasets uploaded before the path change keep their old path in storage_path.
+    _, dataset, analysis = make_dataset(USER_A)
+    legacy_path = f"{USER_A}/legacy/{dataset.id}/ventas de enero.csv"
+    dataset.storage_path = legacy_path
+    db_session.flush()
+    analysis_id = analysis.id
+    download = MagicMock(return_value=b"fecha,ventas\n2024-01-01,100\n2024-01-02,120\n")
+    monkeypatch.setattr(tasks, "download_file", download)
+    monkeypatch.setattr(tasks, "SessionLocal", lambda: db_session)
+    monkeypatch.setattr(insights_llm, "generate_insights", MagicMock(return_value={}))
+
+    # run_analysis closes the session it gets, which detaches the objects loaded above.
+    tasks.run_analysis(str(analysis_id))
+
+    download.assert_called_once_with(legacy_path)
+    stored = db_session.get(Analysis, analysis_id)
+    assert stored is not None and stored.status == "completed"

@@ -15,6 +15,8 @@ router = APIRouter(tags=["datasets"])
 logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+# The filename column's own length: a longer name could only fail after the upload.
+MAX_FILENAME_LENGTH: int = Dataset.__table__.c.filename.type.length
 
 
 def _build_response(dataset: Dataset, analysis: Analysis) -> DatasetWithAnalysisOut:
@@ -60,13 +62,18 @@ def upload_dataset(
 
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=422, detail="Only .csv files are accepted")
+    if len(file.filename) > MAX_FILENAME_LENGTH:
+        raise HTTPException(
+            status_code=422, detail=f"Filename exceeds {MAX_FILENAME_LENGTH} characters"
+        )
 
     content = file.file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=422, detail="File exceeds 50 MB limit")
 
     dataset_id = uuid.uuid4()
-    storage_path = f"{user_id}/{project_id}/{dataset_id}/{file.filename}"
+    # The uploaded filename never reaches Storage: it is only kept in Dataset.filename.
+    storage_path = f"{user_id}/{project_id}/{dataset_id}.csv"
 
     try:
         upload_file(storage_path, content)

@@ -106,9 +106,12 @@ def test_upload_stores_the_dataset_and_queues_its_analysis(
     assert body["dataset"]["size_bytes"] == len(CSV)
     assert body["analysis"]["dataset_id"] == dataset_id
     assert body["analysis"]["status"] == "pending"
-    storage.assert_called_once_with(f"{USER_A}/{project.id}/{dataset_id}/ventas.csv", CSV)
+    storage.assert_called_once_with(f"{USER_A}/{project.id}/{dataset_id}.csv", CSV)
     enqueued.assert_called_once_with(analysis_id)
     assert _stored(db_session, project) == (1, 1)
+    dataset = db_session.get(Dataset, uuid.UUID(dataset_id))
+    assert dataset is not None
+    assert dataset.storage_path == f"{USER_A}/{project.id}/{dataset_id}.csv"
     analysis = db_session.get(Analysis, uuid.UUID(analysis_id))
     assert analysis is not None and analysis.status == "pending"
 
@@ -167,3 +170,49 @@ def test_upload_to_a_project_of_another_user_looks_like_a_missing_one(
     assert _stored(db_session, project) == (0, 0)
     storage.assert_not_called()
     enqueued.assert_not_called()
+
+
+def test_storage_path_never_contains_the_uploaded_filename(
+    client, as_user, db_session, make_project, storage, enqueued
+):
+    project = make_project(USER_A)
+    hostile = "../../otro/ventas.csv"
+
+    response = _upload(client, project.id, filename=hostile)
+
+    assert response.status_code == 201
+    dataset_id = response.json()["dataset"]["id"]
+    expected_path = f"{USER_A}/{project.id}/{dataset_id}.csv"
+    storage.assert_called_once_with(expected_path, CSV)
+    dataset = db_session.get(Dataset, uuid.UUID(dataset_id))
+    assert dataset is not None
+    assert (dataset.storage_path, dataset.filename) == (expected_path, hostile)
+    assert response.json()["dataset"]["filename"] == hostile
+
+
+def test_upload_rejects_a_filename_longer_than_255_characters(
+    client, as_user, db_session, make_project, storage, enqueued
+):
+    project = make_project(USER_A)
+    filename = "v" * 252 + ".csv"  # 256 characters
+
+    response = _upload(client, project.id, filename=filename)
+
+    assert response.status_code == 422
+    assert response.json() == {"detail": "Filename exceeds 255 characters"}
+    assert _stored(db_session, project) == (0, 0)
+    storage.assert_not_called()
+    enqueued.assert_not_called()
+
+
+def test_upload_accepts_a_filename_of_exactly_255_characters(
+    client, as_user, db_session, make_project, storage, enqueued
+):
+    project = make_project(USER_A)
+    filename = "v" * 251 + ".csv"  # 255 characters
+
+    response = _upload(client, project.id, filename=filename)
+
+    assert response.status_code == 201
+    assert response.json()["dataset"]["filename"] == filename
+    assert _stored(db_session, project) == (1, 1)
