@@ -187,8 +187,10 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
         rng=np.random.default_rng(FORECAST_SEED),
     )
     lower, upper = np.percentile(np.asarray(simulated), [2.5, 97.5], axis=1)
+    forecast_vals = np.asarray(forecast_vals, dtype=float)
+    # A series that was never negative is not forecast below 0, nor is its band.
     if by_date.min() >= 0:
-        lower = np.maximum(lower, 0)
+        lower, forecast_vals, upper = (np.maximum(a, 0) for a in (lower, forecast_vals, upper))
 
     last_period = series.index[-1]
     for i, yhat in enumerate(forecast_vals):
