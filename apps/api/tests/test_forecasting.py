@@ -4,6 +4,7 @@ from collections.abc import Callable
 from datetime import date, timedelta
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import pytest
 from statsmodels.tsa import holtwinters  # type: ignore[import-untyped]
@@ -31,7 +32,9 @@ def test_forecast_returns_points_for_each_day_of_the_horizon():
     for p in result["points"]:
         assert math.isfinite(p["yhat"])
         assert p["yhat_lower"] <= p["yhat"] <= p["yhat_upper"]
-    assert isinstance(result["mape"], float)
+    assert isinstance(result["wape"], float)
+    assert isinstance(result["mae"], float)
+    assert "mape" not in result
     assert result["frequency"] == "D"
     assert result["horizon"] == 30
     assert "horizon_days" not in result
@@ -80,10 +83,11 @@ def test_logs_a_warning_for_each_failed_fit(monkeypatch, caplog):
         "ValueError('boom')",
     ]
     assert result["points"] == []
-    assert result["mape"] is None
+    assert result["wape"] is None
+    assert result["mae"] is None
 
 
-def test_failed_backtest_logs_a_warning_and_leaves_mape_empty(monkeypatch, caplog):
+def test_failed_backtest_logs_a_warning_and_leaves_the_metrics_empty(monkeypatch, caplog):
     _fail_fit_when(monkeypatch, lambda n, kwargs: n < DAYS)
 
     with caplog.at_level(logging.WARNING, logger="app.services.forecasting"):
@@ -93,7 +97,8 @@ def test_failed_backtest_logs_a_warning_and_leaves_mape_empty(monkeypatch, caplo
         "Forecast backtest failed (trend=add, seasonal=add, seasonal_periods=7): "
         "ValueError('boom')",
     ]
-    assert result["mape"] is None
+    assert result["wape"] is None
+    assert result["mae"] is None
     assert len(result["points"]) == 30
 
 
@@ -107,7 +112,7 @@ def test_falls_back_to_a_simpler_config_when_the_seasonal_fit_fails(monkeypatch,
         "Forecast fit failed (trend=add, seasonal=add, seasonal_periods=7): ValueError('boom')",
     ]
     assert len(result["points"]) == 30
-    assert isinstance(result["mape"], float)
+    assert isinstance(result["wape"], float)
 
 
 def test_series_shorter_than_ten_days_returns_no_points():
@@ -285,3 +290,128 @@ def test_the_season_needs_three_full_seasons(days, seasonal_periods, fits):
 
     full_fit = next(kwargs for n, kwargs in fits if n == days)
     assert full_fit["seasonal_periods"] == seasonal_periods
+
+
+def _forecast_always(monkeypatch: pytest.MonkeyPatch, value: float) -> None:
+    """Replace Holt-Winters with a model that always forecasts `value`."""
+
+    class ConstantModel:
+        def __init__(self, endog, **kwargs):
+            pass
+
+        def fit(self, **fit_kwargs):
+            return self
+
+        def forecast(self, steps):
+            return np.full(steps, value)
+
+        def simulate(self, nsimulations, repetitions, **kwargs):
+            return np.full((nsimulations, repetitions), value)
+
+    monkeypatch.setattr(holtwinters, "ExponentialSmoothing", ConstantModel)
+
+
+def test_backtest_reports_wape_and_mae(monkeypatch):
+    # 60 days: the backtest holds the last 12, alternating 100 and 120; the model says 100.
+    _forecast_always(monkeypatch, 100)
+    rows = [(d, 100 + 20 * (i % 2)) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    # Six errors of 20 over actual values that add up to 1,320.
+    assert result["wape"] == pytest.approx(120 / 1320 * 100)
+    assert result["mae"] == pytest.approx(10)
+
+
+def test_wape_divides_by_the_absolute_actual_values(monkeypatch):
+    # Alternating -100 and 100 add up to 0; their absolute values add up to 1,200.
+    _forecast_always(monkeypatch, 0)
+    rows = [(d, 100 * (-1) ** i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    assert result["wape"] == pytest.approx(100)
+    assert result["mae"] == pytest.approx(100)
+
+
+def test_wape_is_empty_when_the_actual_values_are_all_zero(monkeypatch):
+    _forecast_always(monkeypatch, 5)
+    rows = [(d, 0) for d in _days(60)]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    assert result["wape"] is None
+    assert result["mae"] == pytest.approx(5)
+
+
+def test_backtest_ignores_filled_steps(monkeypatch):
+    # Two days without sales inside the 12-day backtest are filled with 0, not measured.
+    _forecast_always(monkeypatch, 100)
+    rows = [(d, v) for d in _with_gap(55, 2, 5) for v in (40, 60)]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    assert result["wape"] == pytest.approx(0)
+    assert result["mae"] == pytest.approx(0)
+
+
+class SimulatedModel:
+    """Forecasts 10 and simulates repetition k of every step as k - 100 (-100 to 899)."""
+
+    simulate_calls: list[dict] = []
+
+    def __init__(self, endog, **kwargs):
+        pass
+
+    def fit(self, **fit_kwargs):
+        return self
+
+    def forecast(self, steps):
+        return np.full(steps, 10.0)
+
+    def simulate(self, nsimulations, **kwargs):
+        SimulatedModel.simulate_calls.append({"nsimulations": nsimulations, **kwargs})
+        repetitions = kwargs["repetitions"]
+        return np.tile(np.arange(repetitions) - 100.0, (nsimulations, 1))
+
+
+@pytest.fixture
+def simulated(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    SimulatedModel.simulate_calls = []
+    monkeypatch.setattr(holtwinters, "ExponentialSmoothing", SimulatedModel)
+    return SimulatedModel.simulate_calls
+
+
+def test_interval_comes_from_1000_seeded_simulations_of_the_fitted_model(simulated):
+    rows = [(d, -5 + i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    [call] = simulated
+    assert call["nsimulations"] == 30
+    assert call["repetitions"] == 1000
+    assert call["error"] == "add"
+    assert call["random_errors"] is None
+    assert call["rng"].random() == np.random.default_rng(42).random()
+    # 2.5 and 97.5 percentiles of -100..899; the history has a negative, so nothing is cut.
+    for p in result["points"]:
+        assert p["yhat"] == 10
+        assert p["yhat_lower"] == pytest.approx(np.percentile(np.arange(1000) - 100.0, 2.5))
+        assert p["yhat_upper"] == pytest.approx(np.percentile(np.arange(1000) - 100.0, 97.5))
+
+
+def test_interval_is_cut_at_zero_when_the_history_has_no_negatives(simulated):
+    rows = [(d, i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    for p in result["points"]:
+        assert p["yhat_lower"] == 0
+        assert p["yhat_upper"] == pytest.approx(np.percentile(np.arange(1000) - 100.0, 97.5))
+
+
+def test_the_same_csv_always_gets_the_same_interval():
+    first = run_forecast(_daily_csv(), "fecha", "ventas")
+    second = run_forecast(_daily_csv(), "fecha", "ventas")
+
+    assert first["points"] == second["points"]

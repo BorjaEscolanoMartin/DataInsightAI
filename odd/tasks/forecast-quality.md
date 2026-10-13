@@ -1,7 +1,7 @@
 # forecast-quality
 
 Objective: make the forecast trustworthy on real data (brief P3 / PR 4, H2 + H3) and fix two defects reported by Borja: the confidence interval and the histogram's empty bins.
-Branch: `fix/forecast-quality` from `main` (03493fb). Delivery: ask-on-risk (forecast about 550 authored lines, so the chain question comes before the commit that crosses 400). Runners: `pytest` and `ruff` in `apps/api`; `npm test`, `typecheck`, `lint` and `build` in `apps/web`.
+Branch: `fix/forecast-quality` from `main` (03493fb). Delivery: ask-on-risk, chain strategy feature-branch-chain (L9). Runners: `pytest` and `ruff` in `apps/api`; `npm test`, `typecheck`, `lint` and `build` in `apps/web`.
 
 ## Specs
 
@@ -31,10 +31,16 @@ Route: inline (no Writer trigger). Each task: RED, GREEN, commit.
 - [x] T2 S6 inline: histogram returns empty bins
 - [x] T3 S1 inline: identifier detection in profiling; forecast target skips identifiers
 - [x] T4 S2, S3 inline: day aggregation, frequency, gaps, horizon per frequency, observed-only backtest
-- [ ] T5 S4 inline: WAPE and MAE in the service
-- [ ] T6 S5 inline: simulated interval, clipped at 0 for non-negative history
+- [x] T5 S4 inline: WAPE and MAE in the service
+- [x] T6 S5 inline: simulated interval, clipped at 0 for non-negative history
 - [ ] T7 S2-S4, S7 inline: API schema, web types, chart (title, WAPE, MAE, aggregation), PDF; old analysis render test
 - [ ] T8 S8: verifier, RDD
+
+Slices (feature-branch-chain, L9): a draft tracker PR from `main`; child PRs in order, each targeting the previous one. Branches and PRs are created when Borja asks; nothing is pushed before that.
+1. T1-T3: feature document, empty histogram bins, identifiers (95255d0..57ed8a6).
+2. T4: aggregation, frequency, gaps (fb906ab).
+3. T5-T6: WAPE, MAE and the simulated interval in the service.
+4. T7: API schema, web types, chart, PDF and the old-analysis test.
 
 ## Log
 
@@ -46,3 +52,6 @@ Route: inline (no Writer trigger). Each task: RED, GREEN, commit.
 - L6 T2: RED `test_histogram_keeps_empty_bins_between_distant_values` (values 1×3 and 21×2): got `[3, 2]`, expected 20 bins with 18 zeros. GREEN: the `if counts[i] > 0` filter is gone. 120 passed, ruff clean, web 13 passed. Found on the way (pre-existing, not in scope): `profile_csv` reads a one-column CSV `valor` with the delimiter sniffed as "v" (columns `Unnamed: 0` and `alor`); the test uses two columns. Candidate for the backlog.
 - L7 T3: RED: `is_identifier` missing (KeyError) and `_run_predictions` forecasting "Id. de la fila", plus a forecast with only an identifier column. GREEN: `profiling._is_identifier` (numeric, distinct integers, consecutive range or a token `id` after splitting the name on `[\W_]+`) stored on every column; `_run_predictions` forecasts the first numeric non-identifier column; the regression is unchanged. Mutations killed: no underscore in the split, substring match, no consecutive rule, no uniqueness check (needed the `pedido_id` case with repeats), no integer check (needed `medida` 1.5..5.5). 123 passed, ruff clean.
 - L8 T4: 14 REDs (aggregation key, sum per date, day reduction, frequency D/W/M/Q/Y with season and horizon dates, irregular spacing, two dates in one period, long gap; `_run_predictions` still passing `horizon_days`). GREEN: `run_forecast(content, date_col, target_col)` normalises dates to the day, sums repeated dates, detects the frequency from the median spacing, reindexes on a `PeriodIndex`, cuts after the last gap longer than `MAX_SHORT_GAP = 3`, fills short gaps with 0 (summed) or interpolation, fits on the values and dates each step with its period start; the season needs three full seasons (today's 21 days for D); skipped forecasts log "Forecast skipped: <reason>". The backtest MAPE already uses only observed steps (T5 replaces the metric). Mutations killed: always interpolate, always 0, `MAX_SHORT_GAP = 2`, `>=` on the gap, two seasons instead of three (needed the 20/21-day boundary test), no day reduction, no duplicate-period check. The short-gap tests read the first forecast week, because the weekly season is what carries the zeros. 139 passed, ruff clean. Until T7, the API schema still defaults `horizon_days` to 30 and the chart reads it.
+- L9 After T4 the running count was 441 authored lines (RDD assess: medium, under_budget). Borja chose "feature-branch-chain (Recomendado)": main never sees the state where the API stops writing `horizon_days` while the schema and the chart still read it.
+- L10 T5: 8 REDs (KeyError on `wape`/`mae`, including the four existing tests that read `mape`). The metric tests replace Holt-Winters with a model that always forecasts a constant, so WAPE and MAE are computed by hand. GREEN: `_backtest_errors` returns WAPE = Σ|error| / Σ|actual| × 100 (None when that sum is 0) and MAE over the observed backtest steps; `mape` is no longer written. Mutations killed: Σactual without abs, all steps instead of observed ones, 0 instead of None, sum instead of mean. 143 passed, ruff clean.
+- L11 T6: 2 REDs with a fake model whose simulation of every step is -100..899 (exact percentiles, seed and clip). GREEN: `simulate(horizon, repetitions=SIMULATIONS (1000), error="add", random_errors=None, rng=np.random.default_rng(FORECAST_SEED (42)))`, 2.5/97.5 percentiles per step, lower bound cut at 0 when no historical value is negative. The determinism test passed before (the old formula had no randomness); mutations killed: unseeded rng, always cut, never cut, cut judged on the last 30 values only. 146 passed, ruff clean. Demo sales CSV: day 30 went from -345..7016 to 1620..5010 around the same yhat 3336; the whole forecast takes 1.6 s. Advisory: if a forecast for a non-negative history goes below 0, its cut lower bound (0) sits above yhat; not seen on the test data.

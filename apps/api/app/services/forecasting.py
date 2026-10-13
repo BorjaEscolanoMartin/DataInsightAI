@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import logging
-import math
 from typing import Any, NamedTuple
 
 import numpy as np
@@ -11,6 +10,10 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 MIN_POINTS = 10
+# The interval is the 2.5-97.5 percentile band of seeded simulations of the fitted model,
+# so the same CSV always gets the same band.
+SIMULATIONS = 1000
+FORECAST_SEED = 42
 # Up to this many consecutive missing steps are filled; a longer gap cuts the series.
 MAX_SHORT_GAP = 3
 
@@ -42,11 +45,16 @@ def _warn_fit_failed(
     )
 
 
-def _mape(actual: np.ndarray, predicted: np.ndarray) -> float | None:
-    mask = actual != 0
-    if mask.sum() == 0:
-        return None
-    return float(np.mean(np.abs((actual[mask] - predicted[mask]) / actual[mask])) * 100)
+def _backtest_errors(
+    actual: np.ndarray, predicted: np.ndarray
+) -> tuple[float | None, float | None]:
+    """WAPE (%) and MAE of the backtest; WAPE is empty when the actual values are all 0."""
+    if len(actual) == 0:
+        return None, None
+    abs_errors = np.abs(actual - predicted)
+    scale = float(np.abs(actual).sum())
+    wape = float(abs_errors.sum() / scale * 100) if scale else None
+    return wape, float(abs_errors.mean())
 
 
 def _no_forecast(target_col: str, date_col: str, reason: str) -> dict[str, Any]:
@@ -132,12 +140,13 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
             initialization_method="estimated",
         ).fit(optimized=True)
 
-    mape_val: float | None = None
+    wape: float | None = None
+    mae: float | None = None
     trend, seasonal, seasonal_periods = _config(len(train))
     try:
         model = _fit(train, trend, seasonal, seasonal_periods)
         backtest = model.forecast(test_size)
-        mape_val = _mape(test[test_observed], backtest[test_observed])
+        wape, mae = _backtest_errors(test[test_observed], backtest[test_observed])
     except Exception as exc:
         _warn_fit_failed("backtest", trend, seasonal, seasonal_periods, exc)
 
@@ -163,23 +172,30 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
         "aggregation": aggregation,
         "frequency": frequency.code,
         "horizon": horizon,
-        "mape": mape_val,
+        "wape": wape,
+        "mae": mae,
         "points": [],
     }
     if forecast_vals is None:
         return result
 
-    last_std = float(series.tail(max(7, test_size)).std())
-    ci_width = last_std * 1.96
+    simulated = model_full.simulate(
+        horizon,
+        repetitions=SIMULATIONS,
+        error="add",
+        random_errors=None,
+        rng=np.random.default_rng(FORECAST_SEED),
+    )
+    lower, upper = np.percentile(np.asarray(simulated), [2.5, 97.5], axis=1)
+    if by_date.min() >= 0:
+        lower = np.maximum(lower, 0)
 
     last_period = series.index[-1]
     for i, yhat in enumerate(forecast_vals):
-        yhat_f = float(yhat)
-        width = ci_width * math.sqrt(i + 1)
         result["points"].append({
             "ds": str((last_period + i + 1).start_time.date()),
-            "yhat": yhat_f,
-            "yhat_lower": yhat_f - width,
-            "yhat_upper": yhat_f + width,
+            "yhat": float(yhat),
+            "yhat_lower": float(lower[i]),
+            "yhat_upper": float(upper[i]),
         })
     return result
