@@ -1,4 +1,4 @@
-"""Spanish number format: one rule to write numbers for the LLM and to read them back."""
+"""Spanish number and date format: one rule to write them for the LLM and to read them back."""
 
 import re
 from typing import NamedTuple
@@ -44,3 +44,24 @@ def find_numbers(text: str) -> list[ParsedNumber]:
         decimals = len(token.split(",")[1]) if value is not None and "," in token else 0
         found.append(ParsedNumber(token, value, decimals, sign))
     return found
+
+
+MONTHS_ES = ("ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic")
+# What format_day_es and format_period_es write: 28 nov 2025, oct 2024, T1 2024.
+SPANISH_DATE = re.compile(rf"(?:\d{{1,2}} )?(?:{'|'.join(MONTHS_ES)}) \d{{4}}|T[1-4] \d{{4}}")
+
+
+def format_day_es(iso_date: str) -> str:
+    year, month, day = iso_date.split("-")
+    return f"{int(day)} {MONTHS_ES[int(month) - 1]} {year}"
+
+
+def format_period_es(label: str) -> str:
+    """A pandas period label: 2024-10 (month), 2024Q1 (quarter) or 2024 (year)."""
+    if "Q" in label:
+        year, quarter = label.split("Q")
+        return f"T{quarter} {year}"
+    if "-" in label:
+        year, month = label.split("-")
+        return f"{MONTHS_ES[int(month) - 1]} {year}"
+    return label

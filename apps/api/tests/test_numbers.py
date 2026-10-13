@@ -1,6 +1,13 @@
 import pytest
 
-from app.services.numbers import find_numbers, format_es, parse_es
+from app.services.numbers import (
+    SPANISH_DATE,
+    find_numbers,
+    format_day_es,
+    format_es,
+    format_period_es,
+    parse_es,
+)
 
 
 @pytest.mark.parametrize(
@@ -80,3 +87,25 @@ def test_find_numbers_tells_an_explicit_sign_from_a_hyphen_between_numbers():
         ("2024", 2024, ""),
         ("2025", 2025, ""),
     ]
+
+
+@pytest.mark.parametrize(
+    ("iso", "text"),
+    [("2025-11-28", "28 nov 2025"), ("2024-01-05", "5 ene 2024"), ("2026-09-30", "30 sep 2026")],
+)
+def test_format_day_es_writes_day_month_and_year(iso, text):
+    assert format_day_es(iso) == text
+
+
+@pytest.mark.parametrize(
+    ("label", "text"),
+    [("2024-10", "oct 2024"), ("2025-05", "may 2025"), ("2024Q1", "T1 2024"), ("2024", "2024")],
+)
+def test_format_period_es_writes_months_quarters_and_years(label, text):
+    assert format_period_es(label) == text
+
+
+def test_spanish_date_matches_what_the_formatters_write():
+    text = "Del 28 nov 2025 a oct 2024, en T3 2023 y 5 ene 2024."
+
+    assert SPANISH_DATE.findall(text) == ["28 nov 2025", "oct 2024", "T3 2023", "5 ene 2024"]

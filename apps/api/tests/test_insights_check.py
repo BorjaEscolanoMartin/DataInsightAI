@@ -5,9 +5,9 @@ from app.services.insights_check import check_insights
 DATA = """<datos>
 Dataset: 730 filas × 6 columnas
   Ventas: media 2.307,52; máximo 8.734,60
-  Valores más altos: 2025-11-28 (8.734,60)
+  Valores más altos: 28 nov 2025 (8.734,60)
   Ventas por grupo: Sí: n = 50, media 2.907,93 (+26,0 %); No: n = 680, media 2.263,10 (-1,9 %)
-  2024-10: 1.979,24
+  oct 2024: 1.979,24
   Ventas ↔ Pedidos: r = 0,92 (muy fuerte)
 </datos>"""
 
@@ -22,11 +22,11 @@ def _insights(**categories: list[dict]) -> dict:
 
 def test_insights_whose_figures_are_in_the_data_are_kept():
     kept = _item(
-        "Pico de 8.734,60 el 2025-11-28",
+        "Pico de 8.734,60 el 28 nov 2025",
         # Exact, rounded (2.308, 8.735), absolute (1,9 % below), dates and periods of the data,
         # and small counts written as words.
-        "Las ventas medias son 2.307,52 (unas 2.308) y el máximo, 8.735, en 2025-11-28. "
-        "Sin promoción quedan un 1,9 % por debajo; en 2024-10 la media fue 1.979,24. "
+        "Las ventas medias son 2.307,52 (unas 2.308) y el máximo, 8.735, el 28 nov 2025. "
+        "Sin promoción quedan un 1,9 % por debajo; en oct 2024 la media fue 1.979,24. "
         "Hay 3 días destacados y r = 0,92.",
     )
 
@@ -68,7 +68,7 @@ def test_numbers_in_another_format_are_not_found():
 
 
 def test_a_date_that_is_not_in_the_data_is_checked_as_numbers():
-    result, dropped = check_insights(_insights(trends=[_item("Fecha", "El 2023-05-01.")]), DATA)
+    result, dropped = check_insights(_insights(trends=[_item("Fecha", "El 1 may 2023.")]), DATA)
 
     assert result["trends"] == []
     assert dropped[0].missing == ["2023"]
@@ -92,11 +92,12 @@ def test_when_every_insight_is_dropped_the_result_is_empty():
 
 
 def test_the_numbers_inside_dates_and_periods_of_the_data_are_not_figures():
-    insight = _item("Unidades", "Se vendieron 2024 unidades y 2025 pedidos.")
+    # 28 is only the day of 28 nov 2025 in the data.
+    insight = _item("Unidades", "Se vendieron 28 unidades.")
 
     result, dropped = check_insights(_insights(trends=[insight]), DATA)
 
-    assert dropped[0].missing == ["2024", "2025"]
+    assert dropped[0].missing == ["28"]
 
 
 def test_an_explicit_sign_must_match_the_data():

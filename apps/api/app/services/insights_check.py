@@ -1,17 +1,14 @@
 """Keep only the insights whose figures appear in the data the model received."""
 
 import logging
-import re
 from typing import Any, NamedTuple
 
-from app.services.numbers import ParsedNumber, find_numbers
+from app.services.numbers import SPANISH_DATE, ParsedNumber, find_numbers
 
 logger = logging.getLogger(__name__)
 
 # Small integers are counts written as words ("3 días") and are not checked.
 MAX_UNCHECKED_INTEGER = 10
-# Dates (2025-11-28) and period labels (2024-10, 2024Q1) are matched whole, not as numbers.
-_DATE_OR_PERIOD = re.compile(r"\d{4}(?:-\d{2}(?:-\d{2})?|Q[1-4])")
 
 
 class Dropped(NamedTuple):
@@ -37,12 +34,13 @@ def check_insights(
 ) -> tuple[dict[str, Any], list[Dropped]]:
     """The insights without those that quote a figure missing from the data, and what was
     dropped. Dates and periods are not figures, in the data or in the insights."""
-    known_dates = set(_DATE_OR_PERIOD.findall(data_block))
-    figures = _DATE_OR_PERIOD.sub(" ", data_block)
+    # Dates (28 nov 2025, oct 2024, T1 2024) are matched whole, not as numbers.
+    known_dates = set(SPANISH_DATE.findall(data_block))
+    figures = SPANISH_DATE.sub(" ", data_block)
     data = [n.value for n in find_numbers(figures) if n.value is not None]
 
     def missing(text: str) -> list[str]:
-        text = _DATE_OR_PERIOD.sub(lambda m: " " if m.group() in known_dates else m.group(), text)
+        text = SPANISH_DATE.sub(lambda m: " " if m.group() in known_dates else m.group(), text)
         return [n.text for n in find_numbers(text) if not _found(n, data)]
 
     checked: dict[str, Any] = {}
