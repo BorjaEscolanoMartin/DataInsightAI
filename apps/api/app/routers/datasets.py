@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
-from app.db.models import Analysis, Dataset, Project
+from app.db.models import MAX_FILENAME_LENGTH, Analysis, Dataset, Project
 from app.db.ownership import owned_dataset
 from app.db.session import get_db
 from app.schemas.datasets import AnalysisOut, DatasetOut, DatasetProfileOut, DatasetWithAnalysisOut
@@ -15,8 +15,6 @@ router = APIRouter(tags=["datasets"])
 logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
-# The filename column's own length: a longer name could only fail after the upload.
-MAX_FILENAME_LENGTH: int = Dataset.__table__.c.filename.type.length
 
 
 def _build_response(dataset: Dataset, analysis: Analysis) -> DatasetWithAnalysisOut:
