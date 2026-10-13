@@ -10,6 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 import httpx
+import jwt
 import pytest
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
@@ -684,9 +685,10 @@ def test_broken_jwks_key_is_a_server_error_and_good_keys_still_work(
             broken_key[field] = value
     jwks["keys"].append(broken_key)
 
-    with pytest.raises(Exception) as exc_info:
+    # A PyJWT key error, not an invalid token: it escapes the 401 mapping as a server error.
+    with pytest.raises(jwt.PyJWTError) as exc_info:
         _authenticate(_es256_token(_claims(), signing_key, kid="broken-key"))
-    assert not isinstance(exc_info.value, HTTPException)
+    assert not isinstance(exc_info.value, jwt.InvalidTokenError)
 
     user_id = uuid.uuid4()
     assert _authenticate(_es256_token(_claims(sub=str(user_id)), signing_key)) == user_id
