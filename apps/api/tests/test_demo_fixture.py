@@ -21,16 +21,16 @@ def generated(monkeypatch, tmp_path):
 
 
 def test_dry_run_prints_the_check_report_and_writes_nothing(generated, tmp_path, capsys):
-    generate_demo_fixture.main(["--dry-run", "--model", "claude-opus-5-5"])
+    generate_demo_fixture.main(["--dry-run", "--model", "claude-sonnet-5-5"])
 
     assert list(tmp_path.iterdir()) == []
-    assert [call.kwargs["model"] for call in generated.call_args_list] == ["claude-opus-5-5"] * 2
+    assert [call.kwargs["model"] for call in generated.call_args_list] == ["claude-sonnet-5-5"] * 2
     report = capsys.readouterr().out.splitlines()
     assert report[:4] == [
-        "== demo_ventas_diarias.csv (claude-opus-5-5): 1 kept, 1 dropped ==",
+        "== demo_ventas_diarias.csv (claude-sonnet-5-5): 1 kept, 1 dropped ==",
         "[trends] Promoción: Con promoción, 2.907,93 de media.",
         "DROPPED [anomalies] Pico: figures not in the data: 28,5, 645",
-        "== demo_viviendas.csv (claude-opus-5-5): 1 kept, 1 dropped ==",
+        "== demo_viviendas.csv (claude-sonnet-5-5): 1 kept, 1 dropped ==",
     ]
 
 
@@ -38,7 +38,7 @@ def test_a_normal_run_writes_both_fixtures_with_the_default_model(generated, tmp
     generate_demo_fixture.main([])
 
     assert sorted(p.name for p in tmp_path.iterdir()) == ["ventas.json", "viviendas.json"]
-    assert [call.kwargs["model"] for call in generated.call_args_list] == ["claude-sonnet-5-5"] * 2
+    assert [call.kwargs["model"] for call in generated.call_args_list] == ["claude-opus-5-5"] * 2
     fixture = json.loads((tmp_path / "ventas.json").read_text(encoding="utf-8"))
     assert fixture["analysis"]["insights"] == INSIGHTS
 

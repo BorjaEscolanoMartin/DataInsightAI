@@ -115,7 +115,7 @@ def test_generate_insights_returns_empty_without_api_key():
     anthropic.assert_not_called()
 
 
-def test_the_request_uses_sonnet_5_5_medium_effort_and_the_insights_schema(api_key):
+def test_the_request_uses_opus_5_5_medium_effort_and_the_insights_schema(api_key):
     client = _client(InsightsOut(trends=[GOOD]))
 
     _generate(client)
@@ -123,7 +123,7 @@ def test_the_request_uses_sonnet_5_5_medium_effort_and_the_insights_schema(api_k
     kwargs = client.messages.parse.call_args.kwargs
     profile = profile_csv(CSV)
     df = read_csv(CSV)
-    assert kwargs["model"] == "claude-sonnet-5-5"
+    assert kwargs["model"] == "claude-opus-5-5"
     assert kwargs["output_config"] == {"effort": "medium"}
     assert kwargs["output_format"] is InsightsOut
     assert kwargs["system"] == SYSTEM_PROMPT
@@ -140,9 +140,9 @@ def test_the_request_uses_sonnet_5_5_medium_effort_and_the_insights_schema(api_k
 def test_the_model_can_be_chosen(api_key):
     client = _client(InsightsOut())
 
-    _generate(client, model="claude-opus-5-5")
+    _generate(client, model="claude-sonnet-5-5")
 
-    assert client.messages.parse.call_args.kwargs["model"] == "claude-opus-5-5"
+    assert client.messages.parse.call_args.kwargs["model"] == "claude-sonnet-5-5"
 
 
 def test_insights_with_figures_missing_from_the_data_are_dropped(api_key):

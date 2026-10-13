@@ -13,7 +13,7 @@ from app.services.profiling import read_csv
 
 logger = logging.getLogger(__name__)
 
-MODEL = "claude-sonnet-5-5"
+MODEL = "claude-opus-5-5"
 EFFORT = "medium"
 MAX_TOKENS = 16000
 
