@@ -113,3 +113,16 @@ def make_dataset(
         return project, dataset, analysis
 
     return create
+
+
+@pytest.fixture
+def make_project(db_session: Session) -> Callable[[uuid.UUID], Project]:
+    """Store an empty project owned by the given user."""
+
+    def create(user_id: uuid.UUID) -> Project:
+        project = Project(user_id=user_id, name="Ventas", description="Ventas diarias")
+        db_session.add(project)
+        db_session.flush()
+        return project
+
+    return create
