@@ -73,7 +73,6 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
             "data": [
                 {"bin": f"{edges[i]:.4g}–{edges[i+1]:.4g}", "count": int(counts[i])}
                 for i in range(len(counts))
-                if counts[i] > 0
             ],
         })
 

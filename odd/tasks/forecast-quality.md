@@ -28,7 +28,7 @@ Test data (brief): "Para los tests automáticos de la PR 4, mejor fixtures peque
 Route: inline (no Writer trigger). Each task: RED, GREEN, commit.
 
 - [x] T1 inline: `docs: add feature document for forecast quality` (95255d0)
-- [ ] T2 S6 inline: histogram returns empty bins
+- [x] T2 S6 inline: histogram returns empty bins
 - [ ] T3 S1 inline: identifier detection in profiling; forecast target skips identifiers
 - [ ] T4 S2, S3 inline: day aggregation, frequency, gaps, horizon per frequency, observed-only backtest
 - [ ] T5 S4 inline: WAPE and MAE in the service
@@ -43,3 +43,4 @@ Route: inline (no Writer trigger). Each task: RED, GREEN, commit.
 - L3 Branch created from main 03493fb; da7e602 closes `odd/tasks/demo.md` (L22, L23, T8). Code read for the decisions: `forecasting.py` (mean per date, `asfreq("D").interpolate()`, interval from `series.tail(...).std()`), `tasks.py:23` (`numeric_cols[0]`), `profiling.py:76` (empty bins dropped), `report.py:288`, `ForecastChart.tsx:43-47`. Waiting for Borja on D1-D5.
 - L4 Borja (2026-10-13): "D1, D3 y D5 aceptadas. D2 aceptada, pero parte el nombre por cualquier carácter que no sea letra o dígito, incluido el guion bajo: cliente_id e ID cliente deben coincidir; Pedidos y Paid no. D4: MAE y además WAPE (la suma de errores absolutos entre la suma de valores reales); WAPE como cifra principal en la UI y el PDF, MAE como detalle. Recorta el intervalo a 0 solo si la serie histórica no tiene negativos. El horizonte según la frecuencia, con el título del gráfico que lo refleje. Añade un test que pinte un análisis antiguo, solo con mape, para demostrar la compatibilidad. Actualiza el documento con estas decisiones y empieza por los RED"
 - L5 Specs rewritten from L4. Found while planning: the API validates stored predictions through `ForecastOut` (`routers/datasets.py:36`, `routers/analyses.py:51`), which drops unknown keys and defaults `horizon_days` to 30, so the new fields must be declared there (S7). Interpretations to confirm: WAPE divides by Σ|actual| (S4); dates are reduced to the day before aggregating (S2); `run_forecast` derives the horizon from the frequency, so its `horizon_days` parameter goes away.
+- L6 T2: RED `test_histogram_keeps_empty_bins_between_distant_values` (values 1×3 and 21×2): got `[3, 2]`, expected 20 bins with 18 zeros. GREEN: the `if counts[i] > 0` filter is gone. 120 passed, ruff clean, web 13 passed. Found on the way (pre-existing, not in scope): `profile_csv` reads a one-column CSV `valor` with the delimiter sniffed as "v" (columns `Unnamed: 0` and `alor`); the test uses two columns. Candidate for the backlog.

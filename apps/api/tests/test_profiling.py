@@ -77,3 +77,14 @@ def test_handles_latin1_encoding():
     csv = "nombre,valor\nJosé,10\nMaría,20\n".encode("latin-1")
     result = profile_csv(csv)
     assert result["row_count"] == 2
+
+
+def test_histogram_keeps_empty_bins_between_distant_values():
+    csv = b"valor,nombre\n1,a\n1,b\n1,c\n21,d\n21,e\n"
+    result = profile_csv(csv)
+    hist = next(c for c in result["charts"] if c["id"] == "hist_valor")
+
+    assert [b["count"] for b in hist["data"]] == [3] + [0] * 18 + [2]
+    assert hist["data"][0]["bin"] == "1–2"
+    assert hist["data"][1]["bin"] == "2–3"
+    assert hist["data"][-1]["bin"] == "20–21"
