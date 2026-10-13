@@ -1,0 +1,30 @@
+# storage-filename
+
+Objective: keep the user-supplied filename out of the Storage path, escape every data text in the PDF report, build a safe Content-Disposition header, and reject filenames over 255 characters before uploading.
+Branch: `fix/storage-filename` from `main` (1fdb2b1). Delivery: ask-on-risk, single PR expected. Runner: `pytest` in `apps/api` with Postgres 16 (`docker compose up -d db`, database `datainsight_test`).
+
+## Specs
+
+- S1 Storage path: "Ruta de Storage sin el nombre del usuario: {user_id}/{project_id}/{dataset_id}.csv, guardando el nombre original solo en la columna filename. Confirma que los datasets existentes siguen funcionando porque guardan su storage_path." RED: the upload test expects the new path in `upload_file` and in `storage_path`, with `filename` kept as sent (hostile name `../../otro/ventas.csv`). Characterization: `run_analysis` downloads exactly the stored legacy `storage_path`.
+- S2 PDF: "el informe PDF (si va en un Paragraph de ReportLab, hay que escaparlo)". Approved scope (L2): "El escape del PDF cubre todos los textos que entran en un Paragraph, también los insights, porque los genera el modelo a partir del CSV." One escaping helper; data texts are the filename, the date column, column names, the column summary (top categories) and insight titles and descriptions. RED: `<b>`-style markup in each of them makes `generate_report` raise today; the report endpoint returns 500 for a dataset named `<b>ventas.csv`.
+- S3 Content-Disposition: "la cabecera Content-Disposition de la descarga". RED: a filename with `€` gives 500 today (latin-1 header); a filename with `";filename*=...` injects a second parameter. GREEN: ASCII fallback `filename` (anything outside `[A-Za-z0-9._-]` becomes `_`) plus `filename*=UTF-8''<percent-encoded>` (RFC 6266).
+- S4 Front: "y el front". No change: React escapes `{dataset.filename}` and there is no `dangerouslySetInnerHTML` in `apps/web/src`; the PDF download name comes from `a.download`, which the browser sanitizes. The web app has no tests.
+- S5 "Rechazar con 422 un nombre de más de 255 caracteres, antes de subir nada." RED: 256 characters (".csv" included) → 422 `{"detail": "Filename exceeds 255 characters"}`, `upload_file` not called, nothing stored for the project; control: 255 characters → 201. Characters, like `varchar(255)`; checked right after the extension check.
+- S6 Method: "Propón los rojos de cada punto. Es seguridad: al final, verificador, RDD, Judgment Day y /security-review." Characterization tests that pass at first get a mutation check. Check the branch before every commit.
+
+## Tasks
+
+- [x] T0 inline: `docs: close the API endpoint tests feature document` — 5033bed
+- [x] T1 inline: `docs: add feature document for the storage filename fix` (this file)
+- [ ] T2 S1, S5 inline: upload path without the filename and the 255-character limit
+- [ ] T3 S2 inline: escape every data text in the PDF report
+- [ ] T4 S3 inline: safe Content-Disposition for the report download
+- [ ] T5 S6: verifier, RDD, Judgment Day and /security-review (Borja runs the last two)
+
+Route: inline (no Writer trigger).
+
+## Log
+
+- L1 Borja (2026-10-13): "Siguiente PR: el nombre de fichero en la ruta de Storage. Crea la rama desde main y empieza cerrando el documento de api-endpoints (L16 y L17). Antes de escribir nada, plantéame: Ruta de Storage sin el nombre del usuario: {user_id}/{project_id}/{dataset_id}.csv, guardando el nombre original solo en la columna filename. Confirma que los datasets existentes siguen funcionando porque guardan su storage_path. Revisa dónde más se usa filename: el informe PDF (si va en un Paragraph de ReportLab, hay que escaparlo), la cabecera Content-Disposition de la descarga y el front. Rechazar con 422 un nombre de más de 255 caracteres, antes de subir nada. Propón los rojos de cada punto. Es seguridad: al final, verificador, RDD, Judgment Day y /security-review."
+- L2 Borja (direct message): "Confirmo el plan. El escape del PDF cubre todos los textos que entran en un Paragraph, también los insights, porque los genera el modelo a partir del CSV. Apunta en el backlog que un fallo al guardar en la base de datos después de subir deja el fichero huérfano en Storage". Backlog item: backlog/storage-orphan-on-db-failure.
+- L3 Probes before the plan (scratch, no repo change): generate_report("<b>ventas.csv") raised ValueError (ReportLab parse error); `a<font size=60>X</font>.csv` was rendered as markup; Starlette Response with "informe €.csv" raised UnicodeEncodeError (latin-1); `a";filename*=UTF-8''evil.exe;x=".csv` produced a second filename* parameter; a CR/LF went into the header bytes as is.
