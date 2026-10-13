@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import io
 from datetime import datetime
-from typing import Any
+from typing import Any, NamedTuple
 from xml.sax.saxutils import escape
 
 from reportlab.lib import colors  # type: ignore[import-untyped]
@@ -111,6 +111,21 @@ def _text(value: object) -> str:
 
 def _hr(width: float = 17 * cm) -> HRFlowable:
     return HRFlowable(width=width, thickness=1, color=_BORDER, spaceAfter=8)
+
+
+class _FrequencyText(NamedTuple):
+    unit: str
+    adjective: str
+
+
+# Analyses stored before the forecast had a frequency were daily.
+_FORECAST_FREQUENCIES = {
+    "D": _FrequencyText("días", "diaria"),
+    "W": _FrequencyText("semanas", "semanal"),
+    "M": _FrequencyText("meses", "mensual"),
+    "Q": _FrequencyText("trimestres", "trimestral"),
+    "Y": _FrequencyText("años", "anual"),
+}
 
 
 def _stat_table(stats: list[tuple[str, str]], styles: dict) -> Table:
@@ -280,11 +295,20 @@ def generate_report(
         if forecast and forecast.get("points"):
             story.append(_hr())
             story.append(Paragraph("Predicciones — serie temporal", styles["section"]))
+            frequency = _FORECAST_FREQUENCIES[forecast.get("frequency") or "D"]
+            target = forecast["target_column"]
+            if forecast.get("aggregation") == "sum":
+                target = f"Suma {frequency.adjective} de {target}"
+            horizon = forecast.get("horizon") or forecast.get("horizon_days", 30)
             pred_stats: list[tuple[str, str]] = [
-                ("Objetivo", forecast["target_column"]),
+                ("Objetivo", target),
                 ("Columna fecha", forecast["date_column"]),
-                ("Horizonte", f"{forecast.get('horizon_days', 30)} días"),
+                ("Horizonte", f"{horizon} {frequency.unit}"),
             ]
+            if forecast.get("wape") is not None:
+                pred_stats.append(("WAPE backtest", f"{forecast['wape']:.1f}%"))
+            if forecast.get("mae") is not None:
+                pred_stats.append(("MAE backtest", f"{forecast['mae']:.1f}"))
             if forecast.get("mape") is not None:
                 pred_stats.append(("MAPE backtest", f"{forecast['mape']:.1f}%"))
             story.append(_stat_table(pred_stats, styles))

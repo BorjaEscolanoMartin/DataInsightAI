@@ -18,11 +18,14 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
         return None
 
     forecast_result = None
-    if date_col and len(numeric_cols) >= 1:
+    forecast_targets = [
+        c["name"] for c in columns if c["type"] == "numeric" and not c.get("is_identifier")
+    ]
+    if date_col and forecast_targets:
         from app.services.forecasting import run_forecast
-        target = numeric_cols[0]
+        target = forecast_targets[0]
         try:
-            forecast_result = run_forecast(content, date_col, target, horizon_days=30)
+            forecast_result = run_forecast(content, date_col, target)
             n_points = len(forecast_result.get("points", []))
             print(f"[predictions] forecast OK: target={target} points={n_points}", flush=True)
         except Exception as exc:

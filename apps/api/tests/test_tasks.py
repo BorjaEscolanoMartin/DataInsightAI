@@ -11,10 +11,15 @@ from tests.conftest import USER_A
 CONTENT = b"csv bytes"
 
 
-def _profile(columns: dict[str, str], date_column: str | None = None) -> dict:
+def _profile(
+    columns: dict[str, str], date_column: str | None = None, identifiers: tuple[str, ...] = ()
+) -> dict:
     return {
         "date_column_candidate": date_column,
-        "columns": [{"name": name, "type": kind} for name, kind in columns.items()],
+        "columns": [
+            {"name": name, "type": kind, "is_identifier": name in identifiers}
+            for name, kind in columns.items()
+        ],
     }
 
 
@@ -48,7 +53,32 @@ def test_with_a_date_column_the_first_numeric_column_is_forecast(forecast, regre
     result = _run_predictions(CONTENT, profile)
 
     assert result == {"forecast": forecast.return_value, "regression": None}
-    forecast.assert_called_once_with(CONTENT, "fecha", "ventas", horizon_days=30)
+    forecast.assert_called_once_with(CONTENT, "fecha", "ventas")
+    regression.assert_not_called()
+
+
+def test_the_forecast_target_skips_identifier_columns(forecast, regression):
+    profile = _profile(
+        {"fecha": "datetime", "Id. de la fila": "numeric", "ventas": "numeric"},
+        date_column="fecha",
+        identifiers=("Id. de la fila",),
+    )
+
+    result = _run_predictions(CONTENT, profile)
+
+    assert result == {"forecast": forecast.return_value, "regression": None}
+    forecast.assert_called_once_with(CONTENT, "fecha", "ventas")
+
+
+def test_with_only_identifier_columns_there_is_no_forecast(forecast, regression):
+    profile = _profile(
+        {"fecha": "datetime", "Id. de la fila": "numeric"},
+        date_column="fecha",
+        identifiers=("Id. de la fila",),
+    )
+
+    assert _run_predictions(CONTENT, profile) is None
+    forecast.assert_not_called()
     regression.assert_not_called()
 
 

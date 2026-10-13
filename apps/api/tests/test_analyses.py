@@ -120,3 +120,47 @@ def test_report_download_name_edge_cases(
     headers = _report_headers(client, db_session, make_dataset, filename)
 
     assert headers["content-disposition"] == expected
+
+
+NEW_FORECAST = {
+    "target_column": "ventas",
+    "date_column": "fecha",
+    "aggregation": "sum",
+    "frequency": "M",
+    "horizon": 12,
+    "wape": 9.67,
+    "mae": 268.46,
+    "points": [{"ds": "2025-01-01", "yhat": 160.0, "yhat_lower": 140.0, "yhat_upper": 180.0}],
+}
+# Analyses stored before the forecast quality PR.
+OLD_FORECAST = {
+    "target_column": "ventas",
+    "date_column": "fecha",
+    "mape": 8.96,
+    "horizon_days": 30,
+    "points": [{"ds": "2024-02-01", "yhat": 160.0, "yhat_lower": 140.0, "yhat_upper": 180.0}],
+}
+
+
+@pytest.mark.parametrize(
+    ("stored", "expected_extra"),
+    [
+        (NEW_FORECAST, {"mape": None, "horizon_days": None}),
+        (
+            OLD_FORECAST,
+            {"aggregation": None, "frequency": None, "horizon": None, "wape": None, "mae": None},
+        ),
+    ],
+    ids=["new", "old"],
+)
+def test_analysis_returns_the_stored_forecast_fields(
+    client, as_user, db_session, make_dataset, stored, expected_extra
+):
+    _, _, analysis = make_dataset(USER_A, status="completed")
+    analysis.predictions_json = {"forecast": stored, "regression": None}
+    db_session.flush()
+
+    response = client.get(f"/api/analyses/{analysis.id}")
+
+    assert response.status_code == 200
+    assert response.json()["predictions"]["forecast"] == {**stored, **expected_extra}

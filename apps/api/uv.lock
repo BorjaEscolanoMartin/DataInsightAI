@@ -600,7 +600,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "scipy", specifier = ">=1.13" },
     { name = "sqlalchemy", specifier = ">=2.0" },
-    { name = "statsmodels", specifier = ">=0.14" },
+    { name = "statsmodels", specifier = ">=0.15" },
     { name = "supabase", specifier = ">=2.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
 ]

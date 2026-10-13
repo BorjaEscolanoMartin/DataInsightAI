@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import BaseModel
 
 
@@ -11,8 +13,14 @@ class ForecastPoint(BaseModel):
 class ForecastOut(BaseModel):
     target_column: str
     date_column: str
+    aggregation: Literal["none", "sum"] | None = None
+    frequency: Literal["D", "W", "M", "Q", "Y"] | None = None
+    horizon: int | None = None
+    wape: float | None = None
+    mae: float | None = None
+    # Only in analyses stored before the forecast measured WAPE and MAE per frequency.
     mape: float | None = None
-    horizon_days: int = 30
+    horizon_days: int | None = None
     points: list[ForecastPoint] = []
 
 
