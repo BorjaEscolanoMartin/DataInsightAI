@@ -1,4 +1,6 @@
+import re
 import uuid
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response
@@ -12,6 +14,18 @@ from app.schemas.analyses import AnalysisDetailOut
 from app.schemas.datasets import DatasetProfileOut
 
 router = APIRouter(tags=["analyses"])
+
+
+def _content_disposition(filename: str) -> str:
+    """Attachment header for the report of a dataset, whatever its filename contains.
+
+    Headers travel as latin-1 and a quote or semicolon would start a new parameter: the plain
+    `filename` keeps only safe ASCII and `filename*` (RFC 6266) carries the full encoded name.
+    """
+    stem = filename[:-4] if filename.lower().endswith(".csv") else filename
+    name = f"informe_{stem.replace(' ', '_')}.pdf"
+    fallback = re.sub(r"[^A-Za-z0-9._-]", "_", name)
+    return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name, safe='')}"
 
 
 @router.get("/api/analyses/{analysis_id}", response_model=AnalysisDetailOut)
@@ -75,9 +89,8 @@ def download_report(
         predictions=analysis.predictions_json,
     )
 
-    safe_name = dataset.filename.replace(".csv", "").replace(" ", "_")
     return Response(
         content=pdf_bytes,
         media_type="application/pdf",
-        headers={"Content-Disposition": f'attachment; filename="informe_{safe_name}.pdf"'},
+        headers={"Content-Disposition": _content_disposition(dataset.filename)},
     )
