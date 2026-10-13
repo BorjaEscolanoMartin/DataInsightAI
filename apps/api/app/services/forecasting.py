@@ -18,7 +18,7 @@ FORECAST_SEED = 42
 MAX_SHORT_GAP = 3
 
 
-class _Frequency(NamedTuple):
+class Frequency(NamedTuple):
     code: str
     min_days: float
     max_days: float
@@ -27,11 +27,11 @@ class _Frequency(NamedTuple):
 
 
 FREQUENCIES = (
-    _Frequency("D", 1, 1, 7, 30),
-    _Frequency("W", 7, 7, 52, 12),
-    _Frequency("M", 28, 31, 12, 12),
-    _Frequency("Q", 89, 92, 4, 8),
-    _Frequency("Y", 365, 366, None, 3),
+    Frequency("D", 1, 1, 7, 30),
+    Frequency("W", 7, 7, 52, 12),
+    Frequency("M", 28, 31, 12, 12),
+    Frequency("Q", 89, 92, 4, 8),
+    Frequency("Y", 365, 366, None, 3),
 )
 
 
@@ -62,7 +62,7 @@ def _no_forecast(target_col: str, date_col: str, reason: str) -> dict[str, Any]:
     return {"target_column": target_col, "date_column": date_col, "points": []}
 
 
-def _detect_frequency(dates: pd.DatetimeIndex) -> tuple[_Frequency | None, float]:
+def detect_frequency(dates: pd.DatetimeIndex) -> tuple[Frequency | None, float]:
     spacing = float(np.median(np.diff(dates.values) / np.timedelta64(1, "D")))
     frequency = next(
         (f for f in FREQUENCIES if f.min_days <= spacing <= f.max_days), None
@@ -84,25 +84,31 @@ def _cut_at_zero(values: np.ndarray, never_negative: bool) -> np.ndarray:
     return np.maximum(values, 0) if never_negative else values
 
 
-def _seasonal_periods(frequency: _Frequency, n: int) -> int | None:
+def _seasonal_periods(frequency: Frequency, n: int) -> int | None:
     if frequency.season and n >= 3 * frequency.season:
         return frequency.season
     return None
 
 
+def daily_series(df: pd.DataFrame, date_col: str, target_col: str) -> tuple[pd.Series, str]:
+    """The target per day, summed when a day repeats ("sum"), otherwise as is ("none")."""
+    dates = pd.to_datetime(df[date_col], format="mixed", dayfirst=False).dt.normalize()
+    frame = pd.DataFrame({"date": dates, "value": df[target_col]}).dropna()
+    aggregation = "sum" if frame["date"].duplicated().any() else "none"
+    by_day = frame.groupby("date")["value"].sum().astype(float).sort_index()
+    by_day.index.name = date_col
+    return by_day, aggregation
+
+
 def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, Any]:
     from statsmodels.tsa.holtwinters import ExponentialSmoothing  # type: ignore[import-untyped]
 
-    df = pd.read_csv(io.BytesIO(content))
-    df[date_col] = pd.to_datetime(df[date_col], format="mixed", dayfirst=False).dt.normalize()
-    df = df[[date_col, target_col]].dropna()
-    aggregation = "sum" if df[date_col].duplicated().any() else "none"
-    by_date = df.groupby(date_col)[target_col].sum().astype(float).sort_index()
+    by_date, aggregation = daily_series(pd.read_csv(io.BytesIO(content)), date_col, target_col)
 
     if len(by_date) < MIN_POINTS:
         return {"target_column": target_col, "date_column": date_col, "points": []}
 
-    frequency, spacing = _detect_frequency(by_date.index)
+    frequency, spacing = detect_frequency(by_date.index)
     if frequency is None:
         return _no_forecast(
             target_col, date_col, f"irregular date spacing (median {spacing:g} days)"

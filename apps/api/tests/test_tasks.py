@@ -1,4 +1,4 @@
-from unittest.mock import MagicMock
+from unittest.mock import ANY, MagicMock
 
 import pytest
 
@@ -107,11 +107,14 @@ def test_analysis_downloads_the_storage_path_saved_with_the_dataset(
     download = MagicMock(return_value=b"fecha,ventas\n2024-01-01,100\n2024-01-02,120\n")
     monkeypatch.setattr(tasks, "download_file", download)
     monkeypatch.setattr(tasks, "SessionLocal", lambda: db_session)
-    monkeypatch.setattr(insights_llm, "generate_insights", MagicMock(return_value={}))
+    insights = MagicMock(return_value={})
+    monkeypatch.setattr(insights_llm, "generate_insights", insights)
 
     # run_analysis closes the session it gets, which detaches the objects loaded above.
     tasks.run_analysis(str(analysis_id))
 
     download.assert_called_once_with(legacy_path)
+    # The insights get the CSV too, for the temporal summary and the breakdowns.
+    insights.assert_called_once_with(ANY, download.return_value)
     stored = db_session.get(Analysis, analysis_id)
     assert stored is not None and stored.status == "completed"

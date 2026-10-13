@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from app.db.models import Analysis, Dataset
 from app.db.session import SessionLocal
 from app.services.profiling import profile_csv
+from app.services.targets import forecast_target, regression_target
 from app.storage.supabase_client import download_file
 from app.workers.celery_app import celery_app
 
@@ -18,12 +19,9 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
         return None
 
     forecast_result = None
-    forecast_targets = [
-        c["name"] for c in columns if c["type"] == "numeric" and not c.get("is_identifier")
-    ]
-    if date_col and forecast_targets:
+    target = forecast_target(profile)
+    if date_col and target:
         from app.services.forecasting import run_forecast
-        target = forecast_targets[0]
         try:
             forecast_result = run_forecast(content, date_col, target)
             n_points = len(forecast_result.get("points", []))
@@ -34,9 +32,9 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
     if forecast_result and len(forecast_result.get("points", [])) > 0:
         return {"forecast": forecast_result, "regression": None}
 
-    if len(numeric_cols) >= 2:
+    target = regression_target(profile)
+    if target:
         from app.services.ml_baseline import run_regression
-        target = numeric_cols[-1]
         features = [c for c in numeric_cols if c != target]
         cat_cols = [c["name"] for c in columns if c["type"] in ("categorical", "boolean")]
         all_features = features + cat_cols
@@ -79,7 +77,7 @@ def run_analysis(self, analysis_id: str) -> None:
         # LLM insights — failure is non-fatal
         try:
             from app.services.insights_llm import generate_insights
-            insights = generate_insights(profile)
+            insights = generate_insights(profile, content)
         except Exception as llm_exc:
             print(f"[tasks] LLM insights failed (non-fatal): {llm_exc}", flush=True)
             from app.schemas.insights import InsightsOut
