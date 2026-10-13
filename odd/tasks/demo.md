@@ -24,7 +24,7 @@ Branch: `feat/demo` from `main` (ce3b7c4). Delivery: ask-on-risk, single PR expe
 - [x] T5 S5 inline: exclude /demo from the middleware, tested with unstable_doesMiddlewareMatch
 - [x] T6 S1, S2, S8 inline: /demo page, selector, synthetic-data notice, "Ver demo" link; report First Load JS of /demo
 - [x] T7 S3 inline: Vitest setup, /demo render test without network, CI step
-- [ ] T8 S9: verifier, RDD; Judgment Day and /security-review by Borja
+- [x] T8 S9: verifier, RDD; Judgment Day and /security-review by Borja
 
 Route: inline (no Writer trigger). Open questions: none after L2.
 
@@ -54,3 +54,19 @@ Route: inline (no Writer trigger). Open questions: none after L2.
 - L19 RDD on 76c387c..e624406 (review-06d610de0833e2a4, readability + reliability): approved with no findings, acknowledged. Judgment Day target updated to the last commit, same exclusions and reason as L16: ce3b7c4..e624406 without apps/api/demo/*.csv, apps/web/src/data/demo/*.json and apps/web/package-lock.json (18 files, 706 insertions, 150 deletions; diff sha256 0a8c7e182e6bcd6781ffd68b4e6d286cbbacf51e231ba6e98e2de6cf1b4d6688).
 - L20 Borja, Vercel preview at 375 px with the housing dataset: the "Visualizaciones automáticas" charts overflowed to the right. Cause confirmed by Borja in the browser: ChartGrid's grid defined no columns below md, so the implicit column grew to the min-content width of the correlation heatmap (6 columns, about 416 px) and dragged every card; `grid-template-columns: minmax(0, 1fr)` fixed it, with the heatmap scrolling inside its card. Fix: `grid-cols-1` on ChartGrid's grid (Tailwind 4.2.2 emits `.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}`; md:grid-cols-2 still applies from md). Visual check only: jsdom computes no layout, so no test can cover it. Other grids with responsive columns and no base column count, not changed (waiting for Borja): src/app/(dashboard)/projects/page.tsx:105 (`grid gap-4 sm:grid-cols-2 lg:grid-cols-3`, project list) and src/components/insights/InsightsPanel.tsx:55 (`grid gap-3 px-5 pb-5 sm:grid-cols-2`, insight cards). 13 web tests passed, lint exit 0, build: /demo 240 kB.
 - L21 Borja: "Sí, grid-cols-1 en los tres grids, en el mismo commit fix(web), con el motivo en el mensaje: el texto del usuario, del CSV o del modelo podría estirar la columna implícita igual que el mapa. El comentario solo en ChartGrid. Añade en las convenciones de mi CLAUDE.md: «Every grid declares base columns (grid-cols-1) so wide content can’t stretch the implicit track»." ChartGrid's grid-cols-1 was already pushed in a1c47d7, so rewriting it would need a force push: the other two grids (project list, insight cards) and the ChartGrid comment go in one new fix(web) commit. CLAUDE.md (git-ignored, local only) gains the convention. 13 web tests passed, typecheck and lint exit 0; visual check of the three grids on the preview is Borja's.
+- L22 Judgment Day on ce3b7c4..e624406, excluding the generated data (apps/api/demo/*.csv, apps/web/src/data/demo/*.json, apps/web/package-lock.json) as recorded in L16/L19; diff sha256 0a8c7e182e6bcd6781ffd68b4e6d286cbbacf51e231ba6e98e2de6cf1b4d6688. Round 1: APPROVED. Confirmed 0, suspect 0, contradictions 0, no fix round. Judge B: no findings. Judge A, informational:
+  - WARNING: test_demo_data byte-compares the CSVs, which depend on the numpy/pandas versions and on the to_csv defaults (backlog/demo-data-test-robustness).
+  - SUGGESTION: `from demo...` relies on tests/__init__.py putting apps/api on sys.path (same backlog item).
+  - SUGGESTION, pre-existing: the ColumnRow rows are clickable `<tr>` without keyboard access or aria-expanded (redesign PR scope, plan/redesign-pr-scope).
+- L23 /security-review on ce3b7c4..e624406: no findings. Checked:
+  - The matcher `demo(?:/|$)` skips only /demo and /demo/*; /projects*, /demofoo and /DEMO still match.
+  - /demo/../projects is normalised before matching, and /demo%2F..%2Fprojects is a 404.
+  - RSC requests share the pathname, and /_next/data does not apply (App Router).
+  - /demo has only page.tsx; the dashboard layout and FastAPI still check auth.
+  - No dangerouslySetInnerHTML, innerHTML or eval.
+  - The fixtures and CSVs contain no keys, JWTs, emails, URLs, UUIDs or Supabase data.
+  - The fixture script never prints or writes the key.
+  - The CI change is only the npm test step: no pull_request_target, permissions still contents: read.
+  - The new dependencies are dev-only.
+  - Informational: /demo skips the session cookie refresh, as documented in the matcher comment.
+  PR #11 merged (03493fb). Feature complete.
