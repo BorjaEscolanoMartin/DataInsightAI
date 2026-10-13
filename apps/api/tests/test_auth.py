@@ -690,3 +690,24 @@ def test_broken_jwks_key_is_a_server_error_and_good_keys_still_work(
 
     user_id = uuid.uuid4()
     assert _authenticate(_es256_token(_claims(sub=str(user_id)), signing_key)) == user_id
+
+
+def test_accepts_token_issued_slightly_in_the_future(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    # The API clock may lag Supabase's: a fresh token must not fail on its iat.
+    user_id = uuid.uuid4()
+    token = _es256_token(_claims(sub=str(user_id), iat=int(time.time()) + 5), signing_key)
+
+    assert _authenticate(token) == user_id
+
+
+def test_rejects_token_whose_iat_is_not_a_number(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    token = _es256_token(_claims(iat="yesterday"), signing_key)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401

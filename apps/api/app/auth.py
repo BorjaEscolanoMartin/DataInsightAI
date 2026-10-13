@@ -114,6 +114,13 @@ def _key_for_token(token: str) -> jwt.PyJWK:
     return jwt.PyJWK.from_dict(key)
 
 
+def _check_iat_is_a_number(payload: dict[str, Any]) -> None:
+    """Reject a non-numeric iat: verify_iat off also skips PyJWT's own type check."""
+    iat = payload.get("iat")
+    if iat is not None and (isinstance(iat, bool) or not isinstance(iat, int | float)):
+        raise jwt.InvalidIssuedAtError("Issued At claim (iat) must be a number")
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> uuid.UUID:
@@ -127,8 +134,11 @@ def get_current_user(
             issuer=settings.supabase_auth_url,
             # PyJWT accepts a token without exp unless it is required; Supabase always sends
             # all four. PyJWT also rejects a non-string sub and any crit header.
-            options={"require": ["exp", "aud", "iss", "sub"]},
+            # verify_iat off: an API clock lagging Supabase's must not reject a fresh token
+            # (python-jose never compared iat with the clock). exp and nbf keep their checks.
+            options={"require": ["exp", "aud", "iss", "sub"], "verify_iat": False},
         )
+        _check_iat_is_a_number(payload)
     # Only invalid tokens are the client's fault. JWKS download errors (httpx,
     # JwksUnavailableError) and broken JWKs (PyJWKError, InvalidKeyError) are not
     # InvalidTokenError: they stay server errors, not a 401.
