@@ -85,7 +85,7 @@ BAD = {"title": "Ventas", "description": "Crecen un 37 %.", "columns": ["ventas"
 
 def _client(parsed: InsightsOut | None, stop_reason: str = "end_turn") -> MagicMock:
     client = MagicMock()
-    message = client.beta.messages.parse.return_value
+    message = client.messages.parse.return_value
     message.parsed_output = parsed
     message.stop_reason = stop_reason
     message.stop_details = MagicMock(category="general_harms") if stop_reason == "refusal" else None
@@ -119,7 +119,7 @@ def test_the_request_uses_sonnet_5_5_medium_effort_and_the_insights_schema(api_k
 
     _generate(client)
 
-    kwargs = client.beta.messages.parse.call_args.kwargs
+    kwargs = client.messages.parse.call_args.kwargs
     profile = profile_csv(CSV)
     df = read_csv(CSV)
     assert kwargs["model"] == "claude-sonnet-5-5"
@@ -129,8 +129,9 @@ def test_the_request_uses_sonnet_5_5_medium_effort_and_the_insights_schema(api_k
     assert kwargs["messages"] == [{"role": "user", "content": _build_prompt(
         profile, temporal_summary(df, profile), breakdowns(df, profile),
     )}]
-    assert kwargs["fallbacks"] == "default"
-    assert kwargs["betas"] == ["server-side-fallback-2026-07-01"]
+    # No beta and no fallback: the chosen model always answers.
+    assert "fallbacks" not in kwargs
+    assert "betas" not in kwargs
     assert "temperature" not in kwargs
     assert "Resumen temporal de ventas" in kwargs["messages"][0]["content"]
 
@@ -140,7 +141,7 @@ def test_the_model_can_be_chosen(api_key):
 
     _generate(client, model="claude-opus-5-5")
 
-    assert client.beta.messages.parse.call_args.kwargs["model"] == "claude-opus-5-5"
+    assert client.messages.parse.call_args.kwargs["model"] == "claude-opus-5-5"
 
 
 def test_insights_with_figures_missing_from_the_data_are_dropped(api_key):
@@ -192,7 +193,7 @@ def test_a_failing_summary_is_left_out_of_the_prompt(api_key, caplog, monkeypatc
     with caplog.at_level(logging.WARNING, logger="app.services.insights_llm"):
         _generate(client)
 
-    prompt = client.beta.messages.parse.call_args.kwargs["messages"][0]["content"]
+    prompt = client.messages.parse.call_args.kwargs["messages"][0]["content"]
     assert "Resumen temporal" not in prompt
     assert "ventas por grupo" in prompt
     assert caplog.messages == ["Insights summary temporal_summary failed: ValueError('bad dates')"]

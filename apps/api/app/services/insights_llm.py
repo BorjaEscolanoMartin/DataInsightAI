@@ -230,16 +230,14 @@ def generate_insights_checked(
         _summary("breakdowns", breakdowns, df, profile),
     )
     client = Anthropic(api_key=settings.anthropic_api_key, max_retries=3)
-    message = client.beta.messages.parse(
+    # No fallback model: the chosen model always answers, and a refusal leaves the insights empty.
+    message = client.messages.parse(
         model=model,
         max_tokens=MAX_TOKENS,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
         output_format=InsightsOut,
         output_config={"effort": EFFORT},
-        # A declined request is retried server-side on the model Anthropic recommends.
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
     )
     if message.stop_reason == "refusal":
         category = message.stop_details.category if message.stop_details else None
