@@ -111,3 +111,23 @@ def test_an_explicit_sign_must_match_the_data():
 
     assert result["trends"] == [kept]
     assert [d.missing for d in dropped] == [["+1,9"], ["-26,0"]]
+
+
+def test_a_year_within_the_dates_of_the_data_is_a_date():
+    # DATA has dates from oct 2024 to 28 nov 2025.
+    kept = _item("Año", "En 2025 hubo el máximo y en 2024 el mínimo.")
+    outside = _item("Año", "En 2023 no hay datos.")
+    with_point = _item("Unidades", "Se vendieron 2.025 unidades.")
+
+    result, dropped = check_insights(_insights(trends=[kept, outside, with_point]), DATA)
+
+    assert result["trends"] == [kept]
+    assert [d.missing for d in dropped] == [["2023"], ["2.025"]]
+
+
+def test_without_dates_in_the_data_a_year_is_a_figure():
+    data = "<datos>\n  Precio: media 193.967,30\n</datos>"
+
+    result, dropped = check_insights(_insights(trends=[_item("Año", "En 2025.")]), data)
+
+    assert dropped[0].missing == ["2025"]
