@@ -6,15 +6,17 @@ import json
 import threading
 import time
 import uuid
+from collections.abc import Callable
 from typing import Any
 
 import httpx
+import jwt
 import pytest
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec, rsa
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import ec, padding, rsa
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
-from jose import jwt
 
 from app import auth
 from app.config import settings
@@ -31,14 +33,6 @@ STALE_KEYS_WARNING = "[auth] JWKS refresh failed"
 
 def _b64url_uint(value: int, length: int) -> str:
     return base64.urlsafe_b64encode(value.to_bytes(length, "big")).rstrip(b"=").decode()
-
-
-def _private_pem(key: ec.EllipticCurvePrivateKey | rsa.RSAPrivateKey) -> str:
-    return key.private_bytes(
-        serialization.Encoding.PEM,
-        serialization.PrivateFormat.PKCS8,
-        serialization.NoEncryption(),
-    ).decode()
 
 
 def _ec_public_jwk(key: ec.EllipticCurvePrivateKey, kid: str) -> dict[str, str]:
@@ -77,26 +71,61 @@ def _claims(**overrides: Any) -> dict[str, Any]:
     return claims
 
 
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
+
+
 def _unsigned_token(header: dict[str, Any], claims: dict[str, Any]) -> str:
     def segment(data: dict[str, Any]) -> str:
-        return base64.urlsafe_b64encode(json.dumps(data).encode()).rstrip(b"=").decode()
+        return _b64url(json.dumps(data).encode())
 
     return f"{segment(header)}.{segment(claims)}."
 
 
-def _hmac_token(claims: dict[str, Any], secret: bytes, kid: str) -> str:
-    """Sign HS256 by hand: python-jose refuses PEM public keys as HMAC secrets."""
-    signing_input = _unsigned_token({"alg": "HS256", "typ": "JWT", "kid": kid}, claims)[:-1]
-    digest = hmac.new(secret, signing_input.encode(), hashlib.sha256).digest()
-    signature = base64.urlsafe_b64encode(digest).rstrip(b"=").decode()
-    return f"{signing_input}.{signature}"
+# Tokens are signed by hand, not with the JWT library under test: the tests then check it
+# independently, and they can build tokens a library refuses to sign (an empty HMAC key, a
+# kid that is not a string, a PEM public key as HMAC secret).
+def _signed_token(
+    alg: str,
+    claims: dict[str, Any],
+    sign: Callable[[bytes], bytes],
+    kid: Any = None,
+    **extra_headers: Any,
+) -> str:
+    header: dict[str, Any] = {"alg": alg, "typ": "JWT"}
+    if kid is not None:
+        header["kid"] = kid
+    header.update(extra_headers)
+    signing_input = _unsigned_token(header, claims)[:-1]
+    return f"{signing_input}.{_b64url(sign(signing_input.encode()))}"
+
+
+def _hmac_token(claims: dict[str, Any], secret: bytes, kid: str | None = None) -> str:
+    def sign(data: bytes) -> bytes:
+        return hmac.new(secret, data, hashlib.sha256).digest()
+
+    return _signed_token("HS256", claims, sign, kid=kid)
+
+
+def _rs256_token(claims: dict[str, Any], key: rsa.RSAPrivateKey, kid: str) -> str:
+    def sign(data: bytes) -> bytes:
+        return key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+
+    return _signed_token("RS256", claims, sign, kid=kid)
 
 
 def _es256_token(
-    claims: dict[str, Any], key: ec.EllipticCurvePrivateKey, kid: str | None = KID
+    claims: dict[str, Any],
+    key: ec.EllipticCurvePrivateKey,
+    kid: Any = KID,
+    **extra_headers: Any,
 ) -> str:
-    headers = {"kid": kid} if kid is not None else None
-    return jwt.encode(claims, _private_pem(key), algorithm="ES256", headers=headers)
+    def sign(data: bytes) -> bytes:
+        # JWS ES256 signatures are the raw 32-byte r and s, not the DER cryptography returns.
+        r, s = decode_dss_signature(key.sign(data, ec.ECDSA(hashes.SHA256())))
+        return r.to_bytes(32, "big") + s.to_bytes(32, "big")
+
+    return _signed_token("ES256", claims, sign, kid=kid, **extra_headers)
 
 
 def _authenticate(token: str) -> uuid.UUID:
@@ -184,7 +213,7 @@ def test_rejects_hs256_token_signed_with_legacy_secret(
     monkeypatch.setitem(
         vars(settings), "supabase_jwt_secret", base64.b64encode(legacy_secret).decode()
     )
-    token = jwt.encode(_claims(), legacy_secret, algorithm="HS256")
+    token = _hmac_token(_claims(), legacy_secret)
 
     with pytest.raises(HTTPException) as exc_info:
         _authenticate(token)
@@ -198,7 +227,7 @@ def test_rejects_hs256_token_signed_with_empty_key(
     # Guards against bringing back the HS256 secret branch with an empty secret. The app no
     # longer reads this injected setting; the RS256 test guards the algorithm allowlist.
     monkeypatch.setitem(vars(settings), "supabase_jwt_secret", "")
-    token = jwt.encode(_claims(), b"", algorithm="HS256")
+    token = _hmac_token(_claims(), b"")
 
     with pytest.raises(HTTPException) as exc_info:
         _authenticate(token)
@@ -209,12 +238,7 @@ def test_rejects_hs256_token_signed_with_empty_key(
 def test_rejects_rs256_token_even_with_a_published_rsa_key(jwks: dict[str, Any]) -> None:
     rsa_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     jwks["keys"].append(_rsa_public_jwk(rsa_key, "test-rs256-key"))
-    token = jwt.encode(
-        _claims(),
-        _private_pem(rsa_key),
-        algorithm="RS256",
-        headers={"kid": "test-rs256-key"},
-    )
+    token = _rs256_token(_claims(), rsa_key, kid="test-rs256-key")
 
     with pytest.raises(HTTPException) as exc_info:
         _authenticate(token)
@@ -248,8 +272,7 @@ def test_rejects_hs256_token_signed_with_the_jwks_public_key(
     """Algorithm confusion: an attacker uses the published public key as the HMAC secret.
 
     der: regression for CVE-2026-85394, GHSA-3qf3-8w2g-rqmx (DER keys without PEM armor).
-    pem: regression for CVE-2024-33663. Redundant with der while we use python-jose,
-    which already refuses PEM keys as HMAC secrets; kept to check the switch to PyJWT.
+    pem: regression for CVE-2024-33663 (PEM public keys accepted as HMAC secrets).
     """
     public_key = signing_key.public_key().public_bytes(encoding, public_format)
     token = _hmac_token(_claims(), public_key, kid=KID)
@@ -377,9 +400,7 @@ def test_rejects_token_whose_kid_is_not_a_string(
     jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, kid: Any
 ) -> None:
     # The kid comes from the unverified header: a malformed one is a bad token, not a 500.
-    token = jwt.encode(
-        _claims(), _private_pem(signing_key), algorithm="ES256", headers={"kid": kid}
-    )
+    token = _es256_token(_claims(), signing_key, kid=kid)
 
     with pytest.raises(HTTPException) as exc_info:
         _authenticate(token)
@@ -619,3 +640,76 @@ def test_unknown_kid_when_the_refresh_after_the_max_age_fails_is_not_reported_as
         _authenticate(_es256_token(_claims(), signing_key, kid="rotated-key"))
 
     assert jwks_server.downloads == 2
+
+
+@pytest.mark.parametrize(
+    "crit, extension",
+    [(["exp"], {}), (["urn:example:must-understand"], {"urn:example:must-understand": True})],
+    ids=["registered-claim", "unknown-extension"],
+)
+def test_rejects_token_with_a_crit_header(
+    jwks: dict[str, Any],
+    signing_key: ec.EllipticCurvePrivateKey,
+    crit: list[str],
+    extension: dict[str, Any],
+) -> None:
+    # RFC 7515 4.1.11: a token whose crit names an extension we do not process must be rejected.
+    token = _es256_token(_claims(), signing_key, crit=crit, **extension)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "breakage",
+    [
+        {"x": _b64url_uint(0, 32), "y": _b64url_uint(0, 32)},  # (0, 0) is not on P-256
+        {"x": None},
+        {"kty": None},
+    ],
+    ids=["point-off-the-curve", "missing-x", "missing-kty"],
+)
+def test_broken_jwks_key_is_a_server_error_and_good_keys_still_work(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, breakage: dict[str, Any]
+) -> None:
+    # A key Supabase publishes broken is a server fault, not an invalid client token.
+    broken_key: dict[str, Any] = _ec_public_jwk(
+        ec.generate_private_key(ec.SECP256R1()), "broken-key"
+    )
+    for field, value in breakage.items():
+        if value is None:
+            del broken_key[field]
+        else:
+            broken_key[field] = value
+    jwks["keys"].append(broken_key)
+
+    # A PyJWT key error, not an invalid token: it escapes the 401 mapping as a server error.
+    with pytest.raises(jwt.PyJWTError) as exc_info:
+        _authenticate(_es256_token(_claims(), signing_key, kid="broken-key"))
+    assert not isinstance(exc_info.value, jwt.InvalidTokenError)
+
+    user_id = uuid.uuid4()
+    assert _authenticate(_es256_token(_claims(sub=str(user_id)), signing_key)) == user_id
+
+
+def test_accepts_token_issued_slightly_in_the_future(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    # The API clock may lag Supabase's: a fresh token must not fail on its iat.
+    user_id = uuid.uuid4()
+    token = _es256_token(_claims(sub=str(user_id), iat=int(time.time()) + 5), signing_key)
+
+    assert _authenticate(token) == user_id
+
+
+def test_rejects_token_whose_iat_is_not_a_number(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey
+) -> None:
+    token = _es256_token(_claims(iat="yesterday"), signing_key)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
