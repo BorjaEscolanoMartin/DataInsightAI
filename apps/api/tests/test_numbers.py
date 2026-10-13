@@ -57,7 +57,7 @@ def test_find_numbers_keeps_numbers_in_other_formats_as_unreadable():
 
     assert [(n.text, n.value, n.decimals) for n in found] == [
         ("2.908", 2908, 0),
-        ("28,5", 28.5, 1),
+        ("+28,5", 28.5, 1),
         ("0.92", None, 0),
         ("1,234.56", None, 0),
     ]
@@ -67,3 +67,16 @@ def test_find_numbers_reads_numbers_glued_to_letters():
     found = find_numbers("En Q3, a las 12h, 2.908€ y 28%.")
 
     assert [n.value for n in found] == [3, 12, 2908, 28]
+
+
+def test_find_numbers_tells_an_explicit_sign_from_a_hyphen_between_numbers():
+    found = find_numbers("Sube (+28,5 %) o baja -1,9 %; rango 163-239 en 2024-2025.")
+
+    assert [(n.text, n.value, n.sign) for n in found] == [
+        ("+28,5", 28.5, "+"),
+        ("-1,9", -1.9, "-"),
+        ("163", 163, ""),
+        ("239", 239, ""),
+        ("2024", 2024, ""),
+        ("2025", 2025, ""),
+    ]

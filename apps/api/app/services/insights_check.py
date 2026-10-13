@@ -25,7 +25,10 @@ def _found(number: ParsedNumber, data: list[float]) -> bool:
         return False
     if number.decimals == 0 and abs(number.value) <= MAX_UNCHECKED_INTEGER:
         return True
-    # Rounded to the precision the insight uses; the sign may be dropped ("un 1,9 % menos").
+    # Rounded to the precision the insight uses. Without a sign it may be either ("un 1,9 %
+    # menos" for -1,9 %); a written sign must be the data's.
+    if number.sign:
+        return any(abs(round(d, number.decimals) - number.value) < 1e-9 for d in data)
     return any(abs(round(abs(d), number.decimals) - abs(number.value)) < 1e-9 for d in data)
 
 

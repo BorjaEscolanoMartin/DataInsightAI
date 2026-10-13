@@ -97,3 +97,16 @@ def test_the_numbers_inside_dates_and_periods_of_the_data_are_not_figures():
     result, dropped = check_insights(_insights(trends=[insight]), DATA)
 
     assert dropped[0].missing == ["2024", "2025"]
+
+
+def test_an_explicit_sign_must_match_the_data():
+    kept = _item("Promoción", "Con promoción +26,0 %, sin ella -1,9 %, entre 2.263-2.908.")
+    plus_for_minus = _item("Sin promoción", "Sin promoción las ventas suben un +1,9 %.")
+    minus_for_plus = _item("Con promoción", "Con promoción caen un -26,0 %.")
+
+    result, dropped = check_insights(
+        _insights(trends=[kept, plus_for_minus, minus_for_plus]), DATA,
+    )
+
+    assert result["trends"] == [kept]
+    assert [d.missing for d in dropped] == [["+1,9"], ["-26,0"]]
