@@ -90,14 +90,17 @@ def test_histogram_keeps_empty_bins_between_distant_values():
     assert hist["data"][-1]["bin"] == "20–21"
 
 
-CSV_IDENTIFIERS = textwrap.dedent("""\
-    fila,cliente_id,ID cliente,Id. de la fila,Pedidos,Paid,pedido_id,medida,precio,categoria
-    3,10,10,10,10,10,7,1.5,1.5,a
-    1,,40,40,40,40,7,2.5,2,b
-    5,25,25,25,25,25,8,3.5,3,c
-    2,7,7,7,7,7,9,4.5,4,d
-    4,99,99,99,99,99,10,5.5,5,e
-""").encode()
+CSV_IDENTIFIERS = (
+    "fila,cliente_id,ID cliente,Id. de la fila,CustomerId,customerId,"
+    "Pedidos,Paid,pedido_id,medida,precio,categoria\n"
+    + textwrap.dedent("""\
+    3,10,10,10,10,10,10,10,7,1.5,1.5,a
+    1,,40,40,40,40,40,40,7,2.5,2,b
+    5,25,25,25,25,25,25,25,8,3.5,3,c
+    2,7,7,7,7,7,7,7,9,4.5,4,d
+    4,99,99,99,99,99,99,99,10,5.5,5,e
+""")
+).encode()
 
 
 def test_identifier_columns_are_flagged():
@@ -111,6 +114,9 @@ def test_identifier_columns_are_flagged():
         "cliente_id": True,
         "ID cliente": True,
         "Id. de la fila": True,
+        # A change from lower to upper case also splits the name.
+        "CustomerId": True,
+        "customerId": True,
         # Same values, but "id" is only part of a word.
         "Pedidos": False,
         "Paid": False,

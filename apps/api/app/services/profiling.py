@@ -50,7 +50,16 @@ def _is_identifier(name: str, series: pd.Series, col_type: str) -> bool:
         return False
     if values.max() - values.min() + 1 == len(values):
         return True
-    return "id" in re.split(r"[\W_]+", str(name).lower())
+    return "id" in _name_words(str(name))
+
+
+def _name_words(name: str) -> list[str]:
+    """Lower-case words split on non-alphanumerics and on a lower-to-upper case change."""
+    spaced = "".join(
+        f" {char}" if prev.islower() and char.isupper() else char
+        for prev, char in zip(" " + name, name)
+    )
+    return re.split(r"[\W_]+", spaced.lower())
 
 
 def _outliers_iqr(series: pd.Series) -> int:
