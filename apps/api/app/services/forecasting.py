@@ -48,7 +48,7 @@ def run_forecast(
             seasonal=seas,
             seasonal_periods=sp,
             initialization_method="estimated",
-        ).fit(optimized=True, disp=False)
+        ).fit(optimized=True)
 
     mape_val: float | None = None
     try:
