@@ -1,8 +1,10 @@
+import logging
 from datetime import date, timedelta
 
 import pandas as pd
 import pytest
 
+from app.services import data_summary
 from app.services.data_summary import breakdowns
 from app.services.profiling import profile_csv
 
@@ -34,6 +36,8 @@ def test_target_mean_per_group_with_n_and_percentage_against_the_overall_mean():
     # Largest groups first, not in alphabetical order.
     assert [(g.label, g.n, g.mean) for g in promo.groups] == [("Sí", 6, 10), ("No", 2, 40)]
     assert [g.pct for g in promo.groups] == pytest.approx([-42.857, 128.571], abs=0.001)
+    # Two groups: the smaller one against the larger one.
+    assert promo.difference == ("No", "Sí", 30, pytest.approx(300))
 
 
 def _housing(rows: int = 40) -> pd.DataFrame:
@@ -44,6 +48,13 @@ def _housing(rows: int = 40) -> pd.DataFrame:
         "metros": [50 + 3 * i for i in range(rows)],
         "precio": [100 + 10 * (i % 4) + (500 if i % 4 == 0 else 0) for i in range(rows)],
     })
+
+
+def test_columns_with_more_than_two_groups_have_no_difference():
+    columns = {c.column: c for c in _summarise(_housing())["columns"]}
+
+    assert columns["baños"].difference is None
+    assert columns["zona"].difference is not None
 
 
 def test_without_a_date_the_target_is_the_regression_target():
@@ -134,3 +145,88 @@ def test_no_breakdown_without_a_target():
     df = pd.DataFrame({"zona": ["a", "b"] * 5, "nombre": [f"n{i}" for i in range(10)]})
 
     assert _summarise(df) is None
+
+
+def test_decimal_group_labels_are_written_in_spanish_format():
+    df = pd.DataFrame({
+        "metros": [float(50 + 7 * i % 97) for i in range(40)],
+        "baños": [(1, 1.5, 2, 2.5)[i % 4] for i in range(40)],
+        # Whole numbers stored as floats (2019.0) stay plain, never "2.019".
+        "año": [float(2019 + i % 4) for i in range(40)],
+        "precio": [100.0 + 10 * (i % 4) + i % 3 for i in range(40)],
+    })
+
+    columns = {c.column: c for c in _summarise(df)["columns"]}
+
+    assert sorted(g.label for g in columns["baños"].groups) == ["1", "1,5", "2", "2,5"]
+    assert sorted(g.label for g in columns["año"].groups) == ["2019", "2020", "2021", "2022"]
+
+
+def _three_columns(rows: int = 40) -> pd.DataFrame:
+    return pd.DataFrame({
+        "zona": ["a" if i % 2 else "b" for i in range(rows)],
+        "tipo": ["x" if i % 3 else "y" for i in range(rows)],
+        "metros": [float(50 + 7 * i % 97) for i in range(rows)],
+        "precio": [100.0 + i % 5 + 10 * (i % 2) for i in range(rows)],
+    })
+
+
+def test_a_column_that_fails_is_skipped_and_the_others_are_kept(monkeypatch, caplog):
+    real = data_summary._groups
+
+    def groups(df, column, target, overall):
+        if column == "zona":
+            raise ValueError("boom")
+        return real(df, column, target, overall)
+
+    monkeypatch.setattr(data_summary, "_groups", groups)
+
+    with caplog.at_level(logging.WARNING, logger="app.services.data_summary"):
+        result = _summarise(_three_columns())
+
+    assert [c.column for c in result["columns"]] == ["tipo"]
+    # The column is named by its position, not by its CSV text.
+    assert caplog.messages == ["Breakdown skipped column 0: ValueError"]
+
+
+def test_a_column_whose_outliers_fail_is_skipped_and_the_others_are_kept(monkeypatch, caplog):
+    df = _three_columns()
+    df["metros"] = [1.0] * 38 + [500.0, 900.0]
+    df["precio"] = [100.0] * 30 + [101.0] * 8 + [700.0, 800.0]
+    real = data_summary._sides
+
+    def sides(values):
+        if values.name == "metros":
+            raise ValueError("boom")
+        return real(values)
+
+    monkeypatch.setattr(data_summary, "_sides", sides)
+
+    with caplog.at_level(logging.WARNING, logger="app.services.data_summary"):
+        result = _summarise(df)
+
+    assert [o.column for o in result["outliers"]] == ["precio"]
+    assert caplog.messages == ["Outliers skipped column 2: ValueError"]
+
+
+def test_a_column_without_rows_shared_with_the_target_is_ignored(caplog):
+    df = _three_columns()
+    # Before precio, which must stay the last numeric column (the regression target).
+    df.insert(2, "vacía", float("nan"))
+
+    with caplog.at_level(logging.WARNING, logger="app.services.data_summary"):
+        result = _summarise(df)
+
+    assert sorted(c.column for c in result["columns"]) == ["tipo", "zona"]
+    assert caplog.messages == []
+
+
+def test_tiny_decimal_labels_are_written_in_full():
+    df = _three_columns()
+    df.insert(2, "tasa", [(1e-05, 2.5e-05, 1.5e-07)[i % 3] for i in range(len(df))])
+
+    columns = {c.column: c for c in _summarise(df)["columns"]}
+
+    assert sorted(g.label for g in columns["tasa"].groups) == [
+        "0,00000015", "0,00001", "0,000025",
+    ]

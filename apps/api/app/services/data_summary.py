@@ -1,12 +1,17 @@
 """Deterministic summaries of the uploaded CSV that the insights prompt gives the model."""
 
+import logging
 from typing import Any, NamedTuple
 
+import numpy as np
 import pandas as pd
 
 from app.services.forecasting import daily_series, detect_frequency
+from app.services.numbers import format_es
 from app.services.profiling import iqr_bounds
 from app.services.targets import forecast_target, regression_target
+
+logger = logging.getLogger(__name__)
 
 MAX_PERIODS = 24
 PEAKS = 3
@@ -41,9 +46,13 @@ class Change(NamedTuple):
     pct: float | None
 
 
+def pct_change(value: float, base: float) -> float | None:
+    """Percentage of value against base, relative to the base's size; None when base is 0."""
+    return (value - base) / abs(base) * 100 if base else None
+
+
 def _change(start_label: str, end_label: str, start: float, end: float) -> Change:
-    pct = (end - start) / abs(start) * 100 if start else None
-    return Change(start_label, end_label, start, end, end - start, pct)
+    return Change(start_label, end_label, start, end, end - start, pct_change(end, start))
 
 
 def temporal_summary(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:
@@ -111,9 +120,19 @@ class Group(NamedTuple):
     pct: float | None
 
 
+class GroupDifference(NamedTuple):
+    label: str
+    base_label: str
+    change: float
+    # Against the base group's mean; None when that mean is 0.
+    pct: float | None
+
+
 class ColumnBreakdown(NamedTuple):
     column: str
     groups: list[Group]
+    # Only for two groups: the smaller one against the larger one.
+    difference: GroupDifference | None = None
 
 
 class Side(NamedTuple):
@@ -136,8 +155,14 @@ def summary_target(profile: dict[str, Any]) -> str | None:
 
 
 def _label(value: Any) -> str:
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
+    """Decimal values in Spanish format with their own decimals (1,5); whole numbers stay
+    plain, so a year is never written as 2.019."""
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        # Positional, never scientific (1e-05): the shortest digits that give back the value.
+        digits = np.format_float_positional(value, trim="-")
+        return format_es(value, len(digits.split(".")[1]))
     return str(value)
 
 
@@ -147,7 +172,7 @@ def _groups(df: pd.DataFrame, column: str, target: str, overall: float) -> list[
     stats = stats.sort_values("count", ascending=False, kind="stable")
 
     def group(label: str, n: int, mean: float) -> Group:
-        return Group(label, n, mean, (mean - overall) / abs(overall) * 100 if overall else None)
+        return Group(label, n, mean, pct_change(mean, overall))
 
     groups = [group(_label(v), int(r["count"]), float(r["mean"])) for v, r in
               stats.head(MAX_GROUPS).iterrows()]
@@ -171,6 +196,16 @@ def _sides(values: pd.Series) -> tuple[Side | None, Side | None, pd.Series]:
     return side(low), side(high), pd.concat([low, high])
 
 
+def _breakdown(column: str, groups: list[Group]) -> ColumnBreakdown:
+    if len(groups) != 2:
+        return ColumnBreakdown(column, groups)
+    base, other = groups  # largest group first
+    difference = GroupDifference(
+        other.label, base.label, other.mean - base.mean, pct_change(other.mean, base.mean)
+    )
+    return ColumnBreakdown(column, groups, difference)
+
+
 def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:
     """The target's mean per group, outliers per numeric column and the groups of the
     target's outliers; None when there is no target."""
@@ -178,30 +213,40 @@ def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | No
     if target is None:
         return None
     columns = profile.get("columns", [])
-    candidates = [
-        c["name"] for c in columns
-        if c["name"] != target and not c.get("is_identifier") and (
+    overall = float(df[target].mean())
+    # A column that fails is skipped with a warning naming its position, not its CSV text; a
+    # column without rows shared with the target has no groups and is left out.
+    computed = []
+    for index, c in enumerate(columns):
+        if c["name"] == target or c.get("is_identifier") or not (
             c["type"] in ("categorical", "boolean")
             or (c["type"] == "numeric" and c.get("unique_count", 0) <= MAX_NUMERIC_GROUPS)
-        )
-    ]
-    overall = float(df[target].mean())
+        ):
+            continue
+        try:
+            groups = _groups(df, c["name"], target, overall)
+        except Exception as exc:
+            logger.warning("Breakdown skipped column %d: %s", index, type(exc).__name__)
+            continue
+        if groups:
+            computed.append(_breakdown(c["name"], groups))
 
     def spread(breakdown: ColumnBreakdown) -> float:
         means = [g.mean for g in breakdown.groups]
         return max(means) - min(means)
 
-    ranked = sorted(
-        (ColumnBreakdown(c, _groups(df, c, target, overall)) for c in candidates),
-        key=spread, reverse=True,
-    )[:MAX_BREAKDOWN_COLUMNS]
+    ranked = sorted(computed, key=spread, reverse=True)[:MAX_BREAKDOWN_COLUMNS]
 
     outliers = []
     target_outlier_rows = df.index[0:0]
-    for c in columns:
+    for index, c in enumerate(columns):
         if c["type"] != "numeric" or c.get("is_identifier"):
             continue
-        low, high, rows = _sides(df[c["name"]].dropna())
+        try:
+            low, high, rows = _sides(df[c["name"]].dropna())
+        except Exception as exc:
+            logger.warning("Outliers skipped column %d: %s", index, type(exc).__name__)
+            continue
         if low or high:
             outliers.append(Outliers(c["name"], low, high))
         if c["name"] == target:

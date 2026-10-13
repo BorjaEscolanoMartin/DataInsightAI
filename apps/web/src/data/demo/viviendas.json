@@ -14,6 +14,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 5,
+          "is_identifier": false,
           "top_categories": [
             {
               "value": "Centro",
@@ -43,6 +44,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 4,
+          "is_identifier": false,
           "top_categories": [
             {
               "value": "Piso",
@@ -68,6 +70,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 2,
+          "is_identifier": false,
           "top_categories": [
             {
               "value": "Sí",
@@ -85,6 +88,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 165,
+          "is_identifier": false,
           "mean": 91.42666666666666,
           "std": 32.9128970884068,
           "min_val": 25.0,
@@ -100,6 +104,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 6,
+          "is_identifier": false,
           "mean": 3.0406666666666666,
           "std": 1.2165523232722306,
           "min_val": 1.0,
@@ -115,6 +120,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 4,
+          "is_identifier": false,
           "mean": 1.5766666666666667,
           "std": 0.6636383297982472,
           "min_val": 1.0,
@@ -130,6 +136,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 60,
+          "is_identifier": false,
           "mean": 30.0,
           "std": 17.308795344106883,
           "min_val": 0.0,
@@ -145,6 +152,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 90,
+          "is_identifier": false,
           "mean": 4.133133333333333,
           "std": 2.71983096948271,
           "min_val": 0.1,
@@ -160,6 +168,7 @@
           "null_count": 0,
           "null_pct": 0.0,
           "unique_count": 402,
+          "is_identifier": false,
           "mean": 193967.33333333334,
           "std": 104796.2647439867,
           "min_val": 22000.0,
@@ -271,20 +280,76 @@
               "count": 155
             },
             {
+              "bin": "1.25–1.5",
+              "count": 0
+            },
+            {
+              "bin": "1.5–1.75",
+              "count": 0
+            },
+            {
+              "bin": "1.75–2",
+              "count": 0
+            },
+            {
               "bin": "2–2.25",
               "count": 338
+            },
+            {
+              "bin": "2.25–2.5",
+              "count": 0
+            },
+            {
+              "bin": "2.5–2.75",
+              "count": 0
+            },
+            {
+              "bin": "2.75–3",
+              "count": 0
             },
             {
               "bin": "3–3.25",
               "count": 519
             },
             {
+              "bin": "3.25–3.5",
+              "count": 0
+            },
+            {
+              "bin": "3.5–3.75",
+              "count": 0
+            },
+            {
+              "bin": "3.75–4",
+              "count": 0
+            },
+            {
               "bin": "4–4.25",
               "count": 323
             },
             {
+              "bin": "4.25–4.5",
+              "count": 0
+            },
+            {
+              "bin": "4.5–4.75",
+              "count": 0
+            },
+            {
+              "bin": "4.75–5",
+              "count": 0
+            },
+            {
               "bin": "5–5.25",
               "count": 109
+            },
+            {
+              "bin": "5.25–5.5",
+              "count": 0
+            },
+            {
+              "bin": "5.5–5.75",
+              "count": 0
             },
             {
               "bin": "5.75–6",
@@ -303,12 +368,76 @@
               "count": 775
             },
             {
+              "bin": "1.15–1.3",
+              "count": 0
+            },
+            {
+              "bin": "1.3–1.45",
+              "count": 0
+            },
+            {
+              "bin": "1.45–1.6",
+              "count": 0
+            },
+            {
+              "bin": "1.6–1.75",
+              "count": 0
+            },
+            {
+              "bin": "1.75–1.9",
+              "count": 0
+            },
+            {
               "bin": "1.9–2.05",
               "count": 592
             },
             {
+              "bin": "2.05–2.2",
+              "count": 0
+            },
+            {
+              "bin": "2.2–2.35",
+              "count": 0
+            },
+            {
+              "bin": "2.35–2.5",
+              "count": 0
+            },
+            {
+              "bin": "2.5–2.65",
+              "count": 0
+            },
+            {
+              "bin": "2.65–2.8",
+              "count": 0
+            },
+            {
+              "bin": "2.8–2.95",
+              "count": 0
+            },
+            {
               "bin": "2.95–3.1",
               "count": 126
+            },
+            {
+              "bin": "3.1–3.25",
+              "count": 0
+            },
+            {
+              "bin": "3.25–3.4",
+              "count": 0
+            },
+            {
+              "bin": "3.4–3.55",
+              "count": 0
+            },
+            {
+              "bin": "3.55–3.7",
+              "count": 0
+            },
+            {
+              "bin": "3.7–3.85",
+              "count": 0
             },
             {
               "bin": "3.85–4",
@@ -3266,124 +3395,124 @@
     "insights": {
       "trends": [
         {
-          "title": "Mercado dominado por pisos de tamaño medio",
-          "description": "El tipo 'Piso' representa el 63.3% del mercado (950 de 1500 propiedades). La media de metros es 91.4 m² con una desviación de 32.9, indicando una oferta concentrada en viviendas de tamaño estándar. La zona Centro lidera la oferta con 346 propiedades, seguida de Norte con 338.",
+          "title": "El precio sube con el número de habitaciones",
+          "description": "La media de Precio pasa de 98.438,71 con 1 habitación (-49,2 %) a 380.160,71 con 6 habitaciones (+96 %). Los grupos de 4 y 5 habitaciones ya superan la media global de 193.967,33, con 244.071,21 y 316.550,46.",
+          "columns": [
+            "Habitaciones",
+            "Precio"
+          ]
+        },
+        {
+          "title": "Adosados y áticos, los tipos más caros",
+          "description": "Los Adosado tienen una media de 316.331,97 (+63,1 %) y los Ático de 242.704,82 (+25,1 %). En el otro extremo, los Estudio se quedan en 79.685,71 (-58,9 %) y los Piso, que son 950 filas, en 170.864,21 (-11,9 %).",
           "columns": [
             "Tipo",
-            "Metros",
-            "Zona"
+            "Precio"
           ]
         },
         {
-          "title": "Terrazas presentes en mayoría de propiedades",
-          "description": "El 51.5% de las propiedades disponen de terraza (773 de 1500), frente al 48.5% sin ella. Esta distribución casi equilibrada sugiere que la terraza es un atributo premium frecuente pero no universal en el mercado analizado.",
+          "title": "Playa y Centro, zonas con mayor precio medio",
+          "description": "Playa registra una media de 289.701,89 (+49,4 %) y Centro de 238.687,86 (+23,1 %). Periferia es la zona más barata, con 120.570,31 (-37,8 %), seguida de Sur con 147.922,03 (-23,7 %).",
           "columns": [
-            "Terraza"
+            "Zona",
+            "Precio"
           ]
         },
         {
-          "title": "Parque inmobiliario con antigüedad considerable",
-          "description": "La antigüedad media es de 30 años con una desviación estándar de 17.3, y el rango cubre desde obra nueva (0 años) hasta 59 años. Esto indica que más de la mitad del stock supera los 25 años de antigüedad, lo que puede implicar necesidades de rehabilitación.",
+          "title": "Más baños, precio medio más alto",
+          "description": "Con 1 baño la media es 150.072,26 (-22,6 %), mientras que con 3 baños sube a 331.396,83 (+70,9 %). El grupo de 4 baños alcanza 348.857,14 (+79,9 %), aunque solo tiene 7 viviendas.",
           "columns": [
-            "Antigüedad (años)"
-          ]
-        },
-        {
-          "title": "Precio promedio cercano a 194.000 € con alta dispersión",
-          "description": "El precio medio es de 194.000 € con una desviación estándar de 105.000 €, reflejando una gran heterogeneidad en el mercado. El rango oscila entre 22.000 € y 721.000 €, indicando coexistencia de segmentos muy distintos en el dataset.",
-          "columns": [
+            "Baños",
             "Precio"
           ]
         }
       ],
       "anomalies": [
         {
-          "title": "62 propiedades con metros cuadrados atípicos",
-          "description": "Se detectaron 62 outliers en la variable Metros (4.1% del total), con valores extremos entre 25 m² y 239 m². Estas propiedades pueden representar estudios muy pequeños o grandes villas que distorsionan los modelos de valoración si no se tratan por separado.",
-          "columns": [
-            "Metros"
-          ]
-        },
-        {
-          "title": "49 propiedades con precios fuera del rango normal",
-          "description": "El análisis IQR detecta 49 outliers en Precio (3.3% del total), con el máximo alcanzando 721.000 €. Dado que la media es 194.000 € y la std es 105.000 €, estos valores extremos superiores pueden corresponder a áticos o propiedades en zona Playa con características diferenciales.",
+          "title": "49 precios atípicos concentrados en adosados",
+          "description": "Hay 49 outliers altos de Precio, entre 452.000 y 721.000. De ellos, 43 son Adosado y 6 son Ático, y por habitaciones se reparten entre 5 (17), 6 (16) y 4 (14).",
           "columns": [
             "Precio",
             "Tipo",
-            "Zona"
+            "Habitaciones"
           ]
         },
         {
-          "title": "7 propiedades con número inusual de baños",
-          "description": "Solo 7 propiedades presentan valores atípicos en Baños según el criterio IQR, con un máximo de 4 baños. Aunque el número es bajo, estas propiedades probablemente corresponden a inmuebles de gran tamaño (>200 m²) y podrían inflar artificialmente la correlación con Metros.",
+          "title": "62 viviendas con superficie muy superior",
+          "description": "Metros presenta 62 outliers altos, entre 163 y 239, frente a una media de 91,43 y una desviación de 32,91. El mínimo es de 25 metros.",
+          "columns": [
+            "Metros"
+          ]
+        },
+        {
+          "title": "Viviendas con 4 baños, grupo muy reducido",
+          "description": "Los 7 outliers de Baños tienen exactamente 4 baños. Es el grupo más pequeño de la variable, con n = 7 y una media de Precio de 348.857,14.",
           "columns": [
             "Baños",
-            "Metros"
+            "Precio"
           ]
         }
       ],
       "correlations": [
         {
-          "title": "Metros y Habitaciones determinan el precio",
-          "description": "Metros muestra la correlación más alta con Precio (r=0.759), seguido de Habitaciones (r=0.635). Esto indica que el tamaño físico es el principal driver de valor, explicando que cada metro adicional tiene un impacto directo y significativo en el precio final.",
+          "title": "Metros y Precio, asociación fuerte",
+          "description": "Metros y Precio tienen una correlación fuerte, con r = 0,76. Las viviendas con más superficie se asocian con precios más altos.",
           "columns": [
             "Metros",
-            "Habitaciones",
             "Precio"
           ]
         },
         {
-          "title": "Alta relación estructural entre metros y habitaciones",
-          "description": "La correlación entre Metros y Habitaciones es la más fuerte del dataset (r=0.849), lo que sugiere multicolinealidad relevante. En modelos predictivos de precio, incluir ambas variables simultáneamente puede generar redundancia y es recomendable evaluar su tratamiento conjunto.",
+          "title": "Metros y Habitaciones, relación muy fuerte",
+          "description": "Metros y Habitaciones tienen una correlación muy fuerte, con r = 0,85. Metros también se asocia con Baños, con una correlación fuerte de r = 0,65.",
           "columns": [
             "Metros",
-            "Habitaciones"
+            "Habitaciones",
+            "Baños"
           ]
         },
         {
-          "title": "Baños correlaciona con tamaño y habitaciones",
-          "description": "Baños presenta correlaciones de r=0.652 con Metros y r=0.733 con Habitaciones, confirmando que el número de baños escala proporcionalmente con el tamaño general del inmueble. Esta variable actúa como indicador proxy del tamaño y la categoría del inmueble.",
+          "title": "Habitaciones se asocia con Baños y Precio",
+          "description": "Habitaciones y Baños tienen una correlación fuerte, con r = 0,73. Habitaciones y Precio también la tienen, con r = 0,64, algo menor que la de Metros con Precio (0,76).",
           "columns": [
+            "Habitaciones",
             "Baños",
-            "Metros",
-            "Habitaciones"
+            "Precio"
           ]
         }
       ],
       "recommendations": [
         {
-          "title": "Incorporar Distancia al mar en modelo de precio",
-          "description": "La variable Distancia al mar (media=4.13 km, rango 0.1-9 km) no aparece en las correlaciones destacadas con Precio, pero su relación con zona Playa la convierte en candidata relevante. Se recomienda analizar su efecto segmentado por zona para detectar impacto no lineal en el precio.",
+          "title": "Evitar contar dos veces el tamaño",
+          "description": "Metros, Habitaciones y Baños están muy relacionadas entre sí (r entre 0,65 y 0,85). Si se usan juntas para estimar el precio, conviene revisar la colinealidad o priorizar Metros, que tiene la r más alta con Precio (0,76).",
           "columns": [
-            "Distancia al mar (km)",
+            "Metros",
+            "Habitaciones",
+            "Baños",
+            "Precio"
+          ]
+        },
+        {
+          "title": "Analizar los adosados por separado",
+          "description": "Los Adosado suponen 43 de los 49 outliers de Precio y tienen una media de 316.331,97. Segmentar el análisis por Tipo evitaría que estos valores distorsionen las conclusiones globales.",
+          "columns": [
+            "Tipo",
+            "Precio"
+          ]
+        },
+        {
+          "title": "Comparar precios dentro de cada zona",
+          "description": "La media de Precio va de 120.570,31 en Periferia a 289.701,89 en Playa. Comparar viviendas dentro de la misma Zona da referencias más homogéneas que la media global de 193.967,33.",
+          "columns": [
             "Zona",
             "Precio"
           ]
         },
         {
-          "title": "Segmentar análisis por Tipo de propiedad",
-          "description": "Los Estudios (140 unidades, ~9.3%) y Áticos (166 unidades, ~11%) tienen perfiles de metros y precio muy distintos a los Pisos. Construir modelos o análisis separados por Tipo reducirá la varianza inexplicada y generará valoraciones más precisas para cada segmento.",
+          "title": "Prudencia con el grupo de 4 baños",
+          "description": "El grupo de 4 baños solo tiene n = 7, así que su media de 348.857,14 es poco representativa. Conviene agruparlo con el de 3 baños (n = 126) en los análisis.",
           "columns": [
-            "Tipo",
-            "Metros",
-            "Precio"
-          ]
-        },
-        {
-          "title": "Tratar outliers antes de modelizar precios",
-          "description": "Con 49 outliers en Precio y 62 en Metros, aplicar técnicas de winsorización o modelizar estos casos por separado es prioritario. Ignorarlos puede sesgar significativamente la media y deteriorar la precisión predictiva, dado que el precio máximo (721.000 €) casi cuadruplica la media.",
-          "columns": [
-            "Precio",
-            "Metros"
-          ]
-        },
-        {
-          "title": "Evaluar impacto de Antigüedad en depreciación de precio",
-          "description": "Con una antigüedad media de 30 años y rango hasta 59 años, esta variable puede capturar efectos de depreciación no reflejados en las correlaciones actuales. Se recomienda analizar la relación Antigüedad-Precio controlando por Zona y Tipo para identificar si inmuebles antiguos en Centro mantienen su valor.",
-          "columns": [
-            "Antigüedad (años)",
-            "Precio",
-            "Zona"
+            "Baños"
           ]
         }
       ]

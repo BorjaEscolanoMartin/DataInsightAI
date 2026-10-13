@@ -109,7 +109,7 @@ CSV subido → Supabase Storage
     ↓
 Celery worker
     ├── profile_csv()       — pandas: tipos, stats, outliers, chart specs
-    ├── generate_insights() — Claude Sonnet (Anthropic SDK)
+    ├── generate_insights() — Claude Opus 5.5 (Anthropic SDK)
     └── run_forecast()      — statsmodels Holt-Winters
         o run_regression()  — scikit-learn RandomForest
     ↓
@@ -126,7 +126,7 @@ Frontend polling → renderiza ChartGrid + InsightsPanel + PredictionsPanel
 | Componentes | shadcn/ui, Recharts | Accesibles, composables, sin opiniones sobre el diseño |
 | Estado / fetch | TanStack Query | Cache, polling y mutaciones con muy poco boilerplate |
 | Backend | Python 3.12, FastAPI, Pydantic v2 | Ecosistema de datos/ML, validación automática, OpenAPI gratis |
-| LLM | Anthropic Claude Sonnet | Salida JSON estructurada fiable, prompt engineering sencillo |
+| LLM | Anthropic Claude Opus 5.5 | Salida JSON estructurada fiable, prompt engineering sencillo |
 | Forecasting | statsmodels (Holt-Winters) | Sin dependencias de compilación (vs Prophet/cmdstan), build rápido |
 | ML baseline | scikit-learn RandomForest | Interpretable, robusto con pocos datos, feature importance directo |
 | PDF | ReportLab | Sin dependencias de sistema (vs WeasyPrint/GTK), puro Python |
