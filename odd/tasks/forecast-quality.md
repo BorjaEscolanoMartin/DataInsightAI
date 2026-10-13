@@ -5,95 +5,41 @@ Branch: `fix/forecast-quality` from `main` (03493fb). Delivery: ask-on-risk (for
 
 ## Specs
 
-Status: draft. No test is written until Borja answers D1-D5 (L2: "No escribas tests hasta que te conteste").
+Decided in L4. Open decisions D1-D5 are closed; their rationale is in L3/L4 and in commit 95255d0.
 
-- S1 H2 (brief): "El objetivo del forecast es la primera columna numérica, aunque sea un identificador." "`workers/tasks.py` → `_run_predictions` usa `numeric_cols[0]`. Con el `Supertienda` original, el objetivo es `Id. de la fila`." Fix: exclude ID-like columns from the target. Detection: D2.
-- S2 H3 aggregation (brief): "`run_forecast` agrega por día con la **media**, no con la suma". Brief PR 4: "agregación (suma o media según la columna)". L2: "suma o media por día (sumar no sirve para métricas de nivel como precios o stock)". Rule: D1.
-- S3 H3 gaps and frequency (brief): "rellena con `asfreq("D").interpolate()` los días que faltan". "Serie trimestral de Appol: MAPE del 0,0 %, porque el backtest compara contra valores interpolados en línea recta, no contra datos reales." Brief P3: "no interpolar huecos largos o detectar la frecuencia". Rule: D3.
-- S4 H3 metric (brief): "Serie diaria de Supertienda: MAPE del 427,9 %. La serie va de 296 a 98.567 en los últimos 30 días, y el MAPE se dispara en los días bajos." Brief P3: "cambiar a una métrica robusta (MAE o sMAPE)". L2: "MAE o sMAPE (y dónde cambia la etiqueta: front, PDF y fixtures)". Choice: D4.
-- S5 Confidence interval (Borja, Engram plan/next-prs-after-demo): the interval is the raw series std × √i (`last_std * 1.96 * sqrt(i+1)`), so it leaves the plausible range (negative, and above 7,000 in ventas). Proposal: compute it by simulating the fitted model. Parameters: D5. Verified with a RED first.
-- S6 Histogram (Borja, same record): the profiling histogram drops empty bins and merges bins that are not contiguous; it must also return bins with count 0. Verified with a RED first. Code evidence: `profiling.py:76`, `if counts[i] > 0`.
-- S7 Closure: independent verifier (the stored `predictions_json` format changes, high-risk item 1), RDD per work-unit commit; Judgment Day and /security-review if Borja asks for them.
+- S1 H2 (brief): "El objetivo del forecast es la primera columna numérica, aunque sea un identificador." Fix: the forecast target is the first numeric column that is not an identifier; with none left, there is no forecast. A column is an identifier when it is numeric, every non-null value is an integer and distinct, and either the values form a consecutive range in any order (`max - min + 1 == count`) or its name has the token `id`. L4: "parte el nombre por cualquier carácter que no sea letra o dígito, incluido el guion bajo: cliente_id e ID cliente deben coincidir; Pedidos y Paid no." Token match is case-insensitive. `profile_csv` stores `is_identifier` on every column entry. The regression keeps its current columns (backlog).
+- S2 H3 aggregation (D1, L4 accepted): dates are reduced to the day; when no date repeats there is no aggregation (`aggregation: "none"`); when dates repeat, values are summed per date (`aggregation: "sum"`). The chart and the PDF say it ("Suma diaria de Ventas", with the period word of the frequency). A level metric with repeated dates is summed: known limitation, backlog.
+- S3 H3 frequency and gaps (D3, L4 accepted):
+  - Frequency from the median spacing between consecutive distinct dates: D (1 day), W (7), M (28-31), Q (89-92), Y (365-366). Any other spacing, or two dates in the same period: no forecast.
+  - Seasonal period and horizon (steps) per frequency: D 7 and 30, W 52 and 12, M 12 and 12, Q 4 and 8, Y none and 3. Seasonality is used when the fitted series has at least three seasons (today's rule for D: 21 points).
+  - Short gap, up to 3 consecutive missing steps: filled with 0 when summed, interpolated otherwise. Long gap, more than 3: the series is cut to the segment after the last long gap; fewer than 10 points left means no forecast.
+  - The backtest metrics use only observed steps.
+  - The result carries `frequency` and `horizon`; `horizon_days` is no longer written. L4: "El horizonte según la frecuencia, con el título del gráfico que lo refleje." Title: "Forecasting — próximos 30 días / próximas 12 semanas / próximos 12 meses / próximos 8 trimestres / próximos 3 años".
+- S4 H3 metric (D4), L4: "MAE y además WAPE (la suma de errores absolutos entre la suma de valores reales); WAPE como cifra principal en la UI y el PDF, MAE como detalle." WAPE = Σ|actual − forecast| / Σ|actual| × 100 over the observed backtest steps (absolute actuals, so a series with negatives cannot divide by a sum near 0); `None` when Σ|actual| is 0. MAE = mean |actual − forecast| over the same steps. The result carries `wape` and `mae`; `mape` is no longer written but stays optional in the API schema, the web types, the chart and the PDF for stored analyses.
+- S5 Confidence interval (D5 accepted): `simulate(horizon, repetitions=1000, error="add", random_errors=None, rng=np.random.default_rng(FORECAST_SEED))` with `FORECAST_SEED = 42`; bounds are the 2.5 and 97.5 percentiles per step. L4: "Recorta el intervalo a 0 solo si la serie histórica no tiene negativos."
+- S6 Histogram: every bin is returned, including those with count 0 (`profiling.py:76`).
+- S7 Compatibility, L4: "Añade un test que pinte un análisis antiguo, solo con mape, para demostrar la compatibilidad." The API schema keeps passing stored forecasts (`mape`, `horizon_days`) and passes the new fields through.
+- S8 Closure: independent verifier (the stored `predictions_json` format changes, high-risk item 1), RDD per work-unit commit.
 
-Test data (brief): "Para los tests automáticos de la PR 4, mejor fixtures pequeñas creadas en el propio test que estos ficheros." The demo fixtures are not regenerated here: that happens once, at the end of the insights prompt PR.
-
-## Open decisions
-
-Each one has a recommendation; nothing is applied until Borja answers.
-
-### D1 Sum or mean per date
-
-Today every series is averaged per date. Sum is right for flows (sales, orders), wrong for levels (price, stock, balance). No statistical test tells a flow from a level, and keyword lists by column name are fragile across languages.
-
-Recommendation:
-- Dates never repeat (one row per date, the common case for levels and for the demo): no aggregation, so sum and mean do not matter.
-- Dates repeat (transaction-level data such as Supertienda): sum.
-- The result carries `aggregation: "none" | "sum"`, and the chart and the PDF say it ("Suma diaria de Ventas"), so a sum applied to a level metric is visible instead of silent.
-- Known limitation, to the backlog: a level metric with repeated dates (one price per product per day) is summed. Letting the user pick the aggregation needs UI and an API parameter, out of this PR.
-
-Alternative: mean for names that look like levels (precio, price, stock, saldo, tasa, rate, %). Cheaper to explain, but it fails silently on any name outside the list.
-
-### D2 ID-like columns
-
-The profile already stores `type`, `unique_count` and `null_count` per column.
-
-Recommendation: a column is an identifier when it is numeric, every non-null value is an integer and distinct, and either
-- the values are a consecutive range in any order (`max - min + 1 == count`), or
-- its name has the token `id` as a whole word, case-insensitive ("Id. de la fila", "ID", "row_id", "customer id"; not "Pedidos" or "Rapidez").
-
-`profile_csv` computes it once and stores `is_identifier: bool` in each column entry (an optional new field; the web app ignores it). `_run_predictions` takes the first numeric column that is not an identifier; with none left, there is no forecast.
-
-Sub-question: the regression has the same flaw (target `numeric_cols[-1]`, IDs as features). Recommendation: leave it for the backlog, because it changes the regression results the demo shows.
-
-### D3 Frequency, long gaps and what to do with them
-
-Detecting the frequency is what fixes Appol: a quarterly series is resampled per day today, so 90 interpolated days sit between real points.
-
-Recommendation:
-- Frequency: median spacing between consecutive distinct dates, mapped to D (1 day), W (7), M (28-31), Q (89-92) or Y (365-366). Any other spacing: no forecast, with a logged reason.
-- Seasonality and horizon per frequency: D 7 and 30, W 52 and 12, M 12 and 12, Q 4 and 8, Y none and 3.
-- A gap is a missing step at the detected frequency. Short gap: up to 3 consecutive missing steps. Filled with 0 when D1 summed (no transaction means no sales), interpolated otherwise.
-- Long gap: more than 3 consecutive missing steps. The series is cut to the segment after the last long gap; if that segment has fewer than 10 points (today's minimum), no forecast.
-- The backtest metric uses only observed steps, never filled ones. That is what removes the false 0.0 %.
-- Result contract: new `frequency` and `horizon` (steps) fields. `horizon_days` stops being written; the chart and the PDF fall back to it for analyses stored before this PR.
-
-### D4 MAE or sMAPE
-
-- sMAPE is a percentage, easy to read, but it is 200 % on any step where the actual value is 0 and the forecast is not. With D1/D3, a summed daily series with days without sales has exactly those zeros, so Supertienda would still look broken.
-- MAE is in the target's units, never explodes on zeros or low days, and is what the interval in S5 is measured in. Its cost: it is not comparable across columns, so it needs the unit context ("Error medio en backtest: 123,4 Ventas").
-
-Recommendation: MAE. The field becomes `mae`; `mape` stays optional in the schema and the types, is no longer written, and old analyses keep showing it with its own label.
-
-Where the label and the field change:
-- Front: `apps/web/src/components/predictions/ForecastChart.tsx:45-47` ("MAPE backtest") and `apps/web/src/types/api.ts:105` (`mape: number | null`).
-- PDF: `apps/api/app/services/report.py:288-289` (`("MAPE backtest", ...)`).
-- API schema: `apps/api/app/schemas/predictions.py:14`.
-- Fixtures: `apps/web/src/data/demo/ventas.json` holds `"mape": 8.961710139785902` (`viviendas.json` has no forecast). Not touched here: with `mape` optional it keeps typechecking and renders the old label until the insights prompt PR regenerates it.
-
-### D5 Simulation of the interval
-
-statsmodels 0.15.0: `HoltWintersResults.simulate(nsimulations, anchor=None, repetitions=1, error='add', random_errors=None, *, rng=None)`.
-
-Recommendation:
-- `repetitions=1000`, interval from the 2.5 and 97.5 percentiles per step. 1000 × 30 steps runs in milliseconds and the percentiles stay stable from run to run.
-- Seed: module constant `FORECAST_SEED = 42` (the same value as the demo generator's SEED), passed as `rng=np.random.default_rng(FORECAST_SEED)`. The same CSV always gets the same band, so the tests and the regenerated fixtures are deterministic.
-- `random_errors=None` (normal errors with the residual variance). `"bootstrap"` avoids the normality assumption but resamples from very few residuals on short series (10 points minimum).
-- Proposal beyond the report: when every observed value is ≥ 0, clip `yhat_lower` at 0.
+Test data (brief): "Para los tests automáticos de la PR 4, mejor fixtures pequeñas creadas en el propio test que estos ficheros." The demo fixtures are not regenerated here: that happens once, at the end of the insights prompt PR (`ventas.json` keeps `"mape"` until then, which S7 covers).
 
 ## Tasks
 
-Provisional until D1-D5 are answered. Route: inline (no Writer trigger).
+Route: inline (no Writer trigger). Each task: RED, GREEN, commit.
 
-- [x] T1 inline: `docs: add feature document for forecast quality` (this file)
-- [ ] T2 S6 inline: RED histogram with an empty bin, then return every bin
-- [ ] T3 S1 inline: identifier detection in profiling, forecast target skips identifiers
-- [ ] T4 S2, S3 inline: aggregation, frequency, gaps, observed-only backtest
-- [ ] T5 S4 inline: MAE in the service, schema, types, chart and PDF, with fallback for old analyses
-- [ ] T6 S5 inline: simulated interval
-- [ ] T7 S7: verifier, RDD
+- [x] T1 inline: `docs: add feature document for forecast quality` (95255d0)
+- [ ] T2 S6 inline: histogram returns empty bins
+- [ ] T3 S1 inline: identifier detection in profiling; forecast target skips identifiers
+- [ ] T4 S2, S3 inline: day aggregation, frequency, gaps, horizon per frequency, observed-only backtest
+- [ ] T5 S4 inline: WAPE and MAE in the service
+- [ ] T6 S5 inline: simulated interval, clipped at 0 for non-negative history
+- [ ] T7 S2-S4, S7 inline: API schema, web types, chart (title, WAPE, MAE, aggregation), PDF; old analysis render test
+- [ ] T8 S8: verifier, RDD
 
 ## Log
 
 - L1 Borja (2026-10-13, earlier session; the verbatim prompt was not kept, scope from Engram `plan/next-prs-after-demo`): forecast quality PR first and insights prompt PR after it, so the demo fixtures are regenerated once, at the end of the prompt PR. P3 scope extended with the confidence interval (S5) and the histogram's empty bins (S6), each verified with a RED at the start of the PR.
 - L2 Borja (2026-10-13): "El resumen está bien, con dos correcciones. Primera: antes de los RED, crea la rama, haz el commit de cierre de la demo y escribe el documento odd/tasks de la PR con las decisiones abiertas y tu recomendación para cada una: suma o media por día (sumar no sirve para métricas de nivel como precios o stock), cómo detectar una columna tipo ID, qué es un hueco largo y qué hacer con él, MAE o sMAPE (y dónde cambia la etiqueta: front, PDF y fixtures), y el número de repeticiones y la semilla de la simulación. No escribas tests hasta que te conteste. Segunda: en el orden, entre el rediseño y el portfolio va la PR de mejoras pequeñas del backlog. Guárdalo en Engram"
 - L3 Branch created from main 03493fb; da7e602 closes `odd/tasks/demo.md` (L22, L23, T8). Code read for the decisions: `forecasting.py` (mean per date, `asfreq("D").interpolate()`, interval from `series.tail(...).std()`), `tasks.py:23` (`numeric_cols[0]`), `profiling.py:76` (empty bins dropped), `report.py:288`, `ForecastChart.tsx:43-47`. Waiting for Borja on D1-D5.
+- L4 Borja (2026-10-13): "D1, D3 y D5 aceptadas. D2 aceptada, pero parte el nombre por cualquier carácter que no sea letra o dígito, incluido el guion bajo: cliente_id e ID cliente deben coincidir; Pedidos y Paid no. D4: MAE y además WAPE (la suma de errores absolutos entre la suma de valores reales); WAPE como cifra principal en la UI y el PDF, MAE como detalle. Recorta el intervalo a 0 solo si la serie histórica no tiene negativos. El horizonte según la frecuencia, con el título del gráfico que lo refleje. Añade un test que pinte un análisis antiguo, solo con mape, para demostrar la compatibilidad. Actualiza el documento con estas decisiones y empieza por los RED"
+- L5 Specs rewritten from L4. Found while planning: the API validates stored predictions through `ForecastOut` (`routers/datasets.py:36`, `routers/analyses.py:51`), which drops unknown keys and defaults `horizon_days` to 30, so the new fields must be declared there (S7). Interpretations to confirm: WAPE divides by Σ|actual| (S4); dates are reduced to the day before aggregating (S2); `run_forecast` derives the horizon from the frequency, so its `horizon_days` parameter goes away.
