@@ -25,7 +25,7 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
         from app.services.forecasting import run_forecast
         target = forecast_targets[0]
         try:
-            forecast_result = run_forecast(content, date_col, target, horizon_days=30)
+            forecast_result = run_forecast(content, date_col, target)
             n_points = len(forecast_result.get("points", []))
             print(f"[predictions] forecast OK: target={target} points={n_points}", flush=True)
         except Exception as exc:

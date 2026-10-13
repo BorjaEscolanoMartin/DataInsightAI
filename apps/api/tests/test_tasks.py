@@ -53,7 +53,7 @@ def test_with_a_date_column_the_first_numeric_column_is_forecast(forecast, regre
     result = _run_predictions(CONTENT, profile)
 
     assert result == {"forecast": forecast.return_value, "regression": None}
-    forecast.assert_called_once_with(CONTENT, "fecha", "ventas", horizon_days=30)
+    forecast.assert_called_once_with(CONTENT, "fecha", "ventas")
     regression.assert_not_called()
 
 
@@ -67,7 +67,7 @@ def test_the_forecast_target_skips_identifier_columns(forecast, regression):
     result = _run_predictions(CONTENT, profile)
 
     assert result == {"forecast": forecast.return_value, "regression": None}
-    forecast.assert_called_once_with(CONTENT, "fecha", "ventas", horizon_days=30)
+    forecast.assert_called_once_with(CONTENT, "fecha", "ventas")
 
 
 def test_with_only_identifier_columns_there_is_no_forecast(forecast, regression):
