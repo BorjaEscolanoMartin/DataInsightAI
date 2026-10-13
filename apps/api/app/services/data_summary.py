@@ -46,9 +46,13 @@ class Change(NamedTuple):
     pct: float | None
 
 
+def pct_change(value: float, base: float) -> float | None:
+    """Percentage of value against base, relative to the base's size; None when base is 0."""
+    return (value - base) / abs(base) * 100 if base else None
+
+
 def _change(start_label: str, end_label: str, start: float, end: float) -> Change:
-    pct = (end - start) / abs(start) * 100 if start else None
-    return Change(start_label, end_label, start, end, end - start, pct)
+    return Change(start_label, end_label, start, end, end - start, pct_change(end, start))
 
 
 def temporal_summary(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:
@@ -168,7 +172,7 @@ def _groups(df: pd.DataFrame, column: str, target: str, overall: float) -> list[
     stats = stats.sort_values("count", ascending=False, kind="stable")
 
     def group(label: str, n: int, mean: float) -> Group:
-        return Group(label, n, mean, (mean - overall) / abs(overall) * 100 if overall else None)
+        return Group(label, n, mean, pct_change(mean, overall))
 
     groups = [group(_label(v), int(r["count"]), float(r["mean"])) for v, r in
               stats.head(MAX_GROUPS).iterrows()]
@@ -196,9 +200,10 @@ def _breakdown(column: str, groups: list[Group]) -> ColumnBreakdown:
     if len(groups) != 2:
         return ColumnBreakdown(column, groups)
     base, other = groups  # largest group first
-    change = other.mean - base.mean
-    pct = change / abs(base.mean) * 100 if base.mean else None
-    return ColumnBreakdown(column, groups, GroupDifference(other.label, base.label, change, pct))
+    difference = GroupDifference(
+        other.label, base.label, other.mean - base.mean, pct_change(other.mean, base.mean)
+    )
+    return ColumnBreakdown(column, groups, difference)
 
 
 def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:

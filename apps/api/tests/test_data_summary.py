@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import pandas as pd
 import pytest
 
-from app.services.data_summary import temporal_summary
+from app.services.data_summary import pct_change, temporal_summary
 
 PROFILE = {
     "date_column_candidate": "fecha",
@@ -156,3 +156,13 @@ def test_the_trend_percentage_is_relative_to_the_size_of_a_negative_start():
 
     assert (trend.start, trend.end, trend.change) == (-10, -5, 5)
     assert trend.pct == pytest.approx(50)
+
+
+@pytest.mark.parametrize(
+    ("value", "base", "pct"),
+    [(150, 100, 50), (50, 100, -50), (-5, -10, 50), (-15, -10, -50), (5, 0, None)],
+)
+def test_pct_change_is_relative_to_the_size_of_the_base(value, base, pct):
+    result = pct_change(value, base)
+
+    assert result == (pytest.approx(pct) if pct is not None else None)
