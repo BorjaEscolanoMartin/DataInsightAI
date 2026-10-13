@@ -1,8 +1,9 @@
 import textwrap
 
+import pandas as pd
 import pytest
 
-from app.services.profiling import profile_csv
+from app.services.profiling import iqr_bounds, profile_csv, read_csv
 
 CSV_NUMERIC = textwrap.dedent("""\
     fecha,ventas,categoria,activo
@@ -126,3 +127,26 @@ def test_identifier_columns_are_flagged():
         "precio": False,
         "categoria": False,
     }
+
+
+def test_iqr_bounds_are_one_and_a_half_iqr_beyond_the_quartiles():
+    low, high = iqr_bounds(pd.Series([1, 2, 3, 4, 5, 6, 7, 8, 9]))
+
+    # Q1 = 3, Q3 = 7, IQR = 4.
+    assert (low, high) == (-3, 13)
+
+
+def test_iqr_bounds_are_none_when_the_quartiles_are_equal():
+    assert iqr_bounds(pd.Series([5, 5, 5, 5, 9])) is None
+
+
+def test_read_csv_sniffs_the_delimiter_and_the_encoding():
+    df = read_csv("zona;precio\nMálaga;10\nCádiz;20\n".encode("latin-1"))
+
+    assert df.columns.tolist() == ["zona", "precio"]
+    assert df["zona"].tolist() == ["Málaga", "Cádiz"]
+
+
+def test_read_csv_rejects_unreadable_content():
+    with pytest.raises(ValueError, match="No se pudo leer el CSV"):
+        read_csv(b"")
