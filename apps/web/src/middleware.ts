@@ -48,7 +48,9 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // /demo is public and static: skipping it means a visit never calls Supabase.
+  // /demo is public and static: skipping it means a visit never calls Supabase. The whole
+  // /demo subtree is skipped, so nothing under /demo may rely on this middleware's session
+  // refresh or redirects.
   matcher: [
     "/((?!_next/static|_next/image|favicon.ico|demo(?:/|$)|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

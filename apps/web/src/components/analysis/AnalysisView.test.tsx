@@ -1,15 +1,7 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-import ventas from "@/data/demo/ventas.json"
-import { AnalysisView, type AnalysisViewProps } from "./AnalysisView"
-
-const sales = ventas as unknown as {
-  filename: string
-  size_bytes: number
-  row_count: number
-  column_count: number
-  analysis: AnalysisViewProps["analysis"]
-}
+import { salesFixture as sales } from "@/data/demo"
+import { AnalysisView } from "./AnalysisView"
 
 function stat(label: string): string | null {
   return screen.getByText(label).nextElementSibling?.textContent ?? null

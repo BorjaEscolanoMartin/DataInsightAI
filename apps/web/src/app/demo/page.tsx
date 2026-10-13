@@ -2,27 +2,22 @@
 
 import Link from "next/link"
 import { useState } from "react"
-import { AnalysisView, type AnalysisViewProps } from "@/components/analysis/AnalysisView"
-import ventas from "@/data/demo/ventas.json"
-import viviendas from "@/data/demo/viviendas.json"
+import { AnalysisView } from "@/components/analysis/AnalysisView"
+import { housingFixture, salesFixture } from "@/data/demo"
 
-// Precomputed by apps/api/demo/generate_demo_fixture.py: the page makes no request.
-interface DemoFixture {
-  filename: string
-  size_bytes: number
-  row_count: number | null
-  column_count: number | null
-  analysis: AnalysisViewProps["analysis"]
-}
+// Precomputed fixtures, imported statically: the page makes no request.
+const EXAMPLES = {
+  ventas: { label: "Ventas diarias · previsión", fixture: salesFixture },
+  viviendas: { label: "Viviendas · regresión", fixture: housingFixture },
+} as const
 
-const EXAMPLES = [
-  { id: "ventas", label: "Ventas diarias · previsión", fixture: ventas as DemoFixture },
-  { id: "viviendas", label: "Viviendas · regresión", fixture: viviendas as DemoFixture },
-]
+type ExampleId = keyof typeof EXAMPLES
+
+const EXAMPLE_IDS = Object.keys(EXAMPLES) as ExampleId[]
 
 export default function DemoPage() {
-  const [selected, setSelected] = useState(EXAMPLES[0].id)
-  const { fixture } = EXAMPLES.find((example) => example.id === selected) ?? EXAMPLES[0]
+  const [selected, setSelected] = useState<ExampleId>("ventas")
+  const { fixture } = EXAMPLES[selected]
 
   return (
     <div className="min-h-screen bg-gray-950">
@@ -48,24 +43,26 @@ export default function DemoPage() {
         </p>
 
         <div className="flex flex-wrap gap-2" role="group" aria-label="Conjunto de datos">
-          {EXAMPLES.map((example) => (
+          {EXAMPLE_IDS.map((id) => (
             <button
-              key={example.id}
+              key={id}
               type="button"
-              aria-pressed={example.id === selected}
-              onClick={() => setSelected(example.id)}
+              aria-pressed={id === selected}
+              onClick={() => setSelected(id)}
               className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                example.id === selected
+                id === selected
                   ? "bg-indigo-600 text-white"
                   : "border border-gray-700 text-gray-300 hover:bg-gray-800"
               }`}
             >
-              {example.label}
+              {EXAMPLES[id].label}
             </button>
           ))}
         </div>
 
+        {/* A key per dataset resets the view's own state (open insight categories, rows). */}
         <AnalysisView
+          key={selected}
           filename={fixture.filename}
           sizeBytes={fixture.size_bytes}
           rowCount={fixture.row_count}
