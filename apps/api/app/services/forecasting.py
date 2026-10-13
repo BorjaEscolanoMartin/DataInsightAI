@@ -42,11 +42,16 @@ def _warn_fit_failed(
     )
 
 
-def _mape(actual: np.ndarray, predicted: np.ndarray) -> float | None:
-    mask = actual != 0
-    if mask.sum() == 0:
-        return None
-    return float(np.mean(np.abs((actual[mask] - predicted[mask]) / actual[mask])) * 100)
+def _backtest_errors(
+    actual: np.ndarray, predicted: np.ndarray
+) -> tuple[float | None, float | None]:
+    """WAPE (%) and MAE of the backtest; WAPE is empty when the actual values are all 0."""
+    if len(actual) == 0:
+        return None, None
+    abs_errors = np.abs(actual - predicted)
+    scale = float(np.abs(actual).sum())
+    wape = float(abs_errors.sum() / scale * 100) if scale else None
+    return wape, float(abs_errors.mean())
 
 
 def _no_forecast(target_col: str, date_col: str, reason: str) -> dict[str, Any]:
@@ -132,12 +137,13 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
             initialization_method="estimated",
         ).fit(optimized=True)
 
-    mape_val: float | None = None
+    wape: float | None = None
+    mae: float | None = None
     trend, seasonal, seasonal_periods = _config(len(train))
     try:
         model = _fit(train, trend, seasonal, seasonal_periods)
         backtest = model.forecast(test_size)
-        mape_val = _mape(test[test_observed], backtest[test_observed])
+        wape, mae = _backtest_errors(test[test_observed], backtest[test_observed])
     except Exception as exc:
         _warn_fit_failed("backtest", trend, seasonal, seasonal_periods, exc)
 
@@ -163,7 +169,8 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
         "aggregation": aggregation,
         "frequency": frequency.code,
         "horizon": horizon,
-        "mape": mape_val,
+        "wape": wape,
+        "mae": mae,
         "points": [],
     }
     if forecast_vals is None:
