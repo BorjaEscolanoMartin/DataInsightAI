@@ -639,3 +639,54 @@ def test_unknown_kid_when_the_refresh_after_the_max_age_fails_is_not_reported_as
         _authenticate(_es256_token(_claims(), signing_key, kid="rotated-key"))
 
     assert jwks_server.downloads == 2
+
+
+@pytest.mark.parametrize(
+    "crit, extension",
+    [(["exp"], {}), (["urn:example:must-understand"], {"urn:example:must-understand": True})],
+    ids=["registered-claim", "unknown-extension"],
+)
+def test_rejects_token_with_a_crit_header(
+    jwks: dict[str, Any],
+    signing_key: ec.EllipticCurvePrivateKey,
+    crit: list[str],
+    extension: dict[str, Any],
+) -> None:
+    # RFC 7515 4.1.11: a token whose crit names an extension we do not process must be rejected.
+    token = _es256_token(_claims(), signing_key, crit=crit, **extension)
+
+    with pytest.raises(HTTPException) as exc_info:
+        _authenticate(token)
+
+    assert exc_info.value.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "breakage",
+    [
+        {"x": _b64url_uint(0, 32), "y": _b64url_uint(0, 32)},  # (0, 0) is not on P-256
+        {"x": None},
+        {"kty": None},
+    ],
+    ids=["point-off-the-curve", "missing-x", "missing-kty"],
+)
+def test_broken_jwks_key_is_a_server_error_and_good_keys_still_work(
+    jwks: dict[str, Any], signing_key: ec.EllipticCurvePrivateKey, breakage: dict[str, Any]
+) -> None:
+    # A key Supabase publishes broken is a server fault, not an invalid client token.
+    broken_key: dict[str, Any] = _ec_public_jwk(
+        ec.generate_private_key(ec.SECP256R1()), "broken-key"
+    )
+    for field, value in breakage.items():
+        if value is None:
+            del broken_key[field]
+        else:
+            broken_key[field] = value
+    jwks["keys"].append(broken_key)
+
+    with pytest.raises(Exception) as exc_info:
+        _authenticate(_es256_token(_claims(), signing_key, kid="broken-key"))
+    assert not isinstance(exc_info.value, HTTPException)
+
+    user_id = uuid.uuid4()
+    assert _authenticate(_es256_token(_claims(sub=str(user_id)), signing_key)) == user_id

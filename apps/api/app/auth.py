@@ -4,10 +4,9 @@ from time import monotonic
 from typing import Any
 
 import httpx
+import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError, jwt
-from jose.exceptions import JOSEError
 
 from app.config import settings
 
@@ -101,16 +100,18 @@ class _JwksCache:
 _jwks_cache = _JwksCache()
 
 
-def _key_for_token(token: str) -> dict[str, Any]:
-    """Return the Supabase public key whose kid matches the token header."""
+def _key_for_token(token: str) -> jwt.PyJWK:
+    """Return the Supabase public key whose kid matches the token header.
+
+    PyJWT rejects a kid that is not a string as an invalid token. The key's algorithm comes
+    from the JWK, not from the token: a kid naming a non-ES256 key fails the allowlist in
+    jwt.decode (an invalid token), while a broken JWK raises PyJWKError (a server error).
+    """
     kid = jwt.get_unverified_header(token).get("kid")
-    # The header is not verified yet: a kid that is not a string cannot name any key.
-    if kid is not None and not isinstance(kid, str):
-        raise JWTError("Malformed kid in token header")
     key = _jwks_cache.key(kid)
     if key is None:
-        raise JWTError(f"No JWKS key found for kid={kid}")
-    return key
+        raise jwt.InvalidTokenError(f"No JWKS key found for kid={kid}")
+    return jwt.PyJWK.from_dict(key)
 
 
 def get_current_user(
@@ -124,24 +125,22 @@ def get_current_user(
             algorithms=ALLOWED_ALGORITHMS,
             audience="authenticated",
             issuer=settings.supabase_auth_url,
-            # python-jose only checks these claims when present; Supabase always sends them.
-            options={
-                "require_exp": True,
-                "require_aud": True,
-                "require_iss": True,
-                "require_sub": True,
-            },
+            # PyJWT accepts a token without exp unless it is required; Supabase always sends
+            # all four. PyJWT also rejects a non-string sub and any crit header.
+            options={"require": ["exp", "aud", "iss", "sub"]},
         )
-    # Any token python-jose cannot process is the client's fault. JWKS download errors
-    # (httpx) are not caught here: a Supabase outage is a server error, not a 401.
-    except JOSEError as e:
-        print(f"[auth] JOSEError: {e}", flush=True)
+    # Only invalid tokens are the client's fault. JWKS download errors (httpx,
+    # JwksUnavailableError) and broken JWKs (PyJWKError, InvalidKeyError) are not
+    # InvalidTokenError: they stay server errors, not a 401.
+    except jwt.InvalidTokenError as e:
+        print(f"[auth] InvalidTokenError: {e}", flush=True)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or expired token",
         )
 
-    # require_sub guarantees the claim; an empty or malformed sub fails uuid.UUID below.
+    # require guarantees sub is present and PyJWT that it is a string; an empty or malformed
+    # sub fails uuid.UUID below.
     user_id: str = payload["sub"]
     try:
         return uuid.UUID(user_id)
