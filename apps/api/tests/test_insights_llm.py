@@ -251,7 +251,7 @@ def test_profile_figures_are_written_in_spanish_format_inside_the_data_block():
     block = _data_block(_build_prompt(profile))
 
     assert "1.500 filas × 3 columnas" in block
-    assert "media 2.307,52; desviación 812,30; mínimo 50,00; máximo 8.734,60" in block
+    assert "media 2.307,52; desviación 812,30; mínimo 50; máximo 8.734,60" in block
     assert "ventas ↔ pedidos: r = 0,92 (muy fuerte)" in block
     assert "ventas ↔ visitas: r = -0,65 (fuerte)" in block
     assert "pedidos ↔ ventas" not in block
@@ -277,13 +277,13 @@ def test_temporal_summary_is_written_in_the_data_block():
     for line in (
         "Resumen temporal de ventas (media por mes; las fechas repetidas se suman antes):",
         "  ene 2024: 1.234,50 (incompleto)",
-        "  feb 2024: 2.000,00",
-        "  Valores más altos: 9 feb 2024 (8.734,60), 1 mar 2024 (3.000,00)",
+        "  feb 2024: 2.000",
+        "  Valores más altos: 9 feb 2024 (8.734,60), 1 mar 2024 (3.000)",
         "  Valores más bajos: 20 ene 2024 (12,50)",
         "  Tendencia entre feb 2024 y mar 2024 (primer y último periodo completos): "
-        "de 2.000,00 a 2.500,00 (+500,00; +25,0 %)",
+        "de 2.000 a 2.500 (+500; +25 %)",
         "  Último año (hasta mar 2024) frente al anterior (hasta mar 2023): "
-        "de 1.800,00 a 1.500,00 (-300,00; -16,7 %)",
+        "de 1.800 a 1.500 (-300; -16,7 %)",
     ):
         assert line in block.splitlines()
 
@@ -304,10 +304,10 @@ def test_breakdowns_and_outliers_are_written_in_the_data_block():
     for line in (
         "precio por grupo (media global 193.967,30):",
         "  Tipo: Piso: n = 950, media 170.864,20 (-11,9 %); "
-        "Adosado: n = 244, media 316.332,00 (+63,1 %)",
+        "Adosado: n = 244, media 316.332 (+63,1 %)",
         "Outliers (regla IQR):",
-        "  Metros: 62 altos, entre 163,00 y 239,00",
-        "  Edad: 2 bajos, entre 0,00 y 1,00; 3 altos, entre 90,00 y 120,50",
+        "  Metros: 62 altos, entre 163 y 239",
+        "  Edad: 2 bajos, entre 0 y 1; 3 altos, entre 90 y 120,50",
         "Outliers de precio por grupo:",
         "  Tipo: Adosado 43, Ático 6",
     ):
@@ -326,7 +326,7 @@ def test_the_difference_between_two_groups_is_written_after_them():
     block = _data_block(_build_prompt(SAMPLE_PROFILE, groups=groups))
 
     assert (
-        "  Promoción: No: n = 680, media 2.263,10 (-1,9 %); Sí: n = 50, media 2.907,93 (+26,0 %); "
+        "  Promoción: No: n = 680, media 2.263,10 (-1,9 %); Sí: n = 50, media 2.907,93 (+26 %); "
         "Sí frente a No: +644,83 (+28,5 %)"
     ) in block.splitlines()
 

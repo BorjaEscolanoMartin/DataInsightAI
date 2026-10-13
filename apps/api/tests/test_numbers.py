@@ -19,7 +19,12 @@ from app.services.numbers import (
         (999, 0, "999"),
         (28.456, 1, "28,5"),
         (-1234567.891, 1, "-1.234.567,9"),
-        (-0.004, 2, "0,00"),
+        (-0.004, 2, "0"),
+        # Whole numbers, once rounded, have no decimals.
+        (111, 2, "111"),
+        (111.004, 2, "111"),
+        (2000.0, 1, "2.000"),
+        (25.0, 1, "25"),
     ],
 )
 def test_format_es_uses_thousands_points_and_a_decimal_comma(value, decimals, text):
@@ -41,7 +46,7 @@ def test_parse_es_rejects_other_formats(text):
 
 
 @pytest.mark.parametrize(
-    "value", [0, 7, 0.5, 0.92, 28.456, 999.5, 1000, 2907.93, 8734.6, -1234567.891, 1e9 + 0.25]
+    "value", [0, 7, 111, 0.5, 0.92, 28.456, 999.5, 1000, 2907.93, 8734.6, -1234567.891, 1e9 + 0.25]
 )
 @pytest.mark.parametrize("decimals", [0, 1, 2, 3])
 def test_parse_es_undoes_format_es(value, decimals):

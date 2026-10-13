@@ -21,6 +21,9 @@ class ParsedNumber(NamedTuple):
 
 
 def format_es(value: float, decimals: int = 0) -> str:
+    """Rounded to `decimals`, which a whole number does not show: 2.000, not 2.000,00."""
+    if round(value, decimals).is_integer():
+        decimals = 0
     text = f"{value:,.{decimals}f}"
     if text.startswith("-") and not text.strip("-0.,"):
         text = text[1:]  # -0,00
