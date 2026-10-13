@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -11,6 +12,7 @@ from app.schemas.datasets import AnalysisOut, DatasetOut, DatasetProfileOut, Dat
 from app.storage.supabase_client import upload_file
 
 router = APIRouter(tags=["datasets"])
+logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
@@ -69,7 +71,10 @@ def upload_dataset(
     try:
         upload_file(storage_path, content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Storage upload failed: {e}")
+        # P4: the client gets a generic message. The log keeps only the exception type and
+        # message, never the request or its headers.
+        logger.error("Storage upload failed: %s: %s", type(e).__name__, e)
+        raise HTTPException(status_code=500, detail="Storage upload failed")
 
     dataset = Dataset(
         id=dataset_id,
