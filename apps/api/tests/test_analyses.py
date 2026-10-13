@@ -32,3 +32,18 @@ def test_report_of_another_user_looks_like_a_missing_one(client, as_user, make_d
 
     assert response.status_code == 404
     assert response.json() == missing.json() == {"detail": "Analysis not found"}
+
+
+def test_report_of_a_dataset_whose_name_contains_markup_is_generated(
+    client, as_user, db_session, make_dataset
+):
+    _, dataset, analysis = make_dataset(USER_A, status="completed")
+    dataset.filename = "<b>ventas.csv"
+    analysis.profile_json = {"row_count": 2, "column_count": 1, "columns": []}
+    db_session.flush()
+
+    response = client.get(f"/api/analyses/{analysis.id}/report.pdf")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/pdf"
+    assert response.content.startswith(b"%PDF")

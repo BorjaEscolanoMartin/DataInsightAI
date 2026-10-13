@@ -1,3 +1,8 @@
+import copy
+
+import pytest
+
+from app.services import report
 from app.services.report import generate_report
 
 PROFILE = {
@@ -89,3 +94,75 @@ def test_report_with_regression():
 def test_report_without_insights_or_predictions():
     pdf = generate_report("datos.csv", PROFILE, None, None)
     assert _is_pdf(pdf)
+
+
+# Unclosed markup plus an ampersand: ReportLab parses Paragraph text as XML-like markup.
+HOSTILE = "<b>x&y"
+ESCAPED = "&lt;b&gt;x&amp;y"
+
+
+def _hostile_inputs(field: str) -> dict:
+    profile = copy.deepcopy(PROFILE)
+    insights = copy.deepcopy(INSIGHTS)
+    forecast = copy.deepcopy(PREDICTIONS_FORECAST)
+    regression = copy.deepcopy(PREDICTIONS_REGRESSION)
+    filename = "ventas.csv"
+    if field == "filename":
+        filename = HOSTILE
+    elif field == "date_column":
+        profile["date_column_candidate"] = HOSTILE
+    elif field == "column_name":
+        profile["columns"][0]["name"] = HOSTILE
+    elif field == "column_summary":
+        profile["columns"][1]["top_categories"][0]["value"] = HOSTILE
+    elif field == "insight_title":
+        insights["trends"][0]["title"] = HOSTILE
+    elif field == "insight_description":
+        insights["trends"][0]["description"] = HOSTILE
+    elif field == "forecast_target":
+        forecast["forecast"]["target_column"] = HOSTILE
+    elif field == "forecast_date_column":
+        forecast["forecast"]["date_column"] = HOSTILE
+    elif field == "regression_target":
+        regression["regression"]["target_column"] = HOSTILE
+    elif field == "regression_feature":
+        regression["regression"]["feature_importance"][0]["feature"] = HOSTILE
+    predictions = regression if field.startswith("regression") else forecast
+    return {
+        "filename": filename,
+        "profile": profile,
+        "insights": insights,
+        "predictions": predictions,
+    }
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "filename",
+        "date_column",
+        "column_name",
+        "column_summary",
+        "insight_title",
+        "insight_description",
+        "forecast_target",
+        "forecast_date_column",
+        "regression_target",
+        "regression_feature",
+    ],
+)
+def test_data_texts_reach_the_pdf_as_literal_text(monkeypatch, field):
+    texts: list[str] = []
+
+    class SpyParagraph(report.Paragraph):
+        def __init__(self, text, *args, **kwargs):
+            texts.append(text)
+            super().__init__(text, *args, **kwargs)
+
+    monkeypatch.setattr(report, "Paragraph", SpyParagraph)
+
+    pdf = generate_report(**_hostile_inputs(field))
+
+    assert pdf.startswith(b"%PDF")
+    assert any(ESCAPED in text for text in texts)
+    assert not any(HOSTILE in text for text in texts)

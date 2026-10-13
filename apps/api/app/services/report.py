@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 from datetime import datetime
 from typing import Any
+from xml.sax.saxutils import escape
 
 from reportlab.lib import colors  # type: ignore[import-untyped]
 from reportlab.lib.enums import TA_LEFT  # type: ignore[import-untyped]
@@ -99,12 +100,21 @@ def _styles() -> dict[str, ParagraphStyle]:
     }
 
 
+def _text(value: object) -> str:
+    """Escape a data text for a ReportLab Paragraph, which parses its text as markup.
+
+    Filenames, column names, category values and LLM insights all come from the uploaded CSV:
+    unescaped, a "<" breaks the report and a tag would change its formatting.
+    """
+    return escape(str(value))
+
+
 def _hr(width: float = 17 * cm) -> HRFlowable:
     return HRFlowable(width=width, thickness=1, color=_BORDER, spaceAfter=8)
 
 
 def _stat_table(stats: list[tuple[str, str]], styles: dict) -> Table:
-    data = [[Paragraph(f"<b>{v}</b>", styles["body"]), Paragraph(k, styles["small"])]
+    data = [[Paragraph(f"<b>{_text(v)}</b>", styles["body"]), Paragraph(k, styles["small"])]
             for k, v in stats]
     t = Table(data, colWidths=[5 * cm] * len(stats) if len(stats) <= 4 else None,
               hAlign="LEFT")
@@ -140,11 +150,11 @@ def _columns_table(columns: list[dict], styles: dict) -> Table:
         elif col.get("top_categories"):
             summary = ", ".join(c["value"] for c in col["top_categories"][:3])
         rows.append([
-            Paragraph(col["name"], styles["body"]),
+            Paragraph(_text(col["name"]), styles["body"]),
             Paragraph(col["type"], styles["small"]),
             Paragraph(f"{col['null_pct']:.1f}%", styles["small"]),
             Paragraph(str(col["unique_count"]), styles["small"]),
-            Paragraph(summary[:60], styles["small"]),
+            Paragraph(_text(summary[:60]), styles["small"]),
         ])
 
     t = Table(rows, colWidths=[4.5 * cm, 2.5 * cm, 2 * cm, 2 * cm, 6 * cm])
@@ -181,8 +191,11 @@ def _insights_table(insights: dict, styles: dict) -> list:
     rows = []
     for tag, title, desc in items[:8]:
         rows.append([
-            Paragraph(tag, styles["small"]),
-            [Paragraph(title, styles["insight_title"]), Paragraph(desc, styles["insight_body"])],
+            Paragraph(_text(tag), styles["small"]),
+            [
+                Paragraph(_text(title), styles["insight_title"]),
+                Paragraph(_text(desc), styles["insight_body"]),
+            ],
         ])
 
     if not rows:
@@ -319,7 +332,7 @@ def generate_report(
             fi = regression["feature_importance"][:10]
             fi_header = [Paragraph(h, styles["small"]) for h in ["Variable", "Importancia"]]
             fi_rows = [fi_header] + [
-                [Paragraph(f["feature"], styles["body"]),
+                [Paragraph(_text(f["feature"]), styles["body"]),
                  Paragraph(f"{f['importance'] * 100:.1f}%", styles["body"])]
                 for f in fi
             ]
