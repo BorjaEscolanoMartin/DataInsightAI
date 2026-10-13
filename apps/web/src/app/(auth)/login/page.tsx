@@ -83,6 +83,13 @@ export default function LoginPage() {
           Regístrate
         </Link>
       </p>
+
+      <p className="mt-2 text-center text-sm text-gray-500">
+        <Link href="/demo" className="text-indigo-400 hover:underline">
+          Ver demo
+        </Link>{" "}
+        sin registrarte
+      </p>
     </div>
   )
 }
