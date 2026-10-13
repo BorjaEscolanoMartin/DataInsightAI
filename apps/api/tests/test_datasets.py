@@ -46,8 +46,11 @@ def _upload(client, project_id: uuid.UUID, filename: str = "ventas.csv", content
 
 
 def test_dataset_of_another_user_looks_like_a_missing_one(client, as_user, make_dataset):
-    _, dataset, _ = make_dataset(USER_A)
-    assert client.get(f"/api/datasets/{dataset.id}").status_code == 200
+    _, dataset, analysis = make_dataset(USER_A)
+    owner = client.get(f"/api/datasets/{dataset.id}")
+    assert owner.status_code == 200
+    assert owner.json()["dataset"]["id"] == str(dataset.id)
+    assert owner.json()["analysis"]["id"] == str(analysis.id)
 
     as_user(USER_B)
     response = client.get(f"/api/datasets/{dataset.id}")
