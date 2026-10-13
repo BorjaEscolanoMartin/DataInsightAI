@@ -184,3 +184,61 @@ def test_column_summary_is_escaped_after_its_60_character_cut(monkeypatch):
     generate_report("ventas.csv", profile, None, None)
 
     assert "a" * 57 + "&amp;bc" in texts
+
+
+def _paragraph_texts(monkeypatch: pytest.MonkeyPatch) -> list[str]:
+    texts: list[str] = []
+
+    class SpyParagraph(report.Paragraph):
+        def __init__(self, text, *args, **kwargs):
+            texts.append(text)
+            super().__init__(text, *args, **kwargs)
+
+    monkeypatch.setattr(report, "Paragraph", SpyParagraph)
+    return texts
+
+
+def _forecast_stats(texts: list[str]) -> list[str]:
+    """Texts from the forecast section title to the first point date."""
+    start = texts.index("Predicciones — serie temporal")
+    return texts[start + 1 : texts.index("Fecha", start)]
+
+
+def test_report_shows_wape_first_and_mae_as_detail(monkeypatch):
+    texts = _paragraph_texts(monkeypatch)
+    forecast = {
+        "target_column": "ventas",
+        "date_column": "fecha",
+        "aggregation": "sum",
+        "frequency": "M",
+        "horizon": 12,
+        "wape": 9.67,
+        "mae": 268.46,
+        "points": PREDICTIONS_FORECAST["forecast"]["points"],
+    }
+
+    generate_report("datos.csv", PROFILE, None, {"forecast": forecast, "regression": None})
+
+    assert _forecast_stats(texts) == [
+        "<b>Suma mensual de ventas</b>", "Objetivo",
+        "<b>fecha</b>", "Columna fecha",
+        "<b>12 meses</b>", "Horizonte",
+        "<b>9.7%</b>", "WAPE backtest",
+        "<b>268.5</b>", "MAE backtest",
+    ]
+
+
+def test_report_of_an_old_analysis_keeps_mape_and_days(monkeypatch):
+    texts = _paragraph_texts(monkeypatch)
+
+    predictions = copy.deepcopy(PREDICTIONS_FORECAST)
+    predictions["forecast"]["horizon_days"] = 14
+
+    generate_report("datos.csv", PROFILE, None, predictions)
+
+    assert _forecast_stats(texts) == [
+        "<b>ventas</b>", "Objetivo",
+        "<b>fecha</b>", "Columna fecha",
+        "<b>14 días</b>", "Horizonte",
+        "<b>5.3%</b>", "MAPE backtest",
+    ]
