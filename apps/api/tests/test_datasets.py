@@ -228,3 +228,14 @@ def test_filename_limit_counts_characters_not_bytes(
 
     assert response.status_code == 201
     assert response.json()["dataset"]["filename"] == filename
+
+
+def test_upload_accepts_an_uppercase_csv_extension(
+    client, as_user, db_session, make_project, storage, enqueued
+):
+    project = make_project(USER_A)
+
+    response = _upload(client, project.id, filename="VENTAS.CSV")
+
+    assert response.status_code == 201
+    assert response.json()["dataset"]["filename"] == "VENTAS.CSV"

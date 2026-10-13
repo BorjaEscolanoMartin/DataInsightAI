@@ -10,6 +10,7 @@ from app.auth import get_current_user
 from app.db.models import Analysis, Dataset
 from app.db.ownership import owned_analysis
 from app.db.session import get_db
+from app.filenames import csv_stem
 from app.schemas.analyses import AnalysisDetailOut
 from app.schemas.datasets import DatasetProfileOut
 
@@ -22,8 +23,7 @@ def _content_disposition(filename: str) -> str:
     Headers travel as latin-1 and a quote or semicolon would start a new parameter: the plain
     `filename` keeps only safe ASCII and `filename*` (RFC 6266) carries the full encoded name.
     """
-    stem = filename[:-4] if filename.lower().endswith(".csv") else filename
-    name = f"informe_{stem.replace(' ', '_')}.pdf"
+    name = f"informe_{csv_stem(filename).replace(' ', '_')}.pdf"
     fallback = re.sub(r"[^A-Za-z0-9._-]", "_", name)
     return f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name, safe='')}"
 
