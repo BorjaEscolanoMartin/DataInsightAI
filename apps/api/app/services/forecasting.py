@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import logging
-import math
 from typing import Any, NamedTuple
 
 import numpy as np
@@ -11,6 +10,10 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 MIN_POINTS = 10
+# The interval is the 2.5-97.5 percentile band of seeded simulations of the fitted model,
+# so the same CSV always gets the same band.
+SIMULATIONS = 1000
+FORECAST_SEED = 42
 # Up to this many consecutive missing steps are filled; a longer gap cuts the series.
 MAX_SHORT_GAP = 3
 
@@ -176,17 +179,23 @@ def run_forecast(content: bytes, date_col: str, target_col: str) -> dict[str, An
     if forecast_vals is None:
         return result
 
-    last_std = float(series.tail(max(7, test_size)).std())
-    ci_width = last_std * 1.96
+    simulated = model_full.simulate(
+        horizon,
+        repetitions=SIMULATIONS,
+        error="add",
+        random_errors=None,
+        rng=np.random.default_rng(FORECAST_SEED),
+    )
+    lower, upper = np.percentile(np.asarray(simulated), [2.5, 97.5], axis=1)
+    if by_date.min() >= 0:
+        lower = np.maximum(lower, 0)
 
     last_period = series.index[-1]
     for i, yhat in enumerate(forecast_vals):
-        yhat_f = float(yhat)
-        width = ci_width * math.sqrt(i + 1)
         result["points"].append({
             "ds": str((last_period + i + 1).start_time.date()),
-            "yhat": yhat_f,
-            "yhat_lower": yhat_f - width,
-            "yhat_upper": yhat_f + width,
+            "yhat": float(yhat),
+            "yhat_lower": float(lower[i]),
+            "yhat_upper": float(upper[i]),
         })
     return result

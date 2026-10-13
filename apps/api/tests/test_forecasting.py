@@ -305,6 +305,9 @@ def _forecast_always(monkeypatch: pytest.MonkeyPatch, value: float) -> None:
         def forecast(self, steps):
             return np.full(steps, value)
 
+        def simulate(self, nsimulations, repetitions, **kwargs):
+            return np.full((nsimulations, repetitions), value)
+
     monkeypatch.setattr(holtwinters, "ExponentialSmoothing", ConstantModel)
 
 
@@ -350,3 +353,65 @@ def test_backtest_ignores_filled_steps(monkeypatch):
 
     assert result["wape"] == pytest.approx(0)
     assert result["mae"] == pytest.approx(0)
+
+
+class SimulatedModel:
+    """Forecasts 10 and simulates repetition k of every step as k - 100 (-100 to 899)."""
+
+    simulate_calls: list[dict] = []
+
+    def __init__(self, endog, **kwargs):
+        pass
+
+    def fit(self, **fit_kwargs):
+        return self
+
+    def forecast(self, steps):
+        return np.full(steps, 10.0)
+
+    def simulate(self, nsimulations, **kwargs):
+        SimulatedModel.simulate_calls.append({"nsimulations": nsimulations, **kwargs})
+        repetitions = kwargs["repetitions"]
+        return np.tile(np.arange(repetitions) - 100.0, (nsimulations, 1))
+
+
+@pytest.fixture
+def simulated(monkeypatch: pytest.MonkeyPatch) -> list[dict]:
+    SimulatedModel.simulate_calls = []
+    monkeypatch.setattr(holtwinters, "ExponentialSmoothing", SimulatedModel)
+    return SimulatedModel.simulate_calls
+
+
+def test_interval_comes_from_1000_seeded_simulations_of_the_fitted_model(simulated):
+    rows = [(d, -5 + i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    [call] = simulated
+    assert call["nsimulations"] == 30
+    assert call["repetitions"] == 1000
+    assert call["error"] == "add"
+    assert call["random_errors"] is None
+    assert call["rng"].random() == np.random.default_rng(42).random()
+    # 2.5 and 97.5 percentiles of -100..899; the history has a negative, so nothing is cut.
+    for p in result["points"]:
+        assert p["yhat"] == 10
+        assert p["yhat_lower"] == pytest.approx(np.percentile(np.arange(1000) - 100.0, 2.5))
+        assert p["yhat_upper"] == pytest.approx(np.percentile(np.arange(1000) - 100.0, 97.5))
+
+
+def test_interval_is_cut_at_zero_when_the_history_has_no_negatives(simulated):
+    rows = [(d, i) for i, d in enumerate(_days(60))]
+
+    result = run_forecast(_csv(rows), "fecha", "ventas")
+
+    for p in result["points"]:
+        assert p["yhat_lower"] == 0
+        assert p["yhat_upper"] == pytest.approx(np.percentile(np.arange(1000) - 100.0, 97.5))
+
+
+def test_the_same_csv_always_gets_the_same_interval():
+    first = run_forecast(_daily_csv(), "fecha", "ventas")
+    second = run_forecast(_daily_csv(), "fecha", "ventas")
+
+    assert first["points"] == second["points"]
