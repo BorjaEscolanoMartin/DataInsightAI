@@ -111,9 +111,19 @@ class Group(NamedTuple):
     pct: float | None
 
 
+class GroupDifference(NamedTuple):
+    label: str
+    base_label: str
+    change: float
+    # Against the base group's mean; None when that mean is 0.
+    pct: float | None
+
+
 class ColumnBreakdown(NamedTuple):
     column: str
     groups: list[Group]
+    # Only for two groups: the smaller one against the larger one.
+    difference: GroupDifference | None = None
 
 
 class Side(NamedTuple):
@@ -171,6 +181,15 @@ def _sides(values: pd.Series) -> tuple[Side | None, Side | None, pd.Series]:
     return side(low), side(high), pd.concat([low, high])
 
 
+def _breakdown(column: str, groups: list[Group]) -> ColumnBreakdown:
+    if len(groups) != 2:
+        return ColumnBreakdown(column, groups)
+    base, other = groups  # largest group first
+    change = other.mean - base.mean
+    pct = change / abs(base.mean) * 100 if base.mean else None
+    return ColumnBreakdown(column, groups, GroupDifference(other.label, base.label, change, pct))
+
+
 def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:
     """The target's mean per group, outliers per numeric column and the groups of the
     target's outliers; None when there is no target."""
@@ -192,7 +211,7 @@ def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | No
         return max(means) - min(means)
 
     ranked = sorted(
-        (ColumnBreakdown(c, _groups(df, c, target, overall)) for c in candidates),
+        (_breakdown(c, _groups(df, c, target, overall)) for c in candidates),
         key=spread, reverse=True,
     )[:MAX_BREAKDOWN_COLUMNS]
 

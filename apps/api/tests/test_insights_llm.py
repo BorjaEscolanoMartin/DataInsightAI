@@ -11,6 +11,7 @@ from app.services.data_summary import (
     ColumnBreakdown,
     DayValue,
     Group,
+    GroupDifference,
     Outliers,
     PeriodMean,
     Side,
@@ -310,6 +311,23 @@ def test_breakdowns_and_outliers_are_written_in_the_data_block():
         "  Tipo: Adosado 43, Ático 6",
     ):
         assert line in block.splitlines()
+
+
+def test_the_difference_between_two_groups_is_written_after_them():
+    promo = ColumnBreakdown(
+        "Promoción",
+        [Group("No", 680, 2263.1, -1.92), Group("Sí", 50, 2907.93, 26.02)],
+        GroupDifference("Sí", "No", 644.83, 28.49),
+    )
+    groups = {"target": "Ventas", "overall_mean": 2307.5, "columns": [promo], "outliers": [],
+              "target_outliers": []}
+
+    block = _data_block(_build_prompt(SAMPLE_PROFILE, groups=groups))
+
+    assert (
+        "  Promoción: No: n = 680, media 2.263,10 (-1,9 %); Sí: n = 50, media 2.907,93 (+26,0 %); "
+        "Sí frente a No: +644,83 (+28,5 %)"
+    ) in block.splitlines()
 
 
 def test_without_summaries_the_data_block_has_no_summary_sections():

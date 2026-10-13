@@ -34,6 +34,8 @@ def test_target_mean_per_group_with_n_and_percentage_against_the_overall_mean():
     # Largest groups first, not in alphabetical order.
     assert [(g.label, g.n, g.mean) for g in promo.groups] == [("Sí", 6, 10), ("No", 2, 40)]
     assert [g.pct for g in promo.groups] == pytest.approx([-42.857, 128.571], abs=0.001)
+    # Two groups: the smaller one against the larger one.
+    assert promo.difference == ("No", "Sí", 30, pytest.approx(300))
 
 
 def _housing(rows: int = 40) -> pd.DataFrame:
@@ -44,6 +46,13 @@ def _housing(rows: int = 40) -> pd.DataFrame:
         "metros": [50 + 3 * i for i in range(rows)],
         "precio": [100 + 10 * (i % 4) + (500 if i % 4 == 0 else 0) for i in range(rows)],
     })
+
+
+def test_columns_with_more_than_two_groups_have_no_difference():
+    columns = {c.column: c for c in _summarise(_housing())["columns"]}
+
+    assert columns["baños"].difference is None
+    assert columns["zona"].difference is not None
 
 
 def test_without_a_date_the_target_is_the_regression_target():

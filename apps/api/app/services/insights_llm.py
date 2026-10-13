@@ -161,6 +161,15 @@ def _group_lines(groups: dict[str, Any]) -> list[str]:
                 if g.pct is not None:
                     part += f" ({_signed(g.pct, 1)} %)"
                 parts.append(part)
+            difference = breakdown.difference
+            if difference:
+                part = (
+                    f"{_text(difference.label)} frente a {_text(difference.base_label)}: "
+                    f"{_signed(difference.change, 2)}"
+                )
+                if difference.pct is not None:
+                    part += f" ({_signed(difference.pct, 1)} %)"
+                parts.append(part)
             lines.append(f"  {_text(breakdown.column)}: " + "; ".join(parts))
     if groups["outliers"]:
         lines.append("Outliers (regla IQR):")
