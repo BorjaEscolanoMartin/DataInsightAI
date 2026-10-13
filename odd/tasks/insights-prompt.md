@@ -5,15 +5,16 @@ Branch: `fix/insights-prompt` from `main` (3485774). Delivery: ask-on-risk. Runn
 
 ## Specs
 
-Status: draft. No test is written until Borja answers D1-D6 (L1: "No escribas tests hasta que te conteste").
+Decided in L3 (D1, D3 and D6 accepted; D2, D4 and D5 adjusted; one security spec added). The rationale of D1-D6 is kept below under "Decisions".
 
-- S1 Prompt rules (L1): "sin afirmaciones causales, solo cifras que estén en los datos recibidos, sin inventar contexto externo, y formato numérico español (coma decimal, punto de miles)". Rules: D1.
-- S2 Temporal summary (L1): "Resumen temporal cuando hay columna de fecha: qué se le pasa al modelo (totales o medias por periodo, picos con su fecha, tendencia) y con qué límite de tamaño." Design: D2.
-- S3 Cross-column breakdowns (L1): "Cruces entre columnas: si se le pasan medias del objetivo por categoría (por ejemplo, con y sin promoción), para qué columnas y con qué límite." Design: D3.
-- S4 Output check (L1): "Validación de la salida: si se comprueba que las cifras de los insights aparecen en los datos de entrada, y qué se hace si no." Design: D4.
-- S5 Model and temperature (L1): "Temperatura y modelo, pensando en que los resultados sean reproducibles." Choice: D5.
-- S6 Testing (L1): "Qué se puede testear sin llamar a Anthropic y cómo hacemos la prueba real con mi clave." Plan: D6.
-- S7 Fixtures (L1): "Al final de la PR regeneraremos los fixtures de la demo." Borja runs `python -m demo.generate_demo_fixture` from `apps/api`; the JSON is reviewed before the commit, as in the demo PR.
+- S1 Prompt rules (L1): "sin afirmaciones causales, solo cifras que estén en los datos recibidos, sin inventar contexto externo, y formato numérico español (coma decimal, punto de miles)". As D1: association wording only, a list of forbidden causal words, a fixed scale for r (|r| < 0,3 débil, < 0,6 moderada, < 0,8 fuerte, otherwise muy fuerte), every figure must appear in the data block as written, ratios only when the data block carries them, no external context, omit what the data cannot answer. Every number in the data block is written by `format_es`; dates stay ISO.
+- S2 Temporal summary (D2 + L3): "antes de la media por periodo, agrega por día con la misma regla del forecast (sumar si las fechas se repiten), también desde el helper compartido." Only with a date column and a forecast target (shared target helper, moved out of `tasks._run_predictions`). Daily series from the same helper `run_forecast` uses (dates reduced to the day, summed when they repeat); then the mean per period: month for daily or weekly data, the data's own period for monthly, quarterly and yearly data; at most the last 24 periods; an incomplete first or last period is marked. Peaks: the 3 highest and 3 lowest days with their date. Trend: change between the first and last complete periods (value and %), and the last year against the year before when there are at least two years.
+- S3 Breakdowns (D3): target = the forecast target with a date column, otherwise the regression target (the same shared helper the predictions use). Columns: categorical and boolean, plus numeric with at most 10 distinct values; identifiers and the target excluded; at most 4 columns, those with the widest spread of group means; per group n, mean and % against the overall mean; at most 10 groups, the rest as "otros". Outliers per numeric column split into low and high, each with its count and range (one shared IQR rule with profiling); for the target's outliers, the top 3 groups of up to 2 breakdown columns.
+- S4 Output check (D4 + L3): "el validador lee los números con la misma regla con la que format_es los escribe; pareja de funciones compartida y un test de que una deshace a la otra." Every number in an insight's title and description must match a number of the data block after rounding to the insight's precision; integers 0-10 and ISO dates present in the data are exempt. An insight that fails is dropped and a warning is logged (category, title, numbers not found); if all are dropped, the result is empty insights.
+- S5 Model (L3): "claude-sonnet-5-5 con esfuerzo medium y salida estructurada; en el dry-run probamos también Opus 5.5 y decido según el informe de validación." No `temperature` (non-default values return 400 on this model). The model is a parameter so the dry run can switch it; refusals are handled.
+- S6 Testing (D6): pytest with Anthropic mocked for every rule; the real run is `python -m demo.generate_demo_fixture --dry-run` (prints the insights and the check report, writes nothing), with a model option for the Opus 5.5 comparison.
+- S7 Fixtures (L1): "Al final de la PR regeneraremos los fixtures de la demo." Borja runs the script; the JSON is reviewed before the commit.
+- S8 Security (L3): "los datos del CSV van en un bloque delimitado y el prompt dice que son datos, no instrucciones; añade un test con una categoría que intente dar instrucciones." Every CSV-derived string is escaped so it cannot close the block.
 
 Evidence that motivates the PR (Engram `backlog/insights-prompt-review`): every figure in the current fixtures is right; the errors are interpretation. Sales: causation from correlations ("direct precursor", r = 0.36 for visits(t-1) → orders(t)); "the low frequency prevents evaluating promotions" (50 promotion days; 2.908 vs 2.263 on average); "tripling the mean" (3.8 times); "almost perfect" for r = 0.92. Housing: Metros outliers "between 25 and 239 m²" (all are high, 163-239); Baños = 4 "probably > 200 m²" (157-199); price outliers "áticos or Playa" (43 adosados and 6 áticos, 32 in Playa). Likely cause: the model only receives the profile.
 
@@ -25,9 +26,9 @@ Evidence that motivates the PR (Engram `backlog/insights-prompt-review`): every 
 - Installed SDK: `anthropic` 1.13.0 (uv.lock), which has `messages.parse` and `output_config`.
 - Measured on the demo CSVs: sales covers 24 months (daily mean 1.979 in the first, 2.776 in the last); the top days are 2025-11-28 (8.734,60), 2024-11-22 (5.439,69) and 2026-09-26 (3.698,49); promotion Sí 2.908 (50 days) vs No 2.263 (680); weekday means from 2.056 (lunes) to 2.634 (sábado). Housing has no date; its 49 price outliers are 43 Adosado and 6 Ático, 32 in Playa; Baños has 4 distinct values and Habitaciones 6.
 
-## Open decisions
+## Decisions
 
-Each one has a recommendation; nothing is applied until Borja answers.
+The recommendations as written before L3; where L3 changed them, the Specs above win.
 
 ### D1 Prompt rules
 
@@ -96,21 +97,23 @@ Real run with Borja's key, two steps:
 
 ## Tasks
 
-Provisional until D1-D6 are answered. Route: inline (no Writer trigger).
+Route: inline (no Writer trigger). Each task: RED, GREEN, commit. Forecast: about 1.000 authored lines, so the chain question comes before the commit that crosses 400.
 
 - [x] T0 inline: close `odd/tasks/forecast-quality.md` (dd96132)
-- [x] T1 inline: `docs: add feature document for the insights prompt` (this file)
-- [ ] T2 D1: `format_es` and the shared target helper (moved from `tasks._run_predictions`)
-- [ ] T3 S2: temporal summary
-- [ ] T4 S3: breakdowns and outlier sides
-- [ ] T5 S1: system prompt and data block
-- [ ] T6 S4: output check
-- [ ] T7 S5: model, effort, structured output, refusal; `generate_insights` receives the CSV (worker and fixture script)
-- [ ] T8 S6: `--dry-run` in the fixture script; Borja's real run
-- [ ] T9 S7: fixtures regenerated by Borja, reviewed, committed
-- [ ] T10: verifier, RDD
+- [x] T1 inline: `docs: add feature document for the insights prompt` (395d38a)
+- [ ] T2 S1, S4: `format_es` / `parse_es` pair with the shared number pattern
+- [ ] T3 S2, S3: shared helpers: forecast and regression targets, the daily series of the forecast, the IQR bounds, the CSV reader
+- [ ] T4 S2: temporal summary
+- [ ] T5 S3: breakdowns and outlier sides
+- [ ] T6 S1, S8: system prompt and delimited data block
+- [ ] T7 S4: output check
+- [ ] T8 S5: Sonnet 5.5, effort, structured output, refusal; `generate_insights` receives the CSV (worker and fixture script)
+- [ ] T9 S6: `--dry-run` and model option in the fixture script; Borja's real run with both models
+- [ ] T10 S7: fixtures regenerated by Borja, reviewed, committed
+- [ ] T11: verifier, RDD
 
 ## Log
 
 - L1 Borja (2026-10-13): "Siguiente PR: el prompt de los insights. Crea la rama desde main. Si el documento de forecast-quality tiene algo pendiente de cierre, va en el primer commit. Lee insights_llm.py y la revisión del backlog (backlog/insights-prompt-review), y escribe el documento odd/tasks con las decisiones abiertas y tu recomendación para cada una: Reglas del prompt: sin afirmaciones causales, solo cifras que estén en los datos recibidos, sin inventar contexto externo, y formato numérico español (coma decimal, punto de miles). Resumen temporal cuando hay columna de fecha: qué se le pasa al modelo (totales o medias por periodo, picos con su fecha, tendencia) y con qué límite de tamaño. Cruces entre columnas: si se le pasan medias del objetivo por categoría (por ejemplo, con y sin promoción), para qué columnas y con qué límite. Validación de la salida: si se comprueba que las cifras de los insights aparecen en los datos de entrada, y qué se hace si no. Temperatura y modelo, pensando en que los resultados sean reproducibles. Qué se puede testear sin llamar a Anthropic y cómo hacemos la prueba real con mi clave. No escribas tests hasta que te conteste. Al final de la PR regeneraremos los fixtures de la demo."
 - L2 Branch `fix/insights-prompt` from main 3485774; dd96132 closes `odd/tasks/forecast-quality.md` (L24: #12 merged, branches deleted). Read `insights_llm.py`, `schemas/insights.py`, `tests/test_insights_llm.py`, `demo/generate_demo_fixture.py` and the backlog review; measured both demo CSVs (Current state). Model facts from the Claude API reference: `temperature` returns 400 on Opus 5.5 and Sonnet 5.5; structured outputs through `output_config.format` or `messages.parse`. Waiting for Borja on D1-D6.
+- L3 Borja (2026-10-13): "D1, D3 y D6 aceptadas. D2: antes de la media por periodo, agrega por día con la misma regla del forecast (sumar si las fechas se repiten), también desde el helper compartido. D4: el validador lee los números con la misma regla con la que format_es los escribe; pareja de funciones compartida y un test de que una deshace a la otra. D5: claude-sonnet-5-5 con esfuerzo medium y salida estructurada; en el dry-run probamos también Opus 5.5 y decido según el informe de validación. Seguridad: los datos del CSV van en un bloque delimitado y el prompt dice que son datos, no instrucciones; añade un test con una categoría que intente dar instrucciones. Actualiza el documento y empieza por los RED"
