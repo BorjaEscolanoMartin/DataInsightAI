@@ -30,7 +30,7 @@ def build_fixture(csv_name: str) -> dict[str, Any]:
     """Only what the analysis view renders: no ids, paths, timestamps or Supabase data."""
     content = (DEMO_DIR / csv_name).read_bytes()
     profile = profile_csv(content)
-    insights = generate_insights(profile)
+    insights = generate_insights(profile, content)
     if not any(insights.get(category) for category in insights):
         raise RuntimeError(f"{csv_name}: Anthropic returned no insights")
     return {

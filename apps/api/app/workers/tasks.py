@@ -77,7 +77,7 @@ def run_analysis(self, analysis_id: str) -> None:
         # LLM insights — failure is non-fatal
         try:
             from app.services.insights_llm import generate_insights
-            insights = generate_insights(profile)
+            insights = generate_insights(profile, content)
         except Exception as llm_exc:
             print(f"[tasks] LLM insights failed (non-fatal): {llm_exc}", flush=True)
             from app.schemas.insights import InsightsOut
