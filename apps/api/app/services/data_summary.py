@@ -5,10 +5,17 @@ from typing import Any, NamedTuple
 import pandas as pd
 
 from app.services.forecasting import daily_series, detect_frequency
-from app.services.targets import forecast_target
+from app.services.profiling import iqr_bounds
+from app.services.targets import forecast_target, regression_target
 
 MAX_PERIODS = 24
 PEAKS = 3
+MAX_BREAKDOWN_COLUMNS = 4
+MAX_GROUPS = 10
+# Numeric columns with this many distinct values or fewer are broken down like categories.
+MAX_NUMERIC_GROUPS = 10
+TARGET_OUTLIER_COLUMNS = 2
+TARGET_OUTLIER_GROUPS = 3
 # Daily and weekly data are averaged per month; coarser data keeps its own period.
 _SUMMARY_PERIOD = {"D": "M", "W": "M", "M": "M", "Q": "Q", "Y": "Y"}
 _PERIODS_PER_YEAR = {"M": 12, "Q": 4, "Y": 1}
@@ -93,4 +100,125 @@ def temporal_summary(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any
         "lowest": days(by_day.nsmallest(PEAKS)),
         "trend": trend,
         "year_over_year": year_over_year,
+    }
+
+
+class Group(NamedTuple):
+    label: str
+    n: int
+    mean: float
+    # Against the overall mean of the target; None when that mean is 0.
+    pct: float | None
+
+
+class ColumnBreakdown(NamedTuple):
+    column: str
+    groups: list[Group]
+
+
+class Side(NamedTuple):
+    n: int
+    min: float
+    max: float
+
+
+class Outliers(NamedTuple):
+    column: str
+    low: Side | None
+    high: Side | None
+
+
+def summary_target(profile: dict[str, Any]) -> str | None:
+    """The forecast target when there is a date column, otherwise the regression target."""
+    if profile.get("date_column_candidate"):
+        return forecast_target(profile)
+    return regression_target(profile)
+
+
+def _label(value: Any) -> str:
+    if isinstance(value, float) and value.is_integer():
+        return str(int(value))
+    return str(value)
+
+
+def _groups(df: pd.DataFrame, column: str, target: str, overall: float) -> list[Group]:
+    data = df[[column, target]].dropna()
+    stats = data.groupby(column)[target].agg(["count", "mean"])
+    stats = stats.sort_values("count", ascending=False, kind="stable")
+
+    def group(label: str, n: int, mean: float) -> Group:
+        return Group(label, n, mean, (mean - overall) / abs(overall) * 100 if overall else None)
+
+    groups = [group(_label(v), int(r["count"]), float(r["mean"])) for v, r in
+              stats.head(MAX_GROUPS).iterrows()]
+    rest = data[data[column].isin(stats.index[MAX_GROUPS:])][target]
+    if len(rest):
+        groups.append(group("otros", len(rest), float(rest.mean())))
+    return groups
+
+
+def _sides(values: pd.Series) -> tuple[Side | None, Side | None, pd.Series]:
+    bounds = iqr_bounds(values)
+    if bounds is None:
+        return None, None, values.iloc[0:0]
+
+    def side(selected: pd.Series) -> Side | None:
+        if selected.empty:
+            return None
+        return Side(len(selected), float(selected.min()), float(selected.max()))
+
+    low, high = values[values < bounds[0]], values[values > bounds[1]]
+    return side(low), side(high), pd.concat([low, high])
+
+
+def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:
+    """The target's mean per group, outliers per numeric column and the groups of the
+    target's outliers; None when there is no target."""
+    target = summary_target(profile)
+    if target is None:
+        return None
+    columns = profile.get("columns", [])
+    candidates = [
+        c["name"] for c in columns
+        if c["name"] != target and not c.get("is_identifier") and (
+            c["type"] in ("categorical", "boolean")
+            or (c["type"] == "numeric" and c.get("unique_count", 0) <= MAX_NUMERIC_GROUPS)
+        )
+    ]
+    overall = float(df[target].mean())
+
+    def spread(breakdown: ColumnBreakdown) -> float:
+        means = [g.mean for g in breakdown.groups]
+        return max(means) - min(means)
+
+    ranked = sorted(
+        (ColumnBreakdown(c, _groups(df, c, target, overall)) for c in candidates),
+        key=spread, reverse=True,
+    )[:MAX_BREAKDOWN_COLUMNS]
+
+    outliers = []
+    target_outlier_rows = df.index[0:0]
+    for c in columns:
+        if c["type"] != "numeric" or c.get("is_identifier"):
+            continue
+        low, high, rows = _sides(df[c["name"]].dropna())
+        if low or high:
+            outliers.append(Outliers(c["name"], low, high))
+        if c["name"] == target:
+            target_outlier_rows = rows.index
+
+    target_outliers = []
+    for breakdown in ranked[:TARGET_OUTLIER_COLUMNS]:
+        counts = df.loc[target_outlier_rows, breakdown.column].dropna().value_counts()
+        if len(counts):
+            target_outliers.append((breakdown.column, [
+                (_label(v), int(n)) for v, n in counts.head(TARGET_OUTLIER_GROUPS).items()
+            ]))
+
+    return {
+        "target": target,
+        "overall_mean": overall,
+        "columns": ranked,
+        "outliers": outliers,
+        "target_outliers": target_outliers,
     }
