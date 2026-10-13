@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 from statsmodels.tsa import holtwinters  # type: ignore[import-untyped]
 
-from app.services.forecasting import run_forecast
+from app.services.forecasting import daily_series, run_forecast
 
 START = date(2024, 1, 1)
 DAYS = 60
@@ -464,3 +464,24 @@ def test_backtest_keeps_negative_forecasts_when_the_history_has_negatives(monkey
     result = run_forecast(_csv(rows), "fecha", "ventas")
 
     assert result["mae"] == pytest.approx(sum(range(47, 59)) / 12 + 5)
+
+
+def test_daily_series_sums_repeated_days_and_keeps_single_ones():
+    df = pd.DataFrame({
+        "fecha": ["2024-01-02 17:30", "2024-01-01", "2024-01-02 09:00", "2024-01-03"],
+        "ventas": [60, 100, 40, None],
+    })
+
+    by_day, aggregation = daily_series(df, "fecha", "ventas")
+
+    assert aggregation == "sum"
+    assert by_day.to_dict() == {pd.Timestamp("2024-01-01"): 100, pd.Timestamp("2024-01-02"): 100}
+
+
+def test_daily_series_without_repeated_days_is_not_aggregated():
+    df = pd.DataFrame({"fecha": ["2024-01-01", "2024-01-02"], "ventas": [1, 2]})
+
+    by_day, aggregation = daily_series(df, "fecha", "ventas")
+
+    assert aggregation == "none"
+    assert list(by_day) == [1, 2]

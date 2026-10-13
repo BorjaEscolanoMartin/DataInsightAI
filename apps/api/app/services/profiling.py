@@ -62,13 +62,22 @@ def _name_words(name: str) -> list[str]:
     return re.split(r"[\W_]+", spaced.lower())
 
 
-def _outliers_iqr(series: pd.Series) -> int:
+def iqr_bounds(series: pd.Series) -> tuple[float, float] | None:
+    """Values below the first or above the second bound are outliers; None when IQR is 0."""
     q1 = series.quantile(0.25)
     q3 = series.quantile(0.75)
     iqr = q3 - q1
     if iqr == 0:
+        return None
+    return float(q1 - 1.5 * iqr), float(q3 + 1.5 * iqr)
+
+
+def _outliers_iqr(series: pd.Series) -> int:
+    bounds = iqr_bounds(series)
+    if bounds is None:
         return 0
-    return int(((series < q1 - 1.5 * iqr) | (series > q3 + 1.5 * iqr)).sum())
+    low, high = bounds
+    return int(((series < low) | (series > high)).sum())
 
 
 def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -200,16 +209,18 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
     return charts
 
 
-def profile_csv(content: bytes) -> dict[str, Any]:
-    df: pd.DataFrame | None = None
+def read_csv(content: bytes) -> pd.DataFrame:
+    """The uploaded CSV, with its delimiter sniffed and the first encoding that works."""
     for encoding in ("utf-8", "latin-1", "cp1252"):
         try:
-            df = pd.read_csv(io.BytesIO(content), sep=None, engine="python", encoding=encoding)
-            break
+            return pd.read_csv(io.BytesIO(content), sep=None, engine="python", encoding=encoding)
         except Exception:
             continue
-    if df is None:
-        raise ValueError("No se pudo leer el CSV con las codificaciones soportadas")
+    raise ValueError("No se pudo leer el CSV con las codificaciones soportadas")
+
+
+def profile_csv(content: bytes) -> dict[str, Any]:
+    df = read_csv(content)
 
     columns: list[dict[str, Any]] = []
     date_candidate: str | None = None
