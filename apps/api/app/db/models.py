@@ -7,6 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
 
+# Longest dataset filename the API accepts; the upload validates it before storing anything.
+MAX_FILENAME_LENGTH = 255
+
 
 class Project(Base):
     __tablename__ = "projects"
@@ -34,7 +37,7 @@ class Dataset(Base):
     project_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
     )
-    filename: Mapped[str] = mapped_column(String(255), nullable=False)
+    filename: Mapped[str] = mapped_column(String(MAX_FILENAME_LENGTH), nullable=False)
     storage_path: Mapped[str] = mapped_column(Text, nullable=False)
     size_bytes: Mapped[int] = mapped_column(BigInteger, nullable=False)
     row_count: Mapped[int | None] = mapped_column(Integer, nullable=True)

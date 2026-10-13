@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
-from app.db.models import Analysis, Dataset, Project
+from app.db.models import MAX_FILENAME_LENGTH, Analysis, Dataset, Project
 from app.db.ownership import owned_dataset
 from app.db.session import get_db
+from app.filenames import CSV_EXTENSION, is_csv
 from app.schemas.datasets import AnalysisOut, DatasetOut, DatasetProfileOut, DatasetWithAnalysisOut
 from app.storage.supabase_client import upload_file
 
@@ -58,15 +59,20 @@ def upload_dataset(
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    if not file.filename or not file.filename.lower().endswith(".csv"):
+    if not file.filename or not is_csv(file.filename):
         raise HTTPException(status_code=422, detail="Only .csv files are accepted")
+    if len(file.filename) > MAX_FILENAME_LENGTH:
+        raise HTTPException(
+            status_code=422, detail=f"Filename exceeds {MAX_FILENAME_LENGTH} characters"
+        )
 
     content = file.file.read()
     if len(content) > MAX_FILE_SIZE:
         raise HTTPException(status_code=422, detail="File exceeds 50 MB limit")
 
     dataset_id = uuid.uuid4()
-    storage_path = f"{user_id}/{project_id}/{dataset_id}/{file.filename}"
+    # The uploaded filename never reaches Storage: it is only kept in Dataset.filename.
+    storage_path = f"{user_id}/{project_id}/{dataset_id}{CSV_EXTENSION}"
 
     try:
         upload_file(storage_path, content)
