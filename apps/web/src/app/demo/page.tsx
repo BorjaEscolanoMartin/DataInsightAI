@@ -16,7 +16,8 @@ type ExampleId = keyof typeof EXAMPLES
 const EXAMPLE_IDS = Object.keys(EXAMPLES) as ExampleId[]
 
 export default function DemoPage() {
-  const [selected, setSelected] = useState<ExampleId>("ventas")
+  // The first example (the order of EXAMPLES, which is also the button order) is the default.
+  const [selected, setSelected] = useState<ExampleId>(EXAMPLE_IDS[0])
   const { fixture } = EXAMPLES[selected]
 
   return (
