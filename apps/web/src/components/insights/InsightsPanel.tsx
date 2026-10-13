@@ -52,7 +52,7 @@ export function InsightsPanel({ insights }: Props) {
               <span className="text-gray-600 text-xs">{isOpen ? "▲" : "▼"}</span>
             </button>
             {isOpen && (
-              <div className="grid gap-3 px-5 pb-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 px-5 pb-5 sm:grid-cols-2">
                 {items.map((item, i) => (
                   <InsightCard key={i} item={item} category={key} />
                 ))}
