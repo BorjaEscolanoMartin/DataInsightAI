@@ -166,3 +166,21 @@ def test_data_texts_reach_the_pdf_as_literal_text(monkeypatch, field):
     assert pdf.startswith(b"%PDF")
     assert any(ESCAPED in text for text in texts)
     assert not any(HOSTILE in text for text in texts)
+
+
+def test_column_summary_is_escaped_after_its_60_character_cut(monkeypatch):
+    texts: list[str] = []
+
+    class SpyParagraph(report.Paragraph):
+        def __init__(self, text, *args, **kwargs):
+            texts.append(text)
+            super().__init__(text, *args, **kwargs)
+
+    monkeypatch.setattr(report, "Paragraph", SpyParagraph)
+    profile = copy.deepcopy(PROFILE)
+    # Escaping before the cut would split "&amp;" into "&am".
+    profile["columns"][1]["top_categories"] = [{"value": "a" * 57 + "&bcdef", "count": 1}]
+
+    generate_report("ventas.csv", profile, None, None)
+
+    assert "a" * 57 + "&amp;bc" in texts

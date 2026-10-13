@@ -216,3 +216,15 @@ def test_upload_accepts_a_filename_of_exactly_255_characters(
     assert response.status_code == 201
     assert response.json()["dataset"]["filename"] == filename
     assert _stored(db_session, project) == (1, 1)
+
+
+def test_filename_limit_counts_characters_not_bytes(
+    client, as_user, db_session, make_project, storage, enqueued
+):
+    project = make_project(USER_A)
+    filename = "é" * 251 + ".csv"  # 255 characters, 506 bytes in UTF-8
+
+    response = _upload(client, project.id, filename=filename)
+
+    assert response.status_code == 201
+    assert response.json()["dataset"]["filename"] == filename

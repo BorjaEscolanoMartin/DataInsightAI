@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from tests.conftest import USER_A, USER_B
 
 
@@ -93,3 +95,28 @@ def test_report_download_name_cannot_inject_header_parameters(
         "attachment; filename=\"informe_a__filename__UTF-8__evil.exe_x__.pdf\"; "
         "filename*=UTF-8''informe_a%22%3Bfilename%2A%3DUTF-8%27%27evil.exe%3Bx%3D%22.pdf"
     )
+
+
+@pytest.mark.parametrize(
+    "filename, expected",
+    [
+        # Only the final extension goes, whatever its case (S7).
+        ("VENTAS.CSV", "attachment; filename=\"informe_VENTAS.pdf\"; "
+                       "filename*=UTF-8''informe_VENTAS.pdf"),
+        ("a.csv.csv", "attachment; filename=\"informe_a.csv.pdf\"; "
+                      "filename*=UTF-8''informe_a.csv.pdf"),
+        # A CR/LF can never split the header.
+        ("a\r\nSet-Cookie: x=1.csv", "attachment; filename=\"informe_a__Set-Cookie__x_1.pdf\"; "
+                                    "filename*=UTF-8''informe_a%0D%0ASet-Cookie%3A_x%3D1.pdf"),
+        # RFC 5987 does not allow a raw "/" in filename*.
+        ("../../otro/ventas.csv", "attachment; filename=\"informe_.._.._otro_ventas.pdf\"; "
+                                  "filename*=UTF-8''informe_..%2F..%2Fotro%2Fventas.pdf"),
+    ],
+    ids=["uppercase-extension", "csv-inside-the-name", "crlf", "slashes"],
+)
+def test_report_download_name_edge_cases(
+    client, as_user, db_session, make_dataset, filename, expected
+):
+    headers = _report_headers(client, db_session, make_dataset, filename)
+
+    assert headers["content-disposition"] == expected
