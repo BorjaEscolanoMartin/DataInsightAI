@@ -1,12 +1,21 @@
-import json
+import logging
 from typing import Any
 
+import pandas as pd
 from anthropic import Anthropic
 
 from app.config import settings
 from app.schemas.insights import InsightsOut
-from app.services.data_summary import Change
+from app.services.data_summary import Change, breakdowns, temporal_summary
+from app.services.insights_check import Dropped, check_insights
 from app.services.numbers import format_es
+from app.services.profiling import read_csv
+
+logger = logging.getLogger(__name__)
+
+MODEL = "claude-sonnet-5-5"
+EFFORT = "medium"
+MAX_TOKENS = 16000
 
 # Upper bound of |r| for each qualifier; anything above the last one is "muy fuerte".
 STRENGTH_SCALE = ((0.3, "débil"), (0.6, "moderada"), (0.8, "fuerte"))
@@ -197,26 +206,52 @@ def _build_prompt(
     return f"<datos>\n{data}\n</datos>\n\nGenera los insights a partir de estos datos."
 
 
-def generate_insights(profile: dict[str, Any]) -> dict[str, Any]:
+def _summary(name: str, build: Any, df: pd.DataFrame, profile: dict[str, Any]) -> Any:
+    """A summary is an extra for the model: if it fails, the prompt goes without it."""
+    try:
+        return build(df, profile)
+    except Exception as exc:
+        logger.warning("Insights summary %s failed: %r", name, exc)
+        return None
+
+
+def generate_insights_checked(
+    profile: dict[str, Any], content: bytes, model: str = MODEL
+) -> tuple[dict[str, Any], list[Dropped]]:
+    """The checked insights and the ones dropped because they quote figures not in the data."""
+    empty = InsightsOut().model_dump()
     if not settings.anthropic_api_key:
-        return InsightsOut().model_dump()
+        return empty, []
 
-    client = Anthropic(api_key=settings.anthropic_api_key, max_retries=3)
-
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=4096,
-        system=SYSTEM_PROMPT,
-        messages=[{"role": "user", "content": _build_prompt(profile)}],
+    df = read_csv(content)
+    prompt = _build_prompt(
+        profile,
+        _summary("temporal_summary", temporal_summary, df, profile),
+        _summary("breakdowns", breakdowns, df, profile),
     )
+    client = Anthropic(api_key=settings.anthropic_api_key, max_retries=3)
+    message = client.beta.messages.parse(
+        model=model,
+        max_tokens=MAX_TOKENS,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": prompt}],
+        output_format=InsightsOut,
+        output_config={"effort": EFFORT},
+        # A declined request is retried server-side on the model Anthropic recommends.
+        betas=["server-side-fallback-2026-07-01"],
+        fallbacks="default",
+    )
+    if message.stop_reason == "refusal":
+        category = message.stop_details.category if message.stop_details else None
+        logger.warning("Insights refused by the model (%s)", category)
+        return empty, []
+    if message.parsed_output is None:
+        logger.warning("Insights reply had no valid JSON (stop reason: %s)", message.stop_reason)
+        return empty, []
+    return check_insights(message.parsed_output.model_dump(), prompt)
 
-    raw = message.content[0].text.strip()
 
-    # Strip accidental markdown code fences
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-
-    data = json.loads(raw)
-    return InsightsOut.model_validate(data).model_dump()
+def generate_insights(
+    profile: dict[str, Any], content: bytes, model: str = MODEL
+) -> dict[str, Any]:
+    return generate_insights_checked(profile, content, model)[0]

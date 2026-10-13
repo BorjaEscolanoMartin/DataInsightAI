@@ -1,8 +1,11 @@
+import logging
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from app.schemas.insights import InsightsOut
+from app.services import insights_llm
 from app.services.data_summary import (
     Change,
     ColumnBreakdown,
@@ -12,8 +15,15 @@ from app.services.data_summary import (
     PeriodMean,
     Side,
     breakdowns,
+    temporal_summary,
 )
-from app.services.insights_llm import SYSTEM_PROMPT, _build_prompt, _strength, generate_insights
+from app.services.insights_llm import (
+    SYSTEM_PROMPT,
+    _build_prompt,
+    _strength,
+    generate_insights,
+    generate_insights_checked,
+)
 from app.services.numbers import find_numbers
 from app.services.profiling import profile_csv, read_csv
 
@@ -49,13 +59,6 @@ SAMPLE_PROFILE = {
     ],
 }
 
-# Long lines are kept on purpose: wrapping them would change the fixture text.
-VALID_RESPONSE = """{
-  "trends": [{"title": "Ventas crecientes", "description": "Las ventas muestran tendencia al alza.", "columns": ["ventas"]}],
-  "anomalies": [{"title": "Outliers en ventas", "description": "Se detectaron 3 outliers por IQR.", "columns": ["ventas"]}],
-  "correlations": [],
-  "recommendations": [{"title": "Revisar categoría A", "description": "La categoría A domina con 40%.", "columns": ["categoria"]}]
-}"""  # noqa: E501
 
 
 def test_build_prompt_contains_columns():
@@ -70,49 +73,129 @@ def test_build_prompt_includes_date_candidate():
     assert "fecha" in prompt
 
 
-def test_generate_insights_returns_empty_without_api_key():
+# ventas is 100, 102, ... so it is not consecutive and not an identifier.
+CSV = "\n".join(
+    ["fecha,ventas,categoria"]
+    + [f"2024-{1 + i // 28:02d}-{1 + i % 28:02d},{100 + 2 * i},{'AB'[i % 2]}" for i in range(84)]
+).encode()
+
+GOOD = {"title": "Ventas", "description": "Las ventas medias son 183,00.", "columns": ["ventas"]}
+BAD = {"title": "Ventas", "description": "Crecen un 37 %.", "columns": ["ventas"]}
+
+
+def _client(parsed: InsightsOut | None, stop_reason: str = "end_turn") -> MagicMock:
+    client = MagicMock()
+    message = client.beta.messages.parse.return_value
+    message.parsed_output = parsed
+    message.stop_reason = stop_reason
+    message.stop_details = MagicMock(category="general_harms") if stop_reason == "refusal" else None
+    return client
+
+
+@pytest.fixture
+def api_key():
     with patch("app.services.insights_llm.settings") as mock_settings:
-        mock_settings.anthropic_api_key = None
-        result = generate_insights(SAMPLE_PROFILE)
-    assert result["trends"] == []
-    assert result["anomalies"] == []
-    assert result["correlations"] == []
-    assert result["recommendations"] == []
-
-
-def test_generate_insights_parses_valid_json():
-    mock_message = MagicMock()
-    mock_message.content = [MagicMock(text=VALID_RESPONSE)]
-
-    mock_client = MagicMock()
-    mock_client.messages.create.return_value = mock_message
-
-    with patch("app.services.insights_llm.settings") as mock_settings, \
-         patch("app.services.insights_llm.Anthropic", return_value=mock_client):
         mock_settings.anthropic_api_key = "sk-test-fake"
-        result = generate_insights(SAMPLE_PROFILE)
-
-    assert len(result["trends"]) == 1
-    assert result["trends"][0]["title"] == "Ventas crecientes"
-    assert len(result["anomalies"]) == 1
-    assert result["correlations"] == []
-    assert len(result["recommendations"]) == 1
+        yield
 
 
-def test_generate_insights_strips_markdown_fences():
-    fenced = f"```json\n{VALID_RESPONSE}\n```"
-    mock_message = MagicMock()
-    mock_message.content = [MagicMock(text=fenced)]
+def _generate(client: MagicMock, **kwargs):
+    with patch("app.services.insights_llm.Anthropic", return_value=client):
+        return generate_insights_checked(profile_csv(CSV), CSV, **kwargs)
 
-    mock_client = MagicMock()
-    mock_client.messages.create.return_value = mock_message
 
+def test_generate_insights_returns_empty_without_api_key():
     with patch("app.services.insights_llm.settings") as mock_settings, \
-         patch("app.services.insights_llm.Anthropic", return_value=mock_client):
-        mock_settings.anthropic_api_key = "sk-test-fake"
-        result = generate_insights(SAMPLE_PROFILE)
+         patch("app.services.insights_llm.Anthropic") as anthropic:
+        mock_settings.anthropic_api_key = ""
+        result = generate_insights(SAMPLE_PROFILE, CSV)
 
-    assert result["trends"][0]["title"] == "Ventas crecientes"
+    assert result == InsightsOut().model_dump()
+    anthropic.assert_not_called()
+
+
+def test_the_request_uses_sonnet_5_5_medium_effort_and_the_insights_schema(api_key):
+    client = _client(InsightsOut(trends=[GOOD]))
+
+    _generate(client)
+
+    kwargs = client.beta.messages.parse.call_args.kwargs
+    profile = profile_csv(CSV)
+    df = read_csv(CSV)
+    assert kwargs["model"] == "claude-sonnet-5-5"
+    assert kwargs["output_config"] == {"effort": "medium"}
+    assert kwargs["output_format"] is InsightsOut
+    assert kwargs["system"] == SYSTEM_PROMPT
+    assert kwargs["messages"] == [{"role": "user", "content": _build_prompt(
+        profile, temporal_summary(df, profile), breakdowns(df, profile),
+    )}]
+    assert kwargs["fallbacks"] == "default"
+    assert kwargs["betas"] == ["server-side-fallback-2026-07-01"]
+    assert "temperature" not in kwargs
+    assert "Resumen temporal de ventas" in kwargs["messages"][0]["content"]
+
+
+def test_the_model_can_be_chosen(api_key):
+    client = _client(InsightsOut())
+
+    _generate(client, model="claude-opus-5-5")
+
+    assert client.beta.messages.parse.call_args.kwargs["model"] == "claude-opus-5-5"
+
+
+def test_insights_with_figures_missing_from_the_data_are_dropped(api_key):
+    client = _client(InsightsOut(trends=[GOOD, BAD]))
+
+    insights, dropped = _generate(client)
+
+    assert insights["trends"] == [GOOD]
+    assert [(d.category, d.missing) for d in dropped] == [("trends", ["37"])]
+
+
+def test_generate_insights_returns_only_the_checked_insights(api_key):
+    client = _client(InsightsOut(trends=[GOOD, BAD]))
+
+    with patch("app.services.insights_llm.Anthropic", return_value=client):
+        result = generate_insights(profile_csv(CSV), CSV)
+
+    assert result["trends"] == [GOOD]
+
+
+def test_a_refusal_gives_empty_insights_and_a_warning(api_key, caplog):
+    client = _client(None, stop_reason="refusal")
+
+    with caplog.at_level(logging.WARNING, logger="app.services.insights_llm"):
+        insights, dropped = _generate(client)
+
+    assert insights == InsightsOut().model_dump()
+    assert dropped == []
+    assert caplog.messages == ["Insights refused by the model (general_harms)"]
+
+
+def test_a_reply_without_parsed_insights_gives_empty_insights(api_key, caplog):
+    client = _client(None, stop_reason="max_tokens")
+
+    with caplog.at_level(logging.WARNING, logger="app.services.insights_llm"):
+        insights, _ = _generate(client)
+
+    assert insights == InsightsOut().model_dump()
+    assert caplog.messages == ["Insights reply had no valid JSON (stop reason: max_tokens)"]
+
+
+def test_a_failing_summary_is_left_out_of_the_prompt(api_key, caplog, monkeypatch):
+    def boom(df, profile):
+        raise ValueError("bad dates")
+
+    monkeypatch.setattr(insights_llm, "temporal_summary", boom)
+    client = _client(InsightsOut())
+
+    with caplog.at_level(logging.WARNING, logger="app.services.insights_llm"):
+        _generate(client)
+
+    prompt = client.beta.messages.parse.call_args.kwargs["messages"][0]["content"]
+    assert "Resumen temporal" not in prompt
+    assert "ventas por grupo" in prompt
+    assert caplog.messages == ["Insights summary temporal_summary failed: ValueError('bad dates')"]
 
 
 @pytest.mark.parametrize(
