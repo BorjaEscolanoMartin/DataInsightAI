@@ -13,9 +13,9 @@ DAYS = 60
 WEEKLY = [0, 5, 10, 8, 3, -4, -6]
 
 
-def _daily_csv() -> bytes:
+def _daily_csv(days: int = DAYS) -> bytes:
     rows = ["fecha,ventas"]
-    for i in range(DAYS):
+    for i in range(days):
         rows.append(f"{START + timedelta(days=i)},{100 + 2 * i + WEEKLY[i % 7]}")
     return ("\n".join(rows) + "\n").encode()
 
@@ -104,3 +104,15 @@ def test_falls_back_to_a_simpler_config_when_the_seasonal_fit_fails(monkeypatch,
     ]
     assert len(result["points"]) == 30
     assert isinstance(result["mape"], float)
+
+
+def test_series_shorter_than_ten_days_returns_no_points():
+    result = run_forecast(_daily_csv(days=9), "fecha", "ventas", horizon_days=30)
+
+    assert result == {"target_column": "ventas", "date_column": "fecha", "points": []}
+
+
+def test_series_of_ten_days_returns_points():
+    result = run_forecast(_daily_csv(days=10), "fecha", "ventas", horizon_days=30)
+
+    assert len(result["points"]) == 30

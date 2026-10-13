@@ -1,3 +1,4 @@
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -5,11 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.db.models import Analysis, Dataset, Project
+from app.db.ownership import owned_dataset
 from app.db.session import get_db
 from app.schemas.datasets import AnalysisOut, DatasetOut, DatasetProfileOut, DatasetWithAnalysisOut
 from app.storage.supabase_client import upload_file
 
 router = APIRouter(tags=["datasets"])
+logger = logging.getLogger(__name__)
 
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
@@ -68,7 +71,10 @@ def upload_dataset(
     try:
         upload_file(storage_path, content)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Storage upload failed: {e}")
+        # P4: the client gets a generic message. The log keeps only the exception type and
+        # message, never the request or its headers.
+        logger.error("Storage upload failed: %s: %s", type(e).__name__, e)
+        raise HTTPException(status_code=500, detail="Storage upload failed")
 
     dataset = Dataset(
         id=dataset_id,
@@ -130,17 +136,10 @@ def get_dataset(
     user_id: uuid.UUID = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DatasetWithAnalysisOut:
-    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    dataset = owned_dataset(db, dataset_id, user_id)
     if not dataset:
+        # Missing and owned by another user look the same (D6).
         raise HTTPException(status_code=404, detail="Dataset not found")
-
-    project = (
-        db.query(Project)
-        .filter(Project.id == dataset.project_id, Project.user_id == user_id)
-        .first()
-    )
-    if not project:
-        raise HTTPException(status_code=403, detail="Forbidden")
 
     analysis = (
         db.query(Analysis)
