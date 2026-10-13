@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
 from app.db.models import Analysis, Dataset, Project
+from app.db.ownership import owned_dataset
 from app.db.session import get_db
 from app.schemas.datasets import AnalysisOut, DatasetOut, DatasetProfileOut, DatasetWithAnalysisOut
 from app.storage.supabase_client import upload_file
@@ -130,17 +131,10 @@ def get_dataset(
     user_id: uuid.UUID = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> DatasetWithAnalysisOut:
-    dataset = db.query(Dataset).filter(Dataset.id == dataset_id).first()
+    dataset = owned_dataset(db, dataset_id, user_id)
     if not dataset:
+        # Missing and owned by another user look the same (D6).
         raise HTTPException(status_code=404, detail="Dataset not found")
-
-    project = (
-        db.query(Project)
-        .filter(Project.id == dataset.project_id, Project.user_id == user_id)
-        .first()
-    )
-    if not project:
-        raise HTTPException(status_code=403, detail="Forbidden")
 
     analysis = (
         db.query(Analysis)

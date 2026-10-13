@@ -5,7 +5,8 @@ from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.auth import get_current_user
-from app.db.models import Analysis, Dataset, Project
+from app.db.models import Analysis, Dataset
+from app.db.ownership import owned_analysis
 from app.db.session import get_db
 from app.schemas.analyses import AnalysisDetailOut
 from app.schemas.datasets import DatasetProfileOut
@@ -19,21 +20,7 @@ def get_analysis(
     user_id: uuid.UUID = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> AnalysisDetailOut:
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
-    if not analysis:
-        raise HTTPException(status_code=404, detail="Analysis not found")
-
-    dataset = db.query(Dataset).filter(Dataset.id == analysis.dataset_id).first()
-    if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-
-    project = (
-        db.query(Project)
-        .filter(Project.id == dataset.project_id, Project.user_id == user_id)
-        .first()
-    )
-    if not project:
-        raise HTTPException(status_code=403, detail="Forbidden")
+    analysis, _ = _get_analysis_with_auth(analysis_id, user_id, db)
 
     from app.schemas.insights import InsightsOut
     from app.schemas.predictions import PredictionsOut
@@ -60,20 +47,11 @@ def _get_analysis_with_auth(
     user_id: uuid.UUID,
     db: Session,
 ) -> tuple[Analysis, Dataset]:
-    analysis = db.query(Analysis).filter(Analysis.id == analysis_id).first()
-    if not analysis:
+    owned = owned_analysis(db, analysis_id, user_id)
+    if owned is None:
+        # Missing and owned by another user look the same (D6).
         raise HTTPException(status_code=404, detail="Analysis not found")
-    dataset = db.query(Dataset).filter(Dataset.id == analysis.dataset_id).first()
-    if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
-    project = (
-        db.query(Project)
-        .filter(Project.id == dataset.project_id, Project.user_id == user_id)
-        .first()
-    )
-    if not project:
-        raise HTTPException(status_code=403, detail="Forbidden")
-    return analysis, dataset
+    return owned
 
 
 @router.get("/api/analyses/{analysis_id}/report.pdf")
