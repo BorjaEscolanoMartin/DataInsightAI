@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 import { salesFixture as sales } from "@/data/demo"
 import { AnalysisView } from "./AnalysisView"
 
+// AnalysisView renders each summary value as the element right after its label.
 function stat(label: string): string | null {
   return screen.getByText(label).nextElementSibling?.textContent ?? null
 }

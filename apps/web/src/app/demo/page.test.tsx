@@ -42,4 +42,17 @@ describe("/demo", () => {
     expect(fetchSpy).not.toHaveBeenCalled()
     expect(xhrSpy).not.toHaveBeenCalled()
   })
+
+  it("resets the analysis view state when the dataset changes", () => {
+    render(<DemoPage />)
+    const trends = () => screen.getByRole("button", { name: /^Tendencias/ })
+
+    // Insight categories start open (▲); close the trends of the sales dataset.
+    fireEvent.click(trends())
+    expect(trends().textContent).toContain("▼")
+
+    fireEvent.click(screen.getByRole("button", { name: "Viviendas · regresión" }))
+
+    expect(trends().textContent).toContain("▲")
+  })
 })
