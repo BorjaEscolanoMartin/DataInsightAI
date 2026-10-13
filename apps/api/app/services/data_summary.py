@@ -5,6 +5,7 @@ from typing import Any, NamedTuple
 import pandas as pd
 
 from app.services.forecasting import daily_series, detect_frequency
+from app.services.numbers import format_es
 from app.services.profiling import iqr_bounds
 from app.services.targets import forecast_target, regression_target
 
@@ -146,8 +147,12 @@ def summary_target(profile: dict[str, Any]) -> str | None:
 
 
 def _label(value: Any) -> str:
-    if isinstance(value, float) and value.is_integer():
-        return str(int(value))
+    """Decimal values in Spanish format with their own decimals (1,5); whole numbers stay
+    plain, so a year is never written as 2.019."""
+    if isinstance(value, float):
+        if value.is_integer():
+            return str(int(value))
+        return format_es(value, len(repr(value).split(".")[1]))
     return str(value)
 
 

@@ -143,3 +143,18 @@ def test_no_breakdown_without_a_target():
     df = pd.DataFrame({"zona": ["a", "b"] * 5, "nombre": [f"n{i}" for i in range(10)]})
 
     assert _summarise(df) is None
+
+
+def test_decimal_group_labels_are_written_in_spanish_format():
+    df = pd.DataFrame({
+        "metros": [float(50 + 7 * i % 97) for i in range(40)],
+        "baños": [(1, 1.5, 2, 2.5)[i % 4] for i in range(40)],
+        # Whole numbers stored as floats (2019.0) stay plain, never "2.019".
+        "año": [float(2019 + i % 4) for i in range(40)],
+        "precio": [100.0 + 10 * (i % 4) + i % 3 for i in range(40)],
+    })
+
+    columns = {c.column: c for c in _summarise(df)["columns"]}
+
+    assert sorted(g.label for g in columns["baños"].groups) == ["1", "1,5", "2", "2,5"]
+    assert sorted(g.label for g in columns["año"].groups) == ["2019", "2020", "2021", "2022"]

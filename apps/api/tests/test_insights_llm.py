@@ -18,6 +18,7 @@ from app.services.data_summary import (
     breakdowns,
     temporal_summary,
 )
+from app.services.insights_check import check_insights
 from app.services.insights_llm import (
     SYSTEM_PROMPT,
     _build_prompt,
@@ -346,6 +347,26 @@ def test_every_number_in_a_real_data_block_is_in_spanish_format():
     block = _data_block(_build_prompt(profile, groups=breakdowns(df, profile)))
 
     assert [n.text for n in find_numbers(block) if n.value is None] == []
+
+
+def test_an_insight_quoting_a_decimal_group_label_is_kept():
+    rows = [(i, (1, 1.5, 2, 2.5)[i % 4], 100 + 10 * (i % 4) + i % 3) for i in range(40)]
+    content = ("metros,baños,precio\n" + "".join(
+        f"{50 + 7 * i % 97},{b},{p}\n" for i, b, p in rows
+    )).encode()
+    profile = profile_csv(content)
+    prompt = _build_prompt(profile, groups=breakdowns(read_csv(content), profile))
+    insight = {"title": "Baños", "description": "Con 1,5 baños, el grupo es distinto.",
+               "columns": ["baños"]}
+
+    kept, dropped = check_insights(_insights_with(insight), prompt)
+
+    assert [n.text for n in find_numbers(_data_block(prompt)) if n.value is None] == []
+    assert dropped == []
+
+
+def _insights_with(item: dict) -> dict:
+    return {"trends": [item], "anomalies": [], "correlations": [], "recommendations": []}
 
 
 def test_csv_text_cannot_close_the_data_block_or_pass_as_instructions():
