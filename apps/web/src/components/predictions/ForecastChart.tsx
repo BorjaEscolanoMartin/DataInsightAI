@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts"
+import { horizonText, targetText } from "@/lib/forecast"
 import type { ForecastOut } from "@/types/api"
 
 interface Props {
@@ -34,15 +35,25 @@ export function ForecastChart({ forecast }: Props) {
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
         <span>
-          Objetivo: <strong className="text-gray-200">{forecast.target_column}</strong>
+          Objetivo: <strong className="text-gray-200">{targetText(forecast)}</strong>
         </span>
         <span>
           Fecha: <strong className="text-gray-200">{forecast.date_column}</strong>
         </span>
         <span>
-          Horizonte: <strong className="text-gray-200">{forecast.horizon_days} días</strong>
+          Horizonte: <strong className="text-gray-200">{horizonText(forecast)}</strong>
         </span>
-        {forecast.mape !== null && (
+        {forecast.wape != null && (
+          <span>
+            WAPE backtest: <strong className="text-indigo-300">{forecast.wape.toFixed(1)}%</strong>
+          </span>
+        )}
+        {forecast.mae != null && (
+          <span>
+            MAE: <strong className="text-gray-200">{forecast.mae.toFixed(1)}</strong>
+          </span>
+        )}
+        {forecast.mape != null && (
           <span>
             MAPE backtest: <strong className="text-indigo-300">{forecast.mape.toFixed(1)}%</strong>
           </span>

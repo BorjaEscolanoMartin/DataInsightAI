@@ -1,5 +1,6 @@
 "use client"
 
+import { nextHorizonText } from "@/lib/forecast"
 import type { PredictionsOut } from "@/types/api"
 import { ForecastChart } from "./ForecastChart"
 import { FeatureImportance } from "./FeatureImportance"
@@ -26,7 +27,7 @@ export function PredictionsPanel({ predictions }: Props) {
       {hasForecast && (
         <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
           <h3 className="mb-3 text-sm font-semibold text-violet-300">
-            Forecasting — serie temporal
+            Forecasting — {nextHorizonText(forecast!)}
           </h3>
           <ForecastChart forecast={forecast!} />
         </div>
