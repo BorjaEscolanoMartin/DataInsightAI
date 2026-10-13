@@ -36,11 +36,11 @@ Route: inline (no Writer trigger). Each task: RED, GREEN, commit.
 - [x] T7 S2-S4, S7 inline: API schema, web types, chart (title, WAPE, MAE, aggregation), PDF; old analysis render test
 - [x] T8 S8: verifier (L13), A1 fixed (L14); RDD assess medium, not due (under_budget)
 
-Slices (feature-branch-chain, L9): a draft tracker PR from `main`; child PRs in order, each targeting the previous one. Branches and PRs are created when Borja asks; nothing is pushed before that.
-1. T1-T3: feature document, empty histogram bins, identifiers (95255d0..57ed8a6).
-2. T4: aggregation, frequency, gaps (fb906ab).
-3. T5-T6: WAPE, MAE and the simulated interval in the service.
-4. T7: API schema, web types, chart, PDF and the old-analysis test.
+Slices (feature-branch-chain, L9, L19). Tracker `fix/forecast-quality` (PR to `main`, draft until the chain is merged into it) holds the documentation commits up to 6884267; each child PR targets the branch before it.
+1. `fix/forecast-quality-01-profiling` (a8c1bf4, 57ed8a6): empty histogram bins, identifiers. 94+/5- without odd/.
+2. `fix/forecast-quality-02-frequency` (fb906ab): aggregation, frequency, gaps. 286+/49-.
+3. `fix/forecast-quality-03-metrics` (33ba36e, 515964a): WAPE, MAE and the simulated interval. 167+/21-.
+4. `fix/forecast-quality-04-display` (0736a39 to the last commit): API schema, PDF, web, the verifier's A1 fix and the two L16 changes (backtest cut at zero, camelCase identifiers). About 360+/22-.
 
 ## Log
 
@@ -62,3 +62,4 @@ Slices (feature-branch-chain, L9): a draft tracker PR from `main`; child PRs in 
 - L16 Borja (2026-10-13): "Antes de la cadena, dos cambios con su RED y su mutation check: 1) el recorte a 0 se aplica también a las predicciones del backtest, para que WAPE y MAE midan lo que se muestra (si ya es así, demuéstralo con un test); 2) parte también el nombre en el cambio de minúscula a mayúscula, de modo que CustomerId y customerId cuenten como ID y Paid no. Apunta en el backlog la columna «valor» que el perfilado lee mal. Después prepara la rama de seguimiento y los cuatro tramos, y haz push de todo. Las PR de los tramos van contra la rama de seguimiento, y la PR final contra main"
 - L17 Change 1: it was not the case (`forecasting.py:148` measured the raw `model.forecast`). RED: a model forecasting -5 on the history 0..59 gave WAPE 109.3 % instead of 100 %. GREEN: `_cut_at_zero(values, never_negative)` is the single rule for the backtest, the forecast and both bounds. A second test (history -1..58) passed before the change and pins that negative forecasts are kept when the history has negatives. Mutations killed: backtest always cut, backtest never cut. 155 passed, ruff clean.
 - L18 Change 2: RED: `CustomerId` and `customerId` were not identifiers. GREEN: `_name_words` inserts a split where a lower-case letter is followed by an upper-case one (`str.islower`/`isupper`, so accented letters count), then splits on `[\W_]+`; "ID" and "Paid" keep a single word. Mutations killed: a split before every capital ("ID cliente" breaks), no case split, no underscore split. 155 passed, ruff clean.
+- L19 Chain layout: the tracker holds only documentation (demo closure, this document, the L4 decisions), so its PR to `main` has a diff from the start. The two L16 changes go in slice 4: rewriting slices 1 and 3 would conflict on this document in every later commit. CI runs only on pull requests to `main` (`ci.yml`: `pull_request: branches: [main]`), so the slice PRs get no CI; the API suite is run locally at each slice head before the push, and the tracker PR runs the full CI.
