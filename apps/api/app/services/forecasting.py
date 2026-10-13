@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import io
+import logging
 import math
 from typing import Any
 
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
+
+
+def _warn_fit_failed(
+    stage: str, trend: str | None, seasonal: str | None, seasonal_periods: int | None,
+    exc: Exception,
+) -> None:
+    logger.warning(
+        "Forecast %s failed (trend=%s, seasonal=%s, seasonal_periods=%s): %r",
+        stage, trend, seasonal, seasonal_periods, exc,
+    )
 
 
 def _mape(actual: np.ndarray, predicted: np.ndarray) -> float | None:
@@ -55,8 +68,8 @@ def run_forecast(
         model = _fit(train, trend, seasonal, seasonal_periods)
         backtest = model.forecast(test_size)
         mape_val = _mape(test.values, backtest.values)
-    except Exception:
-        pass
+    except Exception as exc:
+        _warn_fit_failed("backtest", trend, seasonal, seasonal_periods, exc)
 
     # Full model on all data — try progressively simpler configs on failure
     forecast_vals = None
@@ -69,7 +82,8 @@ def run_forecast(
             model_full = _fit(series, tr, seas, sp)
             forecast_vals = model_full.forecast(horizon_days)
             break
-        except Exception:
+        except Exception as exc:
+            _warn_fit_failed("fit", tr, seas, sp, exc)
             continue
 
     if forecast_vals is None:
