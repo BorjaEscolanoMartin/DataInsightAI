@@ -1,5 +1,6 @@
 import io
 import math
+import re
 from typing import Any
 
 import numpy as np
@@ -40,6 +41,18 @@ def _infer_type(series: pd.Series) -> str:
     return "categorical"
 
 
+def _is_identifier(name: str, series: pd.Series, col_type: str) -> bool:
+    """Distinct integers that form a consecutive range or sit under a name with the token "id"."""
+    if col_type != "numeric":
+        return False
+    values = pd.to_numeric(series, errors="coerce").dropna()
+    if values.empty or not values.is_unique or not (values % 1 == 0).all():
+        return False
+    if values.max() - values.min() + 1 == len(values):
+        return True
+    return "id" in re.split(r"[\W_]+", str(name).lower())
+
+
 def _outliers_iqr(series: pd.Series) -> int:
     q1 = series.quantile(0.25)
     q3 = series.quantile(0.75)
@@ -73,7 +86,6 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
             "data": [
                 {"bin": f"{edges[i]:.4g}–{edges[i+1]:.4g}", "count": int(counts[i])}
                 for i in range(len(counts))
-                if counts[i] > 0
             ],
         })
 
@@ -205,6 +217,7 @@ def profile_csv(content: bytes) -> dict[str, Any]:
             "null_count": null_count,
             "null_pct": round(null_count / total * 100, 2) if total > 0 else 0.0,
             "unique_count": int(series.nunique()),
+            "is_identifier": _is_identifier(col, series, col_type),
         }
 
         if col_type == "numeric":
