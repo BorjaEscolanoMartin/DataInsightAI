@@ -18,7 +18,7 @@ export function ChartGrid({ charts }: Props) {
   return (
     <div>
       <h2 className="mb-4 text-sm font-medium text-gray-400">Visualizaciones automáticas</h2>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {charts.map((chart) => {
           switch (chart.type) {
             case "histogram":
