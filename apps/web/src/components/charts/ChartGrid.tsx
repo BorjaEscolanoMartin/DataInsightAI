@@ -4,7 +4,8 @@ import type { ChartSpec } from "@/types/api"
 import { ChartCard } from "./ChartCard"
 import { HistogramChart } from "./HistogramChart"
 import { histogramView, type HistogramDatum } from "./histogram"
-import { CategoricalBarChart } from "./BarChartComp"
+import { CategoricalBarChart, ValueColumnChart } from "./BarChartComp"
+import { isValueBars } from "./bars"
 import { TimeSeriesChart } from "./LineChartComp"
 import { HeatmapChart } from "./HeatmapChart"
 import { ScatterChartComp } from "./ScatterChartComp"
@@ -40,7 +41,11 @@ export function ChartGrid({ charts }: Props) {
             case "bar":
               return (
                 <ChartCard key={chart.id} title={chart.title}>
-                  <CategoricalBarChart data={chart.data as { name: string; count: number }[]} />
+                  {isValueBars(chart) ? (
+                    <ValueColumnChart data={chart.data as { name: string; count: number }[]} />
+                  ) : (
+                    <CategoricalBarChart data={chart.data as { name: string; count: number }[]} />
+                  )}
                 </ChartCard>
               )
             case "line":

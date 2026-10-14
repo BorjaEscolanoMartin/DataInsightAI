@@ -49,4 +49,27 @@ describe("ChartGrid", () => {
     )
     expect(old.querySelector("figcaption")?.textContent).toBe("Distribución de Ventas")
   })
+
+  it("draws the values of a whole-number column as columns and categories as rows", () => {
+    render(
+      <ChartGrid
+        charts={[
+          {
+            id: "bar_Baños",
+            type: "bar",
+            title: "Distribución de Baños",
+            data: [
+              { name: "1", value: 1, count: 775 },
+              { name: "2", value: 2, count: 592 },
+            ],
+          },
+          CHARTS[2],
+        ]}
+      />,
+    )
+
+    const [banos, zona] = screen.getAllByRole("figure")
+    expect(banos.querySelector("[data-orientation]")?.getAttribute("data-orientation")).toBe("vertical")
+    expect(zona.querySelector("[data-orientation]")?.getAttribute("data-orientation")).toBe("horizontal")
+  })
 })
