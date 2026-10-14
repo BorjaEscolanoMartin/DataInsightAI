@@ -150,10 +150,30 @@
     border-radius: 10px;
   }
 
-  /* Pressed: no transitions. A row button is the visual inside a larger accessible button. */
-  :is(.ctl-segment, .btn-primary, .btn-secondary):active,
-  :active > .btn-row {
+  /* Hover and pressed, with no transitions. A row button is the visual inside a larger
+     accessible button. A control is inert when it is disabled or wraps a disabled input (the
+     «Subir nuevo CSV» label): no hover, no press, a not-allowed cursor. */
+  .btn-primary:not(:disabled, :has(:disabled)):hover {
+    opacity: 0.92;
+  }
+
+  .btn-secondary:not(:disabled, :has(:disabled)):hover,
+  :not(:disabled):hover > .btn-row {
+    border-color: var(--f3);
+  }
+
+  .ctl-segment[aria-pressed="false"]:not(:disabled):hover {
+    color: var(--fg);
+  }
+
+  :is(.ctl-segment, .btn-primary, .btn-secondary):not(:disabled, :has(:disabled)):active,
+  :not(:disabled):active > .btn-row {
     transform: translateY(1px);
+  }
+
+  :is(.ctl-segment, .btn-primary, .btn-secondary):is(:disabled, :has(:disabled)),
+  :disabled > .btn-row {
+    cursor: not-allowed;
   }
 
   .gold-rule {
