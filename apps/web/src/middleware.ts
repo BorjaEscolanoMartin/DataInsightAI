@@ -29,19 +29,25 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
 
+  // Every redirect goes to a fixed internal path on our own origin: nothing from the request URL
+  // (query, parameters) is carried over (S25).
+  const redirectTo = (path: "/demo" | "/projects" | "/login") =>
+    NextResponse.redirect(new URL(path, request.url))
+
+  // The home page decides by session: visitors see the demo, signed-in users their projects.
+  if (pathname === "/") {
+    return redirectTo(user ? "/projects" : "/demo")
+  }
+
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/signup")
   const isDashboard = pathname.startsWith("/projects")
 
   if (isDashboard && !user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/login"
-    return NextResponse.redirect(url)
+    return redirectTo("/login")
   }
 
   if (isAuthPage && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = "/projects"
-    return NextResponse.redirect(url)
+    return redirectTo("/projects")
   }
 
   return supabaseResponse

@@ -1,18 +1,13 @@
 import Link from "next/link"
 
-const NAMES = {
-  "/projects": "DataInsight AI, ir a Proyectos",
-  "/demo": "DataInsight AI, ir a la demo",
-} as const
-
-/** Brand link (S17): «DataInsight» and an italic «AI» in the accent, a 44 px target whose name
- *  says where it goes. Signed-in pages link to `/projects`; `/demo`, login and signup link to
- *  `/demo` (D7). */
-export function Logo({ href }: { href: keyof typeof NAMES }) {
+/** Brand link (S17, S26): «DataInsight» and an italic «AI» in the accent, a 44 px target. It goes
+ *  to `/` on every page, where the middleware sends a visitor to the demo and a signed-in user to
+ *  their projects. */
+export function Logo() {
   return (
     <Link
-      href={href}
-      aria-label={NAMES[href]}
+      href="/"
+      aria-label="DataInsight AI, ir al inicio"
       className="inline-flex min-h-11 items-center gap-1.5 font-serif text-[26px] font-semibold tracking-[-0.015em] text-fg"
     >
       <span>DataInsight</span>

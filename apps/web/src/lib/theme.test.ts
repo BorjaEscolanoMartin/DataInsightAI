@@ -26,21 +26,21 @@ describe("THEME_SCRIPT", () => {
     expect(root.getAttribute("data-theme")).toBe(choice)
   })
 
-  it("leaves the root alone without a stored choice, so CSS follows the system", () => {
+  it("leaves the root alone without a stored choice, so the CSS default (dark) applies", () => {
     runScript()
 
     expect(root.hasAttribute("data-theme")).toBe(false)
   })
 
-  it("ignores an invalid stored value", () => {
-    localStorage.setItem(THEME_STORAGE_KEY, "sepia")
+  it.each(["system", "sepia"])("ignores the invalid stored value %s", (value) => {
+    localStorage.setItem(THEME_STORAGE_KEY, value)
 
     runScript()
 
     expect(root.hasAttribute("data-theme")).toBe(false)
   })
 
-  it("falls back to the system preference when storage cannot be read", () => {
+  it("falls back to the CSS default when storage cannot be read", () => {
     vi.spyOn(window, "localStorage", "get").mockImplementation(() => {
       throw new DOMException("Storage is disabled", "SecurityError")
     })
