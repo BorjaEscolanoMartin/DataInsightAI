@@ -15,13 +15,19 @@ interface Props {
 export function ChartGrid({ charts }: Props) {
   if (!charts.length) return null
 
+  // The time series go first, at full width; the rest share the grid below.
+  const ordered = [
+    ...charts.filter((c) => c.type === "line"),
+    ...charts.filter((c) => c.type !== "line"),
+  ]
+
   return (
     <div>
-      <h2 className="mb-4 text-sm font-medium text-gray-400">Visualizaciones automáticas</h2>
+      <h2 className="mb-4 font-serif text-2xl text-fg">Visualizaciones automáticas</h2>
       {/* grid-cols-1 is not a no-op: it gives the mobile column a minmax(0, 1fr) track, so a wide
-          chart (the correlation heatmap) scrolls inside its card instead of widening the page. */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        {charts.map((chart) => {
+          chart (the correlation heatmap) scrolls inside its block instead of widening the page. */}
+      <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
+        {ordered.map((chart) => {
           switch (chart.type) {
             case "histogram":
               return (
@@ -37,12 +43,14 @@ export function ChartGrid({ charts }: Props) {
               )
             case "line":
               return (
-                <ChartCard key={chart.id} title={chart.title}>
-                  <TimeSeriesChart
-                    data={chart.data as { date: string; value: number | null }[]}
-                    yColumn={chart.y_column ?? ""}
-                  />
-                </ChartCard>
+                <div key={chart.id} className="col-span-full">
+                  <ChartCard title={chart.title}>
+                    <TimeSeriesChart
+                      data={chart.data as { date: string; value: number | null }[]}
+                      yColumn={chart.y_column ?? ""}
+                    />
+                  </ChartCard>
+                </div>
               )
             case "heatmap":
               return (

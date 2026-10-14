@@ -1,45 +1,30 @@
 "use client"
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
   data: { name: string; count: number }[]
 }
 
 export function CategoricalBarChart({ data }: Props) {
-  const height = Math.max(180, data.length * 36)
+  const height = Math.max(160, data.length * 28)
 
   return (
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" horizontal={false} />
-        <XAxis
-          type="number"
-          tick={{ fontSize: 10, fill: "#6b7280" }}
-          axisLine={false}
-          tickLine={false}
-        />
+        <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
+        <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
         <YAxis
           type="category"
           dataKey="name"
-          tick={{ fontSize: 11, fill: "#d1d5db" }}
-          width={110}
+          tick={{ ...AXIS_TICK, fill: "var(--f2)" }}
+          axisLine={false}
+          width={100}
           tickLine={false}
         />
-        <Tooltip
-          contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-          labelStyle={{ color: "#d1d5db", fontSize: 11 }}
-          itemStyle={{ color: "#c4b5fd" }}
-        />
-        <Bar dataKey="count" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+        <Tooltip {...TOOLTIP_PROPS} />
+        <Bar dataKey="count" name="Filas" fill="var(--fg)" barSize={8} />
       </BarChart>
     </ResponsiveContainer>
   )

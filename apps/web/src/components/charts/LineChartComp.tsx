@@ -1,14 +1,7 @@
 "use client"
 
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts"
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
   data: { date: string; value: number | null }[]
@@ -27,28 +20,26 @@ export function TimeSeriesChart({ data, yColumn }: Props) {
   const formatted = data.map((d) => ({ ...d, label: formatDate(d.date) }))
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={240}>
       <LineChart data={formatted} margin={{ right: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+        <CartesianGrid stroke={GRID_STROKE} vertical={false} />
+        {/* minTickGap lets Recharts drop ticks on narrow screens instead of overlapping them. */}
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 9, fill: "#6b7280" }}
+          tick={AXIS_TICK}
+          axisLine={AXIS_LINE}
           interval="preserveStartEnd"
+          minTickGap={32}
           tickLine={false}
         />
-        <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-        <Tooltip
-          contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-          labelStyle={{ color: "#d1d5db", fontSize: 11 }}
-          itemStyle={{ color: "#6ee7b7" }}
-          formatter={(v: number) => [v, yColumn]}
-        />
+        <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={48} />
+        <Tooltip {...TOOLTIP_PROPS} formatter={(v: number) => [v, yColumn]} />
         <Line
-          type="monotone"
+          type="linear"
           dataKey="value"
-          stroke="#10b981"
+          stroke="var(--fg)"
           dot={false}
-          strokeWidth={1.5}
+          strokeWidth={1.25}
           connectNulls
         />
       </LineChart>

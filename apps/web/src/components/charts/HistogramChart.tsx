@@ -1,14 +1,7 @@
 "use client"
 
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts"
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
   data: { bin: string; count: number }[]
@@ -16,22 +9,20 @@ interface Props {
 
 export function HistogramChart({ data }: Props) {
   return (
-    <ResponsiveContainer width="100%" height={220}>
+    <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} barCategoryGap={1}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" vertical={false} />
+        <CartesianGrid stroke={GRID_STROKE} vertical={false} />
         <XAxis
           dataKey="bin"
-          tick={{ fontSize: 9, fill: "#6b7280" }}
+          tick={AXIS_TICK}
+          axisLine={AXIS_LINE}
           interval="preserveStartEnd"
+          minTickGap={16}
           tickLine={false}
         />
-        <YAxis tick={{ fontSize: 10, fill: "#6b7280" }} axisLine={false} tickLine={false} />
-        <Tooltip
-          contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-          labelStyle={{ color: "#d1d5db", fontSize: 11 }}
-          itemStyle={{ color: "#a5b4fc" }}
-        />
-        <Bar dataKey="count" fill="#6366f1" radius={[2, 2, 0, 0]} />
+        <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={40} />
+        <Tooltip {...TOOLTIP_PROPS} />
+        <Bar dataKey="count" name="Filas" fill="var(--fg)" />
       </BarChart>
     </ResponsiveContainer>
   )
