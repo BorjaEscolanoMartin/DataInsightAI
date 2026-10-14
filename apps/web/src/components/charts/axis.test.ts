@@ -9,7 +9,10 @@ describe("countAxis", () => {
     [639, [0, 200, 400, 600, 800]],
     [1000, [0, 250, 500, 750, 1000]],
     [7, [0, 2, 4, 6, 8]],
-    [0.34, [0, 0.1, 0.2, 0.3, 0.4]],
+    // Counts are whole: the step is never below 1.
+    [1, [0, 1]],
+    [2, [0, 1, 2]],
+    [3, [0, 1, 2, 3]],
   ])("ends the axis of a maximum of %s at a round number with even ticks", (max, ticks) => {
     expect(countAxis(max)).toEqual({ domain: [0, ticks.at(-1)], ticks })
   })

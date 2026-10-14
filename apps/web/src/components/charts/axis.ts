@@ -20,12 +20,13 @@ const tidy = (v: number) => Number(v.toPrecision(12))
 
 const COUNT_INTERVALS = 4
 
-/** A count axis from 0 (W3): a round step (1, 2, 2,5 or 5 × 10ⁿ) of at least a quarter of the
- *  maximum, up to its first multiple that reaches the maximum (346 → 400, 950 → 1.000), with
+/** A count axis from 0 (W3): a round step (1, 2, 2,5 or 5 × 10ⁿ, and at least 1) of at least a
+ *  quarter of the maximum, up to its first multiple that reaches the maximum (346 → 400, 950 → 1.000), with
  *  evenly spaced ticks, rather than the next big jump. */
 export function countAxis(max: number): { domain: [number, number]; ticks: number[] } {
   if (!(max > 0)) return { domain: [0, 1], ticks: [0, 1] }
-  const step = niceStep(max / COUNT_INTERVALS)
+  // Row counts are whole numbers, so the step never goes below 1.
+  const step = Math.max(1, niceStep(max / COUNT_INTERVALS))
   const last = Math.ceil(tidy(max / step))
   const ticks = Array.from({ length: last + 1 }, (_, i) => tidy(i * step))
   return { domain: [0, ticks[ticks.length - 1]], ticks }
