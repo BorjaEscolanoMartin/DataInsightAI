@@ -4,12 +4,14 @@ import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, 
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "@/components/charts/chartTheme"
 import { formatNumber } from "@/lib/format"
 import type { RegressionOut } from "@/types/api"
+import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
   regression: RegressionOut
 }
 
 export function FeatureImportance({ regression }: Props) {
+  const reducedMotion = useReducedMotion()
   const data = [...regression.feature_importance]
     .sort((a, b) => b.importance - a.importance)
     .slice(0, 12)
@@ -45,7 +47,7 @@ export function FeatureImportance({ regression }: Props) {
             width={110}
           />
           <Tooltip {...TOOLTIP_PROPS} formatter={(v: number) => [`${v}%`, "Importancia"]} />
-          <Bar dataKey="importance" barSize={10}>
+          <Bar isAnimationActive={!reducedMotion} dataKey="importance" barSize={10}>
             {/* The most important variable is the one highlighted in the accent. */}
             {data.map((d, i) => (
               <Cell key={d.name} fill={i === 0 ? "var(--au)" : "var(--fg)"} />

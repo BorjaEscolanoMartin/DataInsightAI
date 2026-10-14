@@ -15,6 +15,7 @@ import {
 } from "recharts"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 import type { HistogramBar, HistogramView } from "./histogram"
+import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
   view: HistogramView
@@ -30,6 +31,7 @@ interface TickProps {
 }
 
 export function HistogramChart({ view }: Props) {
+  const reducedMotion = useReducedMotion()
   const { bars, axis } = view
   const firstInner = bars.findIndex((b) => b.side === null)
   const lastInner = bars.findLastIndex((b) => b.side === null)
@@ -76,7 +78,7 @@ export function HistogramChart({ view }: Props) {
         )}
         <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={40} />
         <Tooltip {...TOOLTIP_PROPS} />
-        <Bar dataKey="count" name="Filas" fill="var(--fg)" shape={shape}>
+        <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" shape={shape}>
           {bars.map((b, i) => (
             <Cell key={i} fill={b.side ? "var(--au)" : "var(--fg)"} />
           ))}

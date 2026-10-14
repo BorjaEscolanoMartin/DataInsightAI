@@ -15,6 +15,7 @@ import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "@/components/c
 import { horizonText, targetText } from "@/lib/forecast"
 import { formatNumber } from "@/lib/format"
 import type { ForecastOut } from "@/types/api"
+import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
   forecast: ForecastOut
@@ -34,6 +35,7 @@ export function formatForecastValue(value: number | [number, number]): string {
 }
 
 export function ForecastChart({ forecast }: Props) {
+  const reducedMotion = useReducedMotion()
   const data = forecast.points.map((p) => ({
     ds: p.ds,
     yhat: +p.yhat.toFixed(2),
@@ -95,6 +97,7 @@ export function ForecastChart({ forecast }: Props) {
           />
           <Legend wrapperStyle={{ fontSize: 12, color: "var(--f2)" }} />
           <Area
+            isAnimationActive={!reducedMotion}
             type="monotone"
             dataKey="band"
             fill="var(--au)"
@@ -103,6 +106,7 @@ export function ForecastChart({ forecast }: Props) {
             name={forecastBandLabel(forecast)}
           />
           <Line
+            isAnimationActive={!reducedMotion}
             type="monotone"
             dataKey="yhat"
             stroke="var(--au)"

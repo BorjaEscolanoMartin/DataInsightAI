@@ -3,6 +3,7 @@
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { formatIsoDate } from "@/lib/format"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
+import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
   data: { date: string; value: number | null }[]
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export function TimeSeriesChart({ data, yColumn }: Props) {
+  const reducedMotion = useReducedMotion()
   const formatted = data.map((d) => ({ ...d, label: formatIsoDate(d.date, { year: false }) ?? d.date }))
 
   return (
@@ -28,6 +30,7 @@ export function TimeSeriesChart({ data, yColumn }: Props) {
         <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={48} />
         <Tooltip {...TOOLTIP_PROPS} formatter={(v: number) => [v, yColumn]} />
         <Line
+          isAnimationActive={!reducedMotion}
           type="linear"
           dataKey="value"
           stroke="var(--fg)"
