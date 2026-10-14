@@ -83,8 +83,40 @@ describe("ChartGrid", () => {
     })
     render(<ChartGrid charts={[heatmap(["a", "b", "c", "d", "e"]), heatmap(["a", "b", "c", "d"])]} />)
 
-    const [wide, compact] = screen.getAllByRole("figure")
-    expect(wide.parentElement?.className).toContain("col-span-full")
-    expect(compact.parentElement?.className ?? "").not.toContain("col-span-full")
+    const figure = (title: string) =>
+      screen.getAllByRole("figure").find((f) => f.querySelector("figcaption")?.textContent === title)
+    const wide = figure("Correlación 5")
+    const compact = figure("Correlación 4")
+    expect(wide?.parentElement?.className).toContain("col-span-full")
+    expect(compact?.parentElement?.className ?? "").not.toContain("col-span-full")
+  })
+
+  it("puts wide charts after the small ones and stretches the last small chart to its row's end", () => {
+    const columns = ["a", "b", "c", "d", "e"]
+    render(
+      <ChartGrid
+        charts={[
+          CHARTS[0],
+          {
+            id: "heat",
+            type: "heatmap",
+            title: "Correlación",
+            columns,
+            data: columns.flatMap((x) => columns.map((y) => ({ x, y, value: 1 }))),
+          },
+          CHARTS[2],
+        ]}
+      />,
+    )
+
+    const figures = screen.getAllByRole("figure")
+    expect(figures.map((f) => f.querySelector("figcaption")?.firstChild?.textContent)).toEqual([
+      "Distribución de Ventas",
+      "Top valores de Zona",
+      "Correlación",
+    ])
+    // Two small charts: the second ends the row on desktops (3 columns); tablets fit both.
+    expect(figures[1].parentElement?.className).toContain("xl:col-span-2")
+    expect(figures[0].parentElement?.className ?? "").not.toContain("col-span")
   })
 })
