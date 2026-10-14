@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { ERROR_NOTE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON } from "@/components/ui/styles"
+import { AUTH_FIELD, ERROR_NOTE, FIELD_LABEL, PRIMARY_BUTTON } from "@/components/ui/styles"
 import { createClient } from "@/lib/supabase"
 
 export default function LoginPage() {
@@ -32,10 +32,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="border-t-2 border-fg pt-6">
-      <h1 className="font-serif text-3xl text-fg">Inicia sesión en tu cuenta</h1>
+    <>
+      <h2 id="auth-form-title" className="font-serif text-[30px] font-medium text-fg">
+        Iniciar sesión
+      </h2>
+      <p className="mt-1.5 text-sm text-f2">Entra para ver tus proyectos y subir datos.</p>
 
-      <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-[18px]">
         <div>
           <label htmlFor="login-email" className={FIELD_LABEL}>
             Email
@@ -47,7 +50,7 @@ export default function LoginPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className={FIELD_INPUT}
+            className={AUTH_FIELD}
             placeholder="tu@email.com"
           />
         </div>
@@ -63,7 +66,7 @@ export default function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className={FIELD_INPUT}
+            className={AUTH_FIELD}
           />
         </div>
 
@@ -73,24 +76,17 @@ export default function LoginPage() {
           </p>
         )}
 
-        <button type="submit" disabled={loading} className={`${PRIMARY_BUTTON} w-full`}>
+        <button type="submit" disabled={loading} className={`${PRIMARY_BUTTON} mt-1.5 w-full`}>
           {loading ? "Entrando..." : "Iniciar sesión"}
         </button>
       </form>
 
-      <p className="mt-8 text-sm text-f2">
+      <p className="mt-5 border-t border-ln pt-[18px] text-sm text-f2">
         ¿No tienes cuenta?{" "}
-        <Link href="/signup" className="text-au underline underline-offset-4">
+        <Link href="/signup" className="font-medium text-au underline underline-offset-4">
           Regístrate
         </Link>
       </p>
-
-      <p className="mt-2 text-sm text-f2">
-        <Link href="/demo" className="text-au underline underline-offset-4">
-          Ver demo
-        </Link>{" "}
-        sin registrarte
-      </p>
-    </div>
+    </>
   )
 }

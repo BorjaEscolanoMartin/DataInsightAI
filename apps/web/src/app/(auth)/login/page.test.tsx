@@ -12,11 +12,11 @@ vi.mock("@/lib/supabase", () => ({
 }))
 
 describe("/login", () => {
-  it("links to the public demo", () => {
+  it("titles its form", () => {
     render(<LoginPage />)
 
-    const link = screen.getByRole("link", { name: "Ver demo" })
-    expect(link.getAttribute("href")).toBe("/demo")
+    expect(screen.getByRole("heading", { level: 2, name: "Iniciar sesión" })).toBeTruthy()
+    expect(screen.getByText("Entra para ver tus proyectos y subir datos.")).toBeTruthy()
   })
 
   it("links to the signup page", () => {
@@ -30,6 +30,8 @@ describe("/login", () => {
 
     expect(screen.getByLabelText("Email").getAttribute("type")).toBe("email")
     expect(screen.getByLabelText("Contraseña").getAttribute("type")).toBe("password")
+    expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe("email")
+    expect(screen.getByLabelText("Contraseña").getAttribute("autocomplete")).toBe("current-password")
   })
 
   it("announces a failed login as an alert", async () => {

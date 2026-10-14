@@ -34,6 +34,16 @@
   --sec-bd: light-dark(#d9d9d9, rgba(255, 255, 255, 0.1));
   --sec-hi: light-dark(#ffffff, rgba(255, 255, 255, 0.07));
   --sec-sh: light-dark(rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.5));
+
+  /* Login and signup panel and sunken fields (S27): the only raised section, on those pages. */
+  --card-a: light-dark(#ffffff, #161616);
+  --card-b: light-dark(#fbfbfb, #101010);
+  --card-bd: light-dark(#e5e5e5, rgba(255, 255, 255, 0.07));
+  --card-hi: light-dark(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.05));
+  --card-sh: light-dark(rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.45));
+  --fld: light-dark(#ffffff, #0d0d0d);
+  --fld-bd: light-dark(#8a8a8a, #6b6b6b);
+  --fld-in: light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.7));
 }
 
 :root[data-theme="light"] {
@@ -76,6 +86,14 @@
     --sec-bd: rgba(255, 255, 255, 0.1);
     --sec-hi: rgba(255, 255, 255, 0.07);
     --sec-sh: rgba(0, 0, 0, 0.5);
+    --card-a: #161616;
+    --card-b: #101010;
+    --card-bd: rgba(255, 255, 255, 0.07);
+    --card-hi: rgba(255, 255, 255, 0.05);
+    --card-sh: rgba(0, 0, 0, 0.45);
+    --fld: #0d0d0d;
+    --fld-bd: #6b6b6b;
+    --fld-in: rgba(0, 0, 0, 0.7);
   }
 
   /* A «Claro» stored earlier must not switch native controls to light over these dark values:
@@ -180,6 +198,23 @@
   :is(.ctl-segment, .btn-primary, .btn-secondary):is(:disabled, :has(:disabled)),
   :disabled > .btn-row {
     cursor: not-allowed;
+  }
+
+  .auth-card {
+    background: linear-gradient(180deg, var(--card-a), var(--card-b));
+    border: 1px solid var(--card-bd);
+    border-radius: 18px;
+    box-shadow:
+      inset 0 1px 0 var(--card-hi),
+      0 12px 32px var(--card-sh);
+  }
+
+  .field-sunken {
+    background: var(--fld);
+    border: 1px solid var(--fld-bd);
+    border-radius: 10px;
+    min-height: 46px;
+    box-shadow: inset 0 1px 2px var(--fld-in);
   }
 
   .gold-rule {
