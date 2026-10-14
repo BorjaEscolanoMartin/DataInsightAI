@@ -1,0 +1,81 @@
+# redesign
+
+Objective: replace the current dark indigo/violet look with the editorial design of `.claude/rediseno/brief-rediseno.md` (numbered sections, Newsreader + IBM Plex Sans, AuraGym monochrome palette with one gold accent, light and dark themes), without API or data changes.
+Branch: `feat/redesign` from `main` (467261e). Delivery: feature-branch-chain (S14), slices `feat/redesign-0N-*` into `feat/redesign`. Runners in `apps/web`: `npm test` (Vitest), `npm run typecheck`, `npm run lint`, `npm run build`.
+
+## Specs
+
+S1-S8 come from the brief's closed decisions (not reopened). S9-S14 come from D1-D6, accepted in L3 with the additions quoted there.
+
+- S1 Direction (brief 2.1): "Informe editorial: titulares en serifa, texto en sans, líneas finas en lugar de tarjetas, sin sombras, sin degradados, sin esquinas redondeadas grandes y sin iconos decorativos." Numbered sections: "cada una con un filete superior de 2 px en color de tinta, el número en el color de acento y el título en serifa", left column of about 200 px on desktop, stacked on mobile. "Sin titular generado": the header is the file name in a large serif with a fixed line below.
+- S2 Colors (brief 2.2): tokens `--bg --s1 --s2 --ln --fg --f2 --f3 --inv --au` with the exact light/dark values of the brief's table. One accent only; insight categories: "«Tendencias» va en `--au`, «Anomalías» en `--fg` y el resto en `--f2`". Primary button: `--fg` background, `--inv` text. Contrast: "No bajar ninguno."
+- S3 Type (brief 2.3): Newsreader (400, 500, 600) for titles and large figures, IBM Plex Sans (400, 500, 600) for text, both via `next/font/google`; figures with `font-variant-numeric: tabular-nums`.
+- S4 AnalysisView structure (brief 2.5): header (eyebrow in `--au`, «Demo · datos sintéticos» on `/demo`, file name with `overflow-wrap: anywhere`), 01 Dataset (`<dl>`, date column in `--au`), 02 Hallazgos (two-column grid, one on mobile; related columns as small `--f3` text, no chips), 03 Predicciones (forecast: horizon in the title, WAPE as main figure, MAE as detail; regression: R², RMSE, feature importance bars with the first in `--au`), 04 Gráficos (time series full width, then a grid, charts separated by thin lines), 05 Columnas (full table with «Únicos», expandable `--s2` strip with min, P25, median, P75, max), calls to action at the end.
+- S5 Charts (brief 2.6): real series `--fg`, forecast `--au`, interval band `--au` at 0.14 opacity, grid `--ln`, axes `--f3`; bars `--fg`, highlighted bar `--au`; heatmap cells `color-mix(in srgb, var(--au) X%, var(--bg))` with X proportional to |r|; Recharts colors passed as CSS variables. On mobile, Recharts thins the X ticks to the available width.
+- S6 Accessibility (brief 2.7): expandable column rows use "un `<button aria-expanded>` en la primera celda, accesible con el teclado. Nada de `onClick` en un `<tr>`"; `/demo` selector keeps `aria-pressed`; touch targets of at least 44 px; every grid declares `grid-cols-1`.
+- S7 Mockup is illustrative only (brief 3): real fixture data (WAPE, MAE, horizon, new insights), no decorative progress bar claiming progress, no «Reintentar» button.
+- S8 Tests (brief 5): existing Vitest tests keep passing, adjusted only where classes or texts change without losing what they check; new tests for `aria-expanded` (toggles on click and works from the keyboard) and for the chosen theme being applied to the root. Visual review in the Vercel preview at 1280 and 390 px, both themes; before/after screenshots of `/demo` (sales and housing) and the project page in the PR; warn if `/demo` First Load JS (about 240 kB today) grows more than 20 kB.
+- S9 Theme (D1 + L3): system preference by default, overridable and remembered. L3: "lectura de localStorage dentro de try/catch, con la preferencia del sistema como alternativa, y el interruptor accesible (tres botones con aria-pressed o un grupo de radios, con texto)". Chosen: three buttons with `aria-pressed` and visible text «Sistema», «Claro», «Oscuro» in a group labelled «Tema» (the same pattern as the `/demo` selector). An inline script in `<head>` sets `data-theme="light"|"dark"` on `<html>` before the first paint only for an explicit, valid stored choice; with no choice, an invalid value or a storage error it sets nothing and the CSS follows `prefers-color-scheme` (also with JS off). Choosing «Sistema» removes the stored value and the attribute. Writes to storage are in try/catch too: the choice still applies to the page when storage fails. The storage key and the valid values live once in `src/lib/theme.ts`; the script is built from them.
+- S10 Scope (D2 + L3): "el alcance completo: login y registro también, porque el login es donde está el enlace a la demo". Whole app: root layout, `/demo`, the dashboard shell and header, the projects list, the project page, login and signup; the login's link to the demo stays.
+- S11 Tokens (D3): CSS variables in `globals.css` (`:root` light; dark under `:root[data-theme="dark"]` and under `@media (prefers-color-scheme: dark)` for `:root:not([data-theme="light"])`), mapped with `@theme inline` to utilities (`bg-bg`, `bg-s1`, `bg-s2`, `border-ln`, `text-fg`, `text-f2`, `text-f3`, `text-inv`, `text-au`...); fonts as `--font-serif` and `--font-sans` from `next/font` variables; no `dark:` classes.
+- S12 Charts (D4): restyle the current components and keep the tooltips, styled with the tokens; no rounded bars, gradients, per-series colours or card wrappers.
+- S13 Heatmap (D5): positives `color-mix(in srgb, var(--au) X%, var(--bg))`, negatives `color-mix(in srgb, var(--f3) X%, var(--bg))`, X proportional to |r|; values always printed with a real minus sign («−0,45»); the `aria-label` keeps the values.
+- S14 Delivery (D6): feature-branch chain, one slice per task T1-T5 into `feat/redesign`, local suite per slice head, then one PR `feat/redesign` → `main`.
+
+## Tasks
+
+Route: inline for all (no Writer trigger: the slices are sequential). Toggle placement: each header gets the `ThemeToggle` in its own slice.
+
+- [x] T0 Decisions D1-D6 answered (L3).
+- [ ] T1 `feat/redesign-01-theme`: tokens, fonts, theme script and `ThemeToggle`, root layout (S2, S3, S9, S11).
+- [ ] T2 `feat/redesign-02-panels`: insights, predictions, charts, heatmap, column table with `aria-expanded` (S4-S6, S12, S13).
+- [ ] T3 `feat/redesign-03-analysis`: `AnalysisView` and `/demo` with its header and toggle (S4, S6, S7).
+- [ ] T4 `feat/redesign-04-project`: dashboard shell and header with toggle, project page with `Dropzone` (S1, S7, S10).
+- [ ] T5 `feat/redesign-05-auth`: projects list, login (link to the demo kept) and signup (S10).
+- [ ] T6 Independent verifier, Judgment Day, `/security-review`, screenshots and First Load JS (S8).
+
+## Decisions
+
+Open questions from the brief, section 6, with the recommendation given; all six accepted in L3, and the Specs win where L3 added detail. Facts checked in the code on 2026-10-14:
+- Tailwind 4.1 with `@tailwindcss/postcss`, no `tailwind.config`; `globals.css` is only `@import "tailwindcss";`. No `dark:` class anywhere and no theme library installed.
+- The root layout hard-codes `bg-gray-950 text-gray-50` on `<body>`, and `(dashboard)/layout.tsx` wraps the project page in a `bg-gray-950` shell with a `bg-gray-900` header and an indigo «AI». `/demo` has its own header with the same classes.
+- Recharts 2.15; six components use `Tooltip` (ForecastChart, FeatureImportance and the four Recharts charts). `HeatmapChart` is plain markup, not Recharts, with indigo for positives and red for negatives.
+- About 1.280 lines in the components and pages in scope.
+- `capturas/` has no `subida-oscuro` screenshots; only the HTML mockup exists for that one.
+
+### D1 How the theme is chosen
+
+Recommendation: follow `prefers-color-scheme` by default, with a toggle in the header that overrides it and is remembered in `localStorage` (three states: system, light, dark). To avoid the flash of the wrong theme, a tiny inline script in `<head>` sets `data-theme` on `<html>` before the first paint, and `<html>` gets `suppressHydrationWarning`. Tokens switch on `:root[data-theme="dark"]`, plus a `prefers-color-scheme` media query as the fallback when JS is off. Written by hand (about 20 lines), without `next-themes`: no new dependency and the root-theme test (S8) tests our own code.
+Alternatives: `next-themes` (same result, tested library, one more dependency); a cookie read on the server (no script, but every page, `/demo` included, becomes dynamic and loses static rendering); system preference only (no toggle, simplest, but a visitor cannot compare both themes in the portfolio); one fixed theme (removes half the work, but S8 and the brief treat both themes as part of the design).
+
+### D2 Screen scope
+
+Recommendation: widen it to the whole app and deliver it as a chain. Reason from the code: the project page lives inside `(dashboard)/layout.tsx`, whose `bg-gray-950` shell and header would frame the new light page in the old dark one, and the root layout forces the dark body on every route. At minimum the root layout and the dashboard header must change with the tokens; the projects list, login and signup are then a small step that removes the last mixed screens (login is the first screen a portfolio visitor sees after the demo).
+Alternative: only the analysis view, `/demo` and the project page, plus the root and dashboard layouts (unavoidable); the list, login and signup in a later PR, with the mixed look in between.
+
+### D3 How tokens are defined
+
+Recommendation: CSS variables in `globals.css` (`:root` for light, `[data-theme="dark"]` and the media query for dark), mapped with Tailwind 4's `@theme inline` so utilities such as `bg-bg`, `text-fg`, `border-ln` and `text-au` exist, and the fonts exposed as `--font-serif` and `--font-sans` from `next/font` variables. The themes switch by changing the variables, so components need no `dark:` classes; a `@custom-variant dark` is only declared in case an exception appears. This is Tailwind 4's native way; there is no config file to extend.
+Alternative: arbitrary values everywhere (`bg-[var(--bg)]`): no mapping, but long and easy to mistype.
+
+### D4 Recharts charts
+
+Recommendation: restyle the current components and keep the tooltips, restyled with the tokens (`--s1` background, `--ln` border, sans text, Spanish numbers). Histograms and scatter plots have no value labels, so the tooltip is the only way to read an exact figure; removing it saves no meaningful JS because Recharts stays loaded for the charts. Remove what the editorial direction forbids: rounded bar corners, gradients, coloured fills per series and the card wrapper (`ChartCard` becomes a titled block with a top line).
+Alternative: simplify by removing tooltips (cleaner and closer to a printed report, but loses exact values on charts without labels).
+
+### D5 Negative correlations in the heatmap
+
+Recommendation: positives in `--au` and negatives in a second neutral tone (`color-mix(in srgb, var(--f3) X%, var(--bg))`), both with intensity proportional to |r|, and the value always printed with a real minus sign («−0,45»), plus the cell values in the existing `aria-label`. It keeps one accent, separates signs at a glance and does not rely on colour alone. Approximate contrast of `--fg` text on the darkest neutral cell (X = 50 %): about 9:1 in both themes; checked again during implementation.
+Alternatives: same accent with only the sign visible (purest, but positive and negative look identical until you read each number); `--fg` for negatives (strong distinction, but at high X the cell turns almost black or white and the text colour must flip per cell).
+
+### D6 Delivery
+
+Recommendation: a feature-branch chain as in the forecast and insights PRs, one slice per task: T1 tokens, fonts and theme; T2 panels; T3 AnalysisView and `/demo`; T4 project page and dashboard shell; T5 list, login and signup if D2 widens the scope. About 1.280 lines are restyled, well above the ~400-line heuristic, and each slice can be checked in its own preview. Caveat: until T3 is merged into the feature branch, intermediate slices show mixed screens; that only affects the slice previews, not `main`.
+Alternative: one PR (one preview and one review, but a diff of well over 1.000 lines that is hard to review visually).
+
+## Log
+
+- L1 (2026-10-14, Borja): "Recupera de Engram el estado de DataInsight AI y confírmame en una línea dónde estamos. Después, siguiente PR: el rediseño. Lee entero .claude/rediseno/brief-rediseno.md y mira las maquetas y las capturas de esa carpeta. Crea la rama desde main y escribe el documento odd/tasks con las seis decisiones abiertas de la sección 6 y tu recomendación para cada una. No escribas tests hasta que te conteste."
+- L2 (2026-10-14): brief, mockups and screenshots read; branch `feat/redesign` created from `main` at 467261e; D1-D6 written with recommendations. Engram `plan/redesign-pr-scope` (keyboard-accessible column rows) is covered by S6. Next step: Borja answers D1-D6; no tests before that.
+- L3 (2026-10-14, Borja): "Acepto las seis, con el alcance completo: login y registro también, porque el login es donde está el enlace a la demo. En el tema: lectura de localStorage dentro de try/catch, con la preferencia del sistema como alternativa, y el interruptor accesible (tres botones con aria-pressed o un grupo de radios, con texto). Apunta en el backlog que el script del tema necesitará hash o nonce si añadimos una CSP. Actualiza el documento y empieza por los RED del primer tramo"
+- L4 (2026-10-14): S9-S14 written; buttons with `aria-pressed` chosen over radios (same pattern as the `/demo` selector). The system fallback is CSS (`prefers-color-scheme` when `<html>` has no `data-theme`), so the script sets the attribute only for an explicit choice and a «Sistema» page follows live OS changes without a listener. Backlog saved in Engram `backlog/theme-script-csp`: the inline theme script needs a hash or nonce if a CSP is added. Next: T1 RED.
