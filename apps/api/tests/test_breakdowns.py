@@ -24,7 +24,7 @@ def test_target_mean_per_group_with_n_and_percentage_against_the_overall_mean():
         "ventas": [30, 50] + [10] * 6,
         "promo": ["No", "No"] + ["Sí"] * 6,
         # An identifier with few values is still not a group.
-        "fila": range(1, 9),
+        "id_fila": range(1, 9),
     })
 
     result = _summarise(df)

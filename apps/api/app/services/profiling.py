@@ -12,6 +12,8 @@ MAX_DISCRETE_VALUES = 10
 # A categorical column whose most frequent value is at most this many times as frequent as its
 # least frequent one is nearly uniform: its bar chart would be flat, so it gets none.
 MAX_UNIFORM_RATIO = 1.1
+# A column of distinct whole numbers counts rows (an identifier) only with this many values.
+MIN_ROW_COUNTER_VALUES = 20
 
 def _safe_float(val: Any) -> float | None:
     if val is None:
@@ -66,13 +68,17 @@ def _infer_type(series: pd.Series) -> str:
 
 
 def _is_identifier(name: str, series: pd.Series, col_type: str) -> bool:
-    """Distinct integers that form a consecutive range or sit under a name with the token "id"."""
+    """Distinct integers that count rows or sit under a name with the token "id".
+
+    A row counter has at least MIN_ROW_COUNTER_VALUES non-null values, each one more than the
+    previous in file order; a shorter or shuffled consecutive range is a measure.
+    """
     if col_type != "numeric":
         return False
     values = pd.to_numeric(series, errors="coerce").dropna()
     if values.empty or not values.is_unique or not (values % 1 == 0).all():
         return False
-    if values.max() - values.min() + 1 == len(values):
+    if len(values) >= MIN_ROW_COUNTER_VALUES and (values.diff().dropna() == 1).all():
         return True
     return "id" in _name_words(str(name))
 

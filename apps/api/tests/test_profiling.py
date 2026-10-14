@@ -184,8 +184,8 @@ def test_identifier_columns_are_flagged():
     flags = {c["name"]: c["is_identifier"] for c in result["columns"]}
 
     assert flags == {
-        # A consecutive range of distinct integers, in any order.
-        "fila": True,
+        # A consecutive range of five, shuffled: too short and not a counter in file order.
+        "fila": False,
         # Distinct integers whose name has the token "id"; nulls are ignored.
         "cliente_id": True,
         "ID cliente": True,
@@ -395,7 +395,7 @@ def _chart_ids(csv: str) -> set[str]:
 
 
 def test_identifier_with_few_values_gets_no_bar_chart():
-    # A consecutive range of ten whole numbers: discrete, but an identifier.
+    # Ten distinct whole numbers named "id": discrete, but an identifier.
     ids = _chart_ids("id,valor\n" + "".join(f"{i},{i * 1.5 + 0.25}\n" for i in range(1, 11)))
 
     assert "bar_id" not in ids
@@ -411,3 +411,48 @@ def test_identifier_with_many_values_gets_no_histogram():
     assert "hist_cliente_id" not in ids
     assert "bar_cliente_id" not in ids
     assert "hist_valor" in ids
+
+
+def _is_identifier_flag(name: str, values: list[int]) -> bool:
+    csv = f"{name},otro\n" + "".join(f"{v},{i * 1.5 + 0.25}\n" for i, v in enumerate(values))
+    columns = profile_csv(csv.encode())["columns"]
+    return next(c["is_identifier"] for c in columns if c["name"] == name)
+
+
+def test_a_counter_of_twenty_values_in_file_order_is_an_identifier():
+    assert _is_identifier_flag("n", list(range(1, 21)))
+    assert not _is_identifier_flag("n", list(range(1, 20)))
+
+
+def test_a_name_with_the_id_token_is_still_an_identifier():
+    assert _is_identifier_flag("cliente_id", [10, 40, 25, 7, 99])
+
+
+@pytest.mark.parametrize("name, values", [
+    ("Edad", list(range(30, 35))),
+    ("Unidades", [7, 8, 9]),
+    ("Habitaciones", list(range(1, 7))),
+    # Thirty consecutive values, shuffled: a measure, not a row counter.
+    ("Pedidos", [42 + (i * 7) % 30 for i in range(30)]),
+])
+def test_short_or_shuffled_whole_number_ranges_are_measures(name, values):
+    assert sorted(values) == list(range(min(values), max(values) + 1))
+    assert not _is_identifier_flag(name, values)
+
+
+def test_identifier_is_left_out_of_heatmap_evolution_and_scatter():
+    # "id" is the first numeric column and correlates almost perfectly with "a".
+    rows = [
+        (f"2024-01-{i:02d}", i, i * 1.5 + (i % 3) * 0.1, i * 2.25 + (i % 4) * 0.2, (i % 7) * 1.5)
+        for i in range(1, 31)
+    ]
+    csv = "fecha,id,a,b,c\n" + "".join(",".join(map(str, row)) + "\n" for row in rows)
+    charts = profile_csv(csv.encode())["charts"]
+
+    heatmap = next(c for c in charts if c["type"] == "heatmap")
+    assert "id" not in heatmap["columns"]
+    line = next(c for c in charts if c["type"] == "line")
+    assert line["y_column"] == "a"
+    scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
+    assert scatters
+    assert all("id" not in pair for pair in scatters)
