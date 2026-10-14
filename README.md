@@ -2,13 +2,21 @@
 
 Plataforma web que convierte un CSV en visualizaciones interactivas, insights en lenguaje natural y predicciones automáticas mediante IA y ML, sin escribir una línea de código.
 
+App: https://data-insight-ai-qbh4.vercel.app · Demo sin registro: https://data-insight-ai-qbh4.vercel.app/demo
+
+![Parte superior de la demo en tema oscuro: cabecera, resumen del dataset y primeros hallazgos](docs/demo.webp)
+
 ## Funcionalidades
 
-- **Perfilado automático** — tipos de columnas, nulos, outliers, estadísticos descriptivos, cardinalidad
-- **Visualizaciones interactivas** — histogramas, bar charts, series temporales, heatmap de correlaciones, scatter plots; generados automáticamente según el tipo de datos
-- **Insights con LLM** — tendencias, anomalías, correlaciones y recomendaciones generados por Claude (Anthropic), clasificados y colapsables
-- **Predicciones automáticas** — forecasting con Holt-Winters (statsmodels) si se detecta serie temporal; regresión baseline con RandomForest + feature importance si no
-- **Informe PDF** — descarga con resumen del dataset, insights, métricas de predicción
+- **Perfilado automático** — tipos de columnas, nulos, outliers, estadísticos descriptivos, cardinalidad y el **periodo** de fechas del dataset (por ejemplo, «1 oct 2024 – 30 sep 2026»)
+- **Gráficos adaptados a los datos** — histogramas con intervalos dentro del rango intercuartílico y barras aparte para los outliers; una barra por valor en columnas discretas; serie temporal; heatmap de correlaciones con 3 o más columnas numéricas; dispersión solo entre columnas continuas correlacionadas. Se omiten las columnas identificador y las categóricas casi uniformes
+- **Hallazgos con LLM** — tendencias, anomalías, correlaciones y recomendaciones redactados por Claude (Anthropic). El modelo recibe un resumen de los datos con un apartado **por año** (medias, máximos y mínimos), y cada cifra de un hallazgo se valida contra ese resumen: si alguna no aparece, el hallazgo se descarta
+- **Previsión** — Holt-Winters (statsmodels) cuando hay columna de fecha, con el horizonte según la frecuencia (30 días, 12 semanas, 12 meses…), **intervalo del 95 %** y error medido en un backtest (**WAPE** y **MAE**)
+- **Regresión** — si no hay previsión, RandomForest con R², RMSE e importancia de variables; las columnas identificador no se usan como objetivo ni como variables
+- **Informe PDF** — resumen del dataset, perfil de columnas, hallazgos y métricas de predicción
+- **Tema oscuro y claro** — oscuro por defecto, con selector en todas las páginas
+- **Accesibilidad** — sin animaciones con `prefers-reduced-motion`, foco visible, heatmap con alternativa de texto, errores anunciados con `role="alert"` y controles con etiquetas accesibles
+- **Demo pública** — dos análisis precalculados sobre datos sintéticos (ventas diarias con previsión, viviendas con regresión), sin registro. La raíz de la app lleva al login, que tiene el botón «Ver la demo sin registrarte»
 
 ## Arranque rápido
 
@@ -66,6 +74,8 @@ Si antes levantaste el proyecto con contenedores que corrían como root:
 | `SUPABASE_SERVICE_ROLE_KEY` | Service role key (Settings → API) |
 | `DATABASE_URL` | Conexión PostgreSQL (usar Supabase en prod) |
 | `REDIS_URL` | Conexión Redis |
+| `STORAGE_BUCKET` | Bucket de Supabase Storage donde se guardan los CSV subidos (por defecto `datasets`) |
+| `CORS_ORIGINS` | Orígenes que pueden llamar a la API: lista separada por comas (`https://app.example.com,http://localhost:3000`) o array JSON (`["http://localhost:3000"]`). Cada origen se compara literalmente: con esquema, sin barra final y sin comodines (`https://*.vercel.app` no funciona). Vacía, solo `http://localhost:3000` |
 
 **`apps/web/.env.local`**
 | Variable | Descripción |
@@ -74,11 +84,20 @@ Si antes levantaste el proyecto con contenedores que corrían como root:
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anon/public key (Settings → API) |
 | `NEXT_PUBLIC_API_URL` | URL de la API (`http://localhost:8000` en local) |
 
-### Ejecutar los tests
+## Tests y CI
+
+- **API** — pytest, 369 tests en `apps/api/tests/`. Los servicios externos (Anthropic, Supabase Storage, Celery) se sustituyen por mocks.
+- **Web** — Vitest con Testing Library y jsdom, 118 tests junto a los componentes y módulos que prueban.
 
 ```bash
-docker compose run --rm api pytest tests/ -v
+docker compose run --rm api pytest tests/ -v   # API
+cd apps/web && npm test                        # web
 ```
+
+En cada pull request contra `main` y en cada push a `main`, GitHub Actions (`.github/workflows/ci.yml`) ejecuta dos jobs:
+
+- **api** — con un PostgreSQL 16 de servicio: instala dependencias con `uv sync --locked`, `ruff check` y `pytest`.
+- **web** — `npm ci`, typecheck (`tsc --noEmit`), lint (ESLint), tests (Vitest) y `next build`.
 
 ## Arquitectura
 
@@ -88,16 +107,21 @@ DataInsightAI/
 │   ├── api/                  # FastAPI — procesamiento, ML, LLM
 │   │   ├── app/
 │   │   │   ├── routers/      # projects, datasets, analyses
-│   │   │   ├── services/     # profiling, insights_llm, forecasting, ml_baseline, report
+│   │   │   ├── services/     # profiling, insights_llm, insights_check, forecasting, ml_baseline, report
 │   │   │   ├── workers/      # Celery tasks
 │   │   │   ├── schemas/      # Pydantic v2
-│   │   │   └── db/           # SQLAlchemy 2 + Alembic
+│   │   │   ├── storage/      # Supabase Storage
+│   │   │   └── db/           # SQLAlchemy 2
+│   │   ├── alembic/          # migraciones
+│   │   ├── demo/             # generación de los datos y resultados de la demo
 │   │   └── tests/
 │   └── web/                  # Next.js 15 (App Router)
 │       └── src/
-│           ├── app/          # Páginas (auth + dashboard)
-│           ├── components/   # charts, insights, predictions, upload
-│           └── lib/          # queries (TanStack Query), api client
+│           ├── app/          # Páginas: auth, dashboard y demo
+│           ├── components/   # analysis, charts, insights, predictions, theme, ui, upload
+│           ├── data/demo/    # resultados precalculados de la demo
+│           └── lib/          # queries (TanStack Query), api client, formato, tema
+├── odd/tasks/                # especificación y registro de cada funcionalidad
 ├── docker-compose.yml
 └── .railway/railway.ts       # Infraestructura en Railway (IaC): API y worker de Celery
 ```
@@ -109,9 +133,9 @@ CSV subido → Supabase Storage
     ↓
 Celery worker
     ├── profile_csv()       — pandas: tipos, stats, outliers, chart specs
-    ├── generate_insights() — Claude Opus 5.5 (Anthropic SDK)
+    ├── generate_insights() — Claude Opus 5.5 (Anthropic SDK) + validación de cifras
     └── run_forecast()      — statsmodels Holt-Winters
-        o run_regression()  — scikit-learn RandomForest
+        o run_regression()  — scikit-learn RandomForest, si no hay previsión
     ↓
 Analysis guardado en PostgreSQL (status: completed)
     ↓
@@ -123,7 +147,7 @@ Frontend polling → renderiza ChartGrid + InsightsPanel + PredictionsPanel
 | Capa | Tecnología | Por qué |
 |---|---|---|
 | Frontend | Next.js 15, TypeScript, Tailwind CSS v4 | App Router + RSC, tipado estricto, utilidades CSS sin configuración |
-| Componentes | shadcn/ui, Recharts | Accesibles, composables, sin opiniones sobre el diseño |
+| Componentes | Recharts y componentes propios | Gráficos declarativos; la interfaz no depende de una librería de componentes |
 | Estado / fetch | TanStack Query | Cache, polling y mutaciones con muy poco boilerplate |
 | Backend | Python 3.12, FastAPI, Pydantic v2 | Ecosistema de datos/ML, validación automática, OpenAPI gratis |
 | LLM | Anthropic Claude Opus 5.5 | Salida JSON estructurada fiable, prompt engineering sencillo |
@@ -133,16 +157,19 @@ Frontend polling → renderiza ChartGrid + InsightsPanel + PredictionsPanel
 | Auth | Supabase Auth (ES256 JWT) | Gestión de usuarios lista para producción, gratis en el plan free |
 | Base de datos | PostgreSQL 16 + SQLAlchemy 2 + Alembic | Migraciones versionadas, ORM tipado |
 | Cola | Celery + Redis | Análisis pesados en background sin bloquear la API |
+| Tests | pytest, Vitest + Testing Library | Tests de API y de componentes en CI |
 | Infra local | Docker Compose | Un comando levanta los 5 servicios |
 
 ## Deploy
 
 ### Backend → Railway
 
-1. Conecta el repo en [railway.app](https://railway.app)
-2. Configura las variables de entorno del backend
-3. Añade un servicio Redis (plugin de Railway) y PostgreSQL o usa Supabase
-4. Para el worker de Celery, crea un segundo servicio con el mismo repo y como start command: `celery -A app.workers.celery_app worker --loglevel=info --concurrency=2`
+La infraestructura del backend está declarada como código en `.railway/railway.ts` ([Infrastructure as Code de Railway](https://docs.railway.com/infrastructure-as-code)):
+
+- **API** — servicio desde `apps/api` (Dockerfile), arranca con `start.sh`, que aplica las migraciones (`alembic upgrade head`) y levanta uvicorn; healthcheck en `/health`.
+- **Worker de Celery** — misma imagen, con `celery -A app.workers.celery_app worker --loglevel=info --concurrency=2`.
+
+Ambos servicios se despliegan desde la rama `main`. El archivo no gestiona las variables de entorno (`variables: { managed: false }`) ni Redis ni la base de datos: se configuran en el proyecto de Railway.
 
 ### Frontend → Vercel
 
@@ -151,14 +178,19 @@ Frontend polling → renderiza ChartGrid + InsightsPanel + PredictionsPanel
 3. Añade las variables de entorno del frontend
 4. Deploy automático en cada push a `main`
 
-## Fases de desarrollo
+## Cómo se ha desarrollado
 
-- [x] **Fase 0** — Scaffolding: monorepo, Docker Compose, hola mundo
-- [x] **Fase 1** — Auth y proyectos: Supabase Auth, CRUD de proyectos
-- [x] **Fase 2** — Subida y perfilado de CSV
-- [x] **Fase 3** — Visualizaciones automáticas con Recharts
-- [x] **Fase 4** — Análisis asíncrono con Celery
-- [x] **Fase 5** — Insights en lenguaje natural con Claude
-- [x] **Fase 6** — Predicciones (forecasting + regresión baseline)
-- [x] **Fase 7** — Informe PDF descargable
-- [x] **Fase 8** — Tests, configuración de deploy, documentación
+- **Decisiones antes del código** — cada funcionalidad tiene su documento en `odd/tasks/` con los requisitos literales, las tareas y un registro de decisiones.
+- **Test-first** — cada regla empieza con un test que falla; cuando un test pasa a la primera, se comprueba con una mutación del código que sí lo hace fallar.
+- **PRs pequeñas** — con CI y una revisión independiente antes de fusionar.
+- **Revisión de seguridad** de los cambios antes de fusionarlos.
+- **Claude Code** como asistente de desarrollo, siempre bajo dirección y revisión.
+
+## Próximos pasos
+
+- Mostrar la serie real junto a la previsión
+- Ver los análisis anteriores de un proyecto
+- Elegir mejor la columna objetivo de la previsión
+- Usar una columna «Año» ordenada como eje temporal
+- Regresión cuando las únicas variables son categóricas
+- Desgloses de los hallazgos con una fila «resto», para que las cifras sumen el total
