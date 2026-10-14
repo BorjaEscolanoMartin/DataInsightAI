@@ -70,15 +70,16 @@ def _infer_type(series: pd.Series) -> str:
 def _is_identifier(name: str, series: pd.Series, col_type: str) -> bool:
     """Distinct integers that count rows or sit under a name with the token "id".
 
-    A row counter has at least MIN_ROW_COUNTER_VALUES non-null values, each one more than the
-    previous in file order; a shorter or shuffled consecutive range is a measure.
+    A row counter has at least MIN_ROW_COUNTER_VALUES non-null values that rise or fall by one in
+    file order, always in the same direction; a shorter or shuffled consecutive range is a measure.
     """
     if col_type != "numeric":
         return False
     values = pd.to_numeric(series, errors="coerce").dropna()
     if values.empty or not values.is_unique or not (values % 1 == 0).all():
         return False
-    if len(values) >= MIN_ROW_COUNTER_VALUES and (values.diff().dropna() == 1).all():
+    steps = values.diff().dropna()
+    if len(values) >= MIN_ROW_COUNTER_VALUES and ((steps == 1).all() or (steps == -1).all()):
         return True
     return "id" in _name_words(str(name))
 

@@ -424,6 +424,14 @@ def test_a_counter_of_twenty_values_in_file_order_is_an_identifier():
     assert not _is_identifier_flag("n", list(range(1, 20)))
 
 
+def test_a_counter_falling_by_one_in_file_order_is_an_identifier():
+    assert _is_identifier_flag("n", list(range(25, 0, -1)))
+
+
+def test_twenty_rising_values_with_steps_of_two_are_a_measure():
+    assert not _is_identifier_flag("n", list(range(2, 42, 2)))
+
+
 def test_a_name_with_the_id_token_is_still_an_identifier():
     assert _is_identifier_flag("cliente_id", [10, 40, 25, 7, 99])
 
