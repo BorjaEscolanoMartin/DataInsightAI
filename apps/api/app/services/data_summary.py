@@ -8,7 +8,7 @@ import pandas as pd
 
 from app.services.forecasting import daily_series, detect_frequency
 from app.services.numbers import format_es
-from app.services.profiling import iqr_bounds
+from app.services.profiling import MAX_DISCRETE_VALUES, iqr_bounds
 from app.services.targets import forecast_target, regression_target
 
 logger = logging.getLogger(__name__)
@@ -17,8 +17,6 @@ MAX_PERIODS = 24
 PEAKS = 3
 MAX_BREAKDOWN_COLUMNS = 4
 MAX_GROUPS = 10
-# Numeric columns with this many distinct values or fewer are broken down like categories.
-MAX_NUMERIC_GROUPS = 10
 TARGET_OUTLIER_COLUMNS = 2
 TARGET_OUTLIER_GROUPS = 3
 # Daily and weekly data are averaged per month; coarser data keeps its own period.
@@ -220,7 +218,7 @@ def breakdowns(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | No
     for index, c in enumerate(columns):
         if c["name"] == target or c.get("is_identifier") or not (
             c["type"] in ("categorical", "boolean")
-            or (c["type"] == "numeric" and c.get("unique_count", 0) <= MAX_NUMERIC_GROUPS)
+            or (c["type"] == "numeric" and c.get("unique_count", 0) <= MAX_DISCRETE_VALUES)
         ):
             continue
         try:

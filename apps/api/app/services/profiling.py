@@ -6,6 +6,14 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 
+# Whole-number columns with this many distinct values or fewer are discrete: drawn as one bar per
+# value, kept out of the scatter pairs, and broken down like categories in the insights.
+MAX_DISCRETE_VALUES = 10
+# A categorical column whose most frequent value is at most this many times as frequent as its
+# least frequent one is nearly uniform: its bar chart would be flat, so it gets none.
+MAX_UNIFORM_RATIO = 1.1
+# A column of distinct whole numbers counts rows (an identifier) only with this many values.
+MIN_ROW_COUNTER_VALUES = 20
 
 def _safe_float(val: Any) -> float | None:
     if val is None:
@@ -60,13 +68,18 @@ def _infer_type(series: pd.Series) -> str:
 
 
 def _is_identifier(name: str, series: pd.Series, col_type: str) -> bool:
-    """Distinct integers that form a consecutive range or sit under a name with the token "id"."""
+    """Distinct integers that count rows or sit under a name with the token "id".
+
+    A row counter has at least MIN_ROW_COUNTER_VALUES non-null values that rise or fall by one in
+    file order, always in the same direction; a shorter or shuffled consecutive range is a measure.
+    """
     if col_type != "numeric":
         return False
     values = pd.to_numeric(series, errors="coerce").dropna()
     if values.empty or not values.is_unique or not (values % 1 == 0).all():
         return False
-    if values.max() - values.min() + 1 == len(values):
+    steps = values.diff().dropna()
+    if len(values) >= MIN_ROW_COUNTER_VALUES and ((steps == 1).all() or (steps == -1).all()):
         return True
     return "id" in _name_words(str(name))
 
@@ -98,37 +111,96 @@ def _outliers_iqr(series: pd.Series) -> int:
     return int(((series < low) | (series > high)).sum())
 
 
+def is_discrete(series: pd.Series) -> bool:
+    """A numeric column (nulls dropped) of whole numbers with few distinct values."""
+    return series.nunique() <= MAX_DISCRETE_VALUES and bool((series % 1 == 0).all())
+
+
+def _value_bars(series: pd.Series) -> list[dict[str, Any]]:
+    """The count of each value of a discrete column, in value order."""
+    counts = series.value_counts().sort_index()
+    return [
+        {"name": str(int(value)), "value": int(value), "count": int(count)}
+        for value, count in counts.items()
+    ]
+
+
+def _histogram_bins(series: pd.Series) -> list[dict[str, Any]]:
+    """20 bins over the values inside the IQR bounds, plus one bin for each side's outliers.
+
+    `start` and `end` are the bin's bounds; an outlier bin has no `start` («< X») or no `end`
+    («> Y»). `bin` is the label older clients read.
+    """
+    low, high = float(series.min()), float(series.max())
+    bounds = iqr_bounds(series)
+    if bounds is not None:
+        low, high = max(low, bounds[0]), min(high, bounds[1])
+    counts, edges = np.histogram(series, bins=20, range=(low, high))
+    bins: list[dict[str, Any]] = [
+        {
+            "bin": f"{edges[i]:.4g}–{edges[i + 1]:.4g}",
+            "start": float(edges[i]),
+            "end": float(edges[i + 1]),
+            "count": int(counts[i]),
+        }
+        for i in range(len(counts))
+    ]
+    below = int((series < low).sum())
+    above = int((series > high).sum())
+    if below:
+        bins.insert(0, {"bin": f"< {low:.4g}", "start": None, "end": low, "count": below})
+    if above:
+        bins.append({"bin": f"> {high:.4g}", "start": high, "end": None, "count": above})
+    return bins
+
+
 def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     charts: list[dict[str, Any]] = []
     col_types = {c["name"]: c["type"] for c in columns}
 
-    numeric_cols = [c for c, t in col_types.items() if t == "numeric" and c in df.columns]
+    # Identifier columns (the profile's `is_identifier`) describe no quantity: no chart.
+    identifiers = {c["name"] for c in columns if c.get("is_identifier")}
+    numeric_cols = [
+        c for c, t in col_types.items()
+        if t == "numeric" and c in df.columns and c not in identifiers
+    ]
     cat_cols = [c for c, t in col_types.items() if t == "categorical" and c in df.columns]
     date_candidate = next(
         (c for c, t in col_types.items() if t == "date" and c in df.columns), None
     )
+    discrete = {
+        c for c in numeric_cols if is_discrete(pd.to_numeric(df[c], errors="coerce").dropna())
+    }
 
     # Histograms — max 6 numeric columns
     for col in numeric_cols[:6]:
         series = pd.to_numeric(df[col], errors="coerce").dropna()
         if len(series) < 2:
             continue
-        counts, edges = np.histogram(series, bins=20)
+        if col in discrete:
+            charts.append({
+                "id": f"bar_{col}",
+                "type": "bar",
+                "title": f"Distribución de {col}",
+                "column": col,
+                "data": _value_bars(series),
+            })
+            continue
         charts.append({
             "id": f"hist_{col}",
             "type": "histogram",
             "title": f"Distribución de {col}",
             "column": col,
-            "data": [
-                {"bin": f"{edges[i]:.4g}–{edges[i+1]:.4g}", "count": int(counts[i])}
-                for i in range(len(counts))
-            ],
+            "data": _histogram_bins(series),
         })
 
     # Bar charts — max 4 categorical columns
     for col in cat_cols[:4]:
         col_data = next((c for c in columns if c["name"] == col), None)
         if not col_data or not col_data.get("top_categories"):
+            continue
+        counts = df[col].value_counts()
+        if counts.max() / counts.min() <= MAX_UNIFORM_RATIO:
             continue
         charts.append({
             "id": f"bar_{col}",
@@ -191,11 +263,12 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         except Exception:
             pass
 
-    # Scatter — top 2 pairs with |r| > 0.5
-    if len(numeric_cols) >= 2:
+    # Scatter — top 2 pairs of continuous columns with |r| > 0.5
+    continuous_cols = [c for c in numeric_cols if c not in discrete]
+    if len(continuous_cols) >= 2:
         try:
-            sc_cols = numeric_cols[:10]
-            if corr_matrix is None:
+            sc_cols = continuous_cols[:10]
+            if corr_matrix is None or not set(sc_cols) <= set(corr_matrix.columns):
                 corr_matrix = df[sc_cols].apply(pd.to_numeric, errors="coerce").corr()
             pairs: list[tuple[float, str, str]] = []
             for i, col_a in enumerate(sc_cols):

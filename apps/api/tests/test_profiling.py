@@ -1,5 +1,6 @@
 import textwrap
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -10,7 +11,7 @@ CSV_NUMERIC = textwrap.dedent("""\
     2024-01-01,100,A,true
     2024-01-02,200,B,false
     2024-01-03,150,A,true
-    2024-01-04,300,C,false
+    2024-01-04,300.5,C,false
     2024-01-05,250,B,true
     2024-01-06,180,A,false
     2024-01-07,220,C,true
@@ -80,15 +81,89 @@ def test_handles_latin1_encoding():
     assert result["row_count"] == 2
 
 
-def test_histogram_keeps_empty_bins_between_distant_values():
-    csv = b"valor,nombre\n1,a\n1,b\n1,c\n21,d\n21,e\n"
-    result = profile_csv(csv)
-    hist = next(c for c in result["charts"] if c["id"] == "hist_valor")
+def _histogram(values: list[float]) -> list[dict]:
+    # A second column keeps the delimiter sniffer from taking the decimal point.
+    csv = "valor,nombre\n" + "".join(f"{v},x\n" for v in values)
+    result = profile_csv(csv.encode())
+    return next(c for c in result["charts"] if c["id"] == "hist_valor")["data"]
 
-    assert [b["count"] for b in hist["data"]] == [3] + [0] * 18 + [2]
-    assert hist["data"][0]["bin"] == "1–2"
-    assert hist["data"][1]["bin"] == "2–3"
-    assert hist["data"][-1]["bin"] == "20–21"
+
+def test_histogram_keeps_empty_bins_between_distant_values():
+    # Decimal values: whole numbers with few distinct values are drawn as bars instead.
+    bins = _histogram([1, 1.2, 1.5, 20.5, 21])
+
+    assert [b["count"] for b in bins] == [3] + [0] * 18 + [2]
+    assert bins[0] == {"bin": "1–2", "start": 1.0, "end": 2.0, "count": 3}
+    assert bins[1]["bin"] == "2–3"
+    assert bins[-1] == {"bin": "20–21", "start": 20.0, "end": 21.0, "count": 2}
+
+
+def test_histogram_bins_cover_the_iqr_range_and_group_the_extremes():
+    # Quartiles 4.75 and 15.25: the IQR bounds are -11 and 31.
+    bins = _histogram([-1000.5] + [i + 0.5 for i in range(20)] + [1000.5])
+
+    assert len(bins) == 22
+    assert bins[0] == {"bin": "< -11", "start": None, "end": -11.0, "count": 1}
+    assert bins[1]["start"] == -11.0
+    assert bins[1]["end"] == pytest.approx(-8.9)
+    assert bins[20]["end"] == 31.0
+    assert sum(b["count"] for b in bins[1:21]) == 20
+    assert bins[-1] == {"bin": "> 31", "start": 31.0, "end": None, "count": 1}
+
+
+def test_histogram_without_values_below_has_no_lower_extreme_bin():
+    # Quartiles 5.5 and 15.5: the bounds are -9.5 and 30.5; the range starts at the minimum.
+    bins = _histogram([i + 0.5 for i in range(20)] + [1000.5])
+
+    assert len(bins) == 21
+    assert bins[0]["start"] == 0.5
+    assert bins[-1] == {"bin": "> 30.5", "start": 30.5, "end": None, "count": 1}
+
+
+def test_histogram_with_zero_iqr_uses_the_full_range():
+    bins = _histogram([1.5] * 10 + [2.5, 9.5])
+
+    assert len(bins) == 20
+    assert bins[0]["start"] == 1.5
+    assert bins[-1]["end"] == 9.5
+    assert all(b["start"] is not None and b["end"] is not None for b in bins)
+    assert sum(b["count"] for b in bins) == 12
+
+
+def _charts(values: list[str]) -> dict[str, dict]:
+    csv = "valor,nombre\n" + "".join(f"{v},x\n" for v in values)
+    return {c["id"]: c for c in profile_csv(csv.encode())["charts"]}
+
+
+def test_whole_numbers_with_few_values_are_bars_of_each_value():
+    # Ten distinct values, unordered, and an empty cell (read as a float column).
+    charts = _charts(["3", "1", "3", "", "10", "2", "4", "5", "6", "7", "8", "9", "3"])
+
+    assert "hist_valor" not in charts
+    bar = charts["bar_valor"]
+    assert (bar["type"], bar["title"], bar["column"]) == ("bar", "Distribución de valor", "valor")
+    assert bar["data"][:3] == [
+        {"name": "1", "value": 1, "count": 1},
+        {"name": "2", "value": 2, "count": 1},
+        {"name": "3", "value": 3, "count": 3},
+    ]
+    assert [b["value"] for b in bar["data"]] == list(range(1, 11))
+    assert all(isinstance(b["value"], int) for b in bar["data"])
+
+
+def test_whole_numbers_with_more_values_stay_a_histogram():
+    # A repeated value keeps the column from being an identifier (distinct consecutive numbers).
+    charts = _charts([str(v) for v in range(11)] + ["5"])
+
+    assert "bar_valor" not in charts
+    assert charts["hist_valor"]["type"] == "histogram"
+
+
+def test_decimal_numbers_with_few_values_stay_a_histogram():
+    charts = _charts(["1.5", "2.5", "1.5", "3.5"])
+
+    assert "bar_valor" not in charts
+    assert charts["hist_valor"]["type"] == "histogram"
 
 
 CSV_IDENTIFIERS = (
@@ -109,8 +184,8 @@ def test_identifier_columns_are_flagged():
     flags = {c["name"]: c["is_identifier"] for c in result["columns"]}
 
     assert flags == {
-        # A consecutive range of distinct integers, in any order.
-        "fila": True,
+        # A consecutive range of five, shuffled: too short and not a counter in file order.
+        "fila": False,
         # Distinct integers whose name has the token "id"; nulls are ignored.
         "cliente_id": True,
         "ID cliente": True,
@@ -245,3 +320,147 @@ def test_a_date_column_with_mixed_time_zones_profiles_without_a_range():
     assert momento["type"] == "date"
     assert "min_date" not in momento and "max_date" not in momento
     assert _column(result, "valor")["max_val"] == 30
+
+
+def test_scatter_pairs_leave_out_discrete_columns():
+    # habitaciones (1-10) correlates with metros almost as much as precio does.
+    rows = [(i + 0.5, 2 * i + 1.25 + (i % 3) * 0.1, i // 3 + 1) for i in range(30)]
+    csv = "metros,precio,habitaciones\n" + "".join(f"{m},{p},{h}\n" for m, p, h in rows)
+    charts = profile_csv(csv.encode())["charts"]
+
+    scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
+    assert scatters == [("metros", "precio")]
+
+
+def test_scatter_finds_a_continuous_pair_beyond_the_heatmap_columns():
+    # Nine discrete columns first: the correlated pair is the 15th and 16th numeric columns,
+    # and the heatmap's correlations only cover the first 15.
+    rng = np.random.default_rng(0)
+    df = pd.DataFrame({f"d{i}": rng.integers(1, 5, 50) for i in range(9)})
+    for i in range(6):
+        df[f"c{i}"] = rng.normal(size=50).round(3)
+    df["c6"] = (df["c5"] + rng.normal(scale=0.1, size=50)).round(3)
+    charts = profile_csv(df.to_csv(index=False).encode())["charts"]
+
+    scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
+    assert scatters == [("c5", "c6")]
+
+
+def _bar_ids(counts: dict[str, int]) -> set[str]:
+    values = [name for name, n in counts.items() for _ in range(n)]
+    # A second, uneven column keeps its chart, so the CSV still has bar charts.
+    otros = ["a"] * (len(values) - 1) + ["b"]
+    csv = "categoria,otro\n" + "".join(f"{v},{o}\n" for v, o in zip(values, otros, strict=True))
+    return {c["id"] for c in profile_csv(csv.encode())["charts"] if c["type"] == "bar"}
+
+
+def test_nearly_uniform_categories_get_no_chart():
+    days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    ids = _bar_ids({d: 105 if d in ("Martes", "Miércoles") else 104 for d in days})
+
+    assert ids == {"bar_otro"}
+
+
+def test_uniformity_bound_is_one_point_one():
+    assert _bar_ids({"x": 11, "y": 10}) == {"bar_otro"}
+    assert _bar_ids({"x": 12, "y": 10}) == {"bar_categoria", "bar_otro"}
+
+
+def test_uniformity_counts_every_category_not_only_the_top_ten():
+    # The ten most frequent are even; the eleventh, outside the profile's top 10, is not.
+    counts = {f"c{i:02d}": 5 for i in range(10)} | {"c10": 1}
+
+    assert _bar_ids(counts) == {"bar_categoria", "bar_otro"}
+
+
+def test_old_saved_charts_still_validate_unchanged():
+    from app.schemas.datasets import DatasetProfileOut
+
+    # Profiles saved before the numeric bounds: label-only bins, whole numbers as a histogram.
+    old_charts = [
+        {"id": "hist_Baños", "type": "histogram", "title": "Distribución de Baños",
+         "column": "Baños", "data": [{"bin": "1–1.15", "count": 775}]},
+        {"id": "bar_Zona", "type": "bar", "title": "Top valores de Zona", "column": "Zona",
+         "data": [{"name": "Centro", "count": 346}]},
+    ]
+    profile = {"row_count": 1, "column_count": 1, "columns": [], "charts": old_charts}
+
+    validated = DatasetProfileOut.model_validate(profile)
+
+    assert [c.model_dump(exclude_none=True) for c in validated.charts] == old_charts
+
+
+def _chart_ids(csv: str) -> set[str]:
+    return {c["id"] for c in profile_csv(csv.encode())["charts"]}
+
+
+def test_identifier_with_few_values_gets_no_bar_chart():
+    # Ten distinct whole numbers named "id": discrete, but an identifier.
+    ids = _chart_ids("id,valor\n" + "".join(f"{i},{i * 1.5 + 0.25}\n" for i in range(1, 11)))
+
+    assert "bar_id" not in ids
+    assert "hist_id" not in ids
+    assert "hist_valor" in ids
+
+
+def test_identifier_with_many_values_gets_no_histogram():
+    # Distinct whole numbers under a name with the token "id", not a consecutive range.
+    rows = "".join(f"{100 + 7 * i},{(i % 5) * 1.5 + 0.25}\n" for i in range(30))
+    ids = _chart_ids("cliente_id,valor\n" + rows)
+
+    assert "hist_cliente_id" not in ids
+    assert "bar_cliente_id" not in ids
+    assert "hist_valor" in ids
+
+
+def _is_identifier_flag(name: str, values: list[int]) -> bool:
+    csv = f"{name},otro\n" + "".join(f"{v},{i * 1.5 + 0.25}\n" for i, v in enumerate(values))
+    columns = profile_csv(csv.encode())["columns"]
+    return next(c["is_identifier"] for c in columns if c["name"] == name)
+
+
+def test_a_counter_of_twenty_values_in_file_order_is_an_identifier():
+    assert _is_identifier_flag("n", list(range(1, 21)))
+    assert not _is_identifier_flag("n", list(range(1, 20)))
+
+
+def test_a_counter_falling_by_one_in_file_order_is_an_identifier():
+    assert _is_identifier_flag("n", list(range(25, 0, -1)))
+
+
+def test_twenty_rising_values_with_steps_of_two_are_a_measure():
+    assert not _is_identifier_flag("n", list(range(2, 42, 2)))
+
+
+def test_a_name_with_the_id_token_is_still_an_identifier():
+    assert _is_identifier_flag("cliente_id", [10, 40, 25, 7, 99])
+
+
+@pytest.mark.parametrize("name, values", [
+    ("Edad", list(range(30, 35))),
+    ("Unidades", [7, 8, 9]),
+    ("Habitaciones", list(range(1, 7))),
+    # Thirty consecutive values, shuffled: a measure, not a row counter.
+    ("Pedidos", [42 + (i * 7) % 30 for i in range(30)]),
+])
+def test_short_or_shuffled_whole_number_ranges_are_measures(name, values):
+    assert sorted(values) == list(range(min(values), max(values) + 1))
+    assert not _is_identifier_flag(name, values)
+
+
+def test_identifier_is_left_out_of_heatmap_evolution_and_scatter():
+    # "id" is the first numeric column and correlates almost perfectly with "a".
+    rows = [
+        (f"2024-01-{i:02d}", i, i * 1.5 + (i % 3) * 0.1, i * 2.25 + (i % 4) * 0.2, (i % 7) * 1.5)
+        for i in range(1, 31)
+    ]
+    csv = "fecha,id,a,b,c\n" + "".join(",".join(map(str, row)) + "\n" for row in rows)
+    charts = profile_csv(csv.encode())["charts"]
+
+    heatmap = next(c for c in charts if c["type"] == "heatmap")
+    assert "id" not in heatmap["columns"]
+    line = next(c for c in charts if c["type"] == "line")
+    assert line["y_column"] == "a"
+    scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
+    assert scatters
+    assert all("id" not in pair for pair in scatters)
