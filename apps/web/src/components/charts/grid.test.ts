@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
 import { lastSpanClass } from "./grid"
 
@@ -16,3 +17,16 @@ describe("lastSpanClass", () => {
     expect(lastSpanClass(count)).toBe(classes)
   })
 })
+
+describe("grid classes", () => {
+  it("are written whole in grid.ts, where Tailwind's scanner finds them", () => {
+    // Vitest runs from apps/web.
+    const source = readFileSync("src/components/charts/grid.ts", "utf8")
+    const classes = new Set(
+      Array.from({ length: 13 }, (_, count) => lastSpanClass(count).split(" ")).flat().filter(Boolean),
+    )
+
+    for (const name of classes) expect(source).toContain(`"${name}"`)
+  })
+})
+
