@@ -9,34 +9,38 @@ interface Props {
   predictions: PredictionsOut
 }
 
+function hasForecast(predictions: PredictionsOut): boolean {
+  return !!predictions.forecast && predictions.forecast.points.length > 0
+}
+
+function hasRegression(predictions: PredictionsOut): boolean {
+  return !!predictions.regression && predictions.regression.feature_importance.length > 0
+}
+
+export function hasPredictions(predictions: PredictionsOut | null | undefined): predictions is PredictionsOut {
+  return !!predictions && (hasForecast(predictions) || hasRegression(predictions))
+}
+
 export function PredictionsPanel({ predictions }: Props) {
+  if (!hasPredictions(predictions)) return null
   const { forecast, regression } = predictions
-  const hasForecast = forecast && forecast.points.length > 0
-  const hasRegression = regression && regression.feature_importance.length > 0
-  if (!hasForecast && !hasRegression) return null
 
   return (
-    <div className="space-y-3">
-      <h2 className="text-sm font-medium text-gray-400">
-        Predicciones automáticas
-        <span className="ml-2 rounded-full bg-violet-900/40 px-2 py-0.5 text-xs text-violet-300">
-          ML
-        </span>
-      </h2>
+    <div className="space-y-10">
 
-      {hasForecast && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
-          <h3 className="mb-3 text-sm font-semibold text-violet-300">
-            Forecasting — {nextHorizonText(forecast!)}
+      {hasForecast(predictions) && (
+        <div>
+          <h3 className="mb-2 font-serif text-xl text-fg">
+            Previsión de {forecast!.target_column}: {nextHorizonText(forecast!)}
           </h3>
           <ForecastChart forecast={forecast!} />
         </div>
       )}
 
-      {hasRegression && (
-        <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
-          <h3 className="mb-3 text-sm font-semibold text-violet-300">
-            Regresión baseline (RandomForest) — importancia de variables
+      {hasRegression(predictions) && (
+        <div>
+          <h3 className="mb-2 font-serif text-xl text-fg">
+            Regresión (RandomForest): importancia de variables
           </h3>
           <FeatureImportance regression={regression!} />
         </div>

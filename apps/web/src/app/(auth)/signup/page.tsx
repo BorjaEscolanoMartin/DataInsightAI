@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { AUTH_FIELD, ERROR_NOTE, FIELD_LABEL, PRIMARY_BUTTON } from "@/components/ui/styles"
 import { createClient } from "@/lib/supabase"
 
 export default function SignupPage() {
@@ -37,72 +38,83 @@ export default function SignupPage() {
 
   if (done) {
     return (
-      <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 text-center shadow-xl">
-        <p className="text-lg font-semibold text-gray-100">Revisa tu email</p>
-        <p className="mt-2 text-sm text-gray-400">
-          Te hemos enviado un enlace de confirmación a <strong>{email}</strong>.
+      <>
+        <h2 id="auth-form-title" className="font-serif text-[30px] font-medium text-fg">
+          Revisa tu email
+        </h2>
+        <p className="mt-2 text-sm text-f2 [overflow-wrap:anywhere]">
+          Te hemos enviado un enlace de confirmación a <strong className="text-fg">{email}</strong>.
         </p>
-        <Link href="/login" className="mt-6 block text-sm text-indigo-400 hover:underline">
-          Volver al login
-        </Link>
-      </div>
+        <p className="mt-5 border-t border-ln pt-[18px] text-sm">
+          <Link href="/login" className="font-medium text-au underline underline-offset-4">
+            Volver al login
+          </Link>
+        </p>
+      </>
     )
   }
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-900 p-8 shadow-xl">
-      <div className="mb-8 text-center">
-        <h1 className="text-2xl font-bold">
-          DataInsight <span className="text-indigo-400">AI</span>
-        </h1>
-        <p className="mt-1 text-sm text-gray-400">Crea tu cuenta</p>
-      </div>
+    <>
+      <h2 id="auth-form-title" className="font-serif text-[30px] font-medium text-fg">
+        Crear cuenta
+      </h2>
+      <p className="mt-1.5 text-sm text-f2">Con una cuenta puedes subir tus propios CSV.</p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-[18px]">
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-300">Email</label>
+          <label htmlFor="signup-email" className={FIELD_LABEL}>
+            Email
+          </label>
           <input
+            id="signup-email"
             type="email"
             required
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className={AUTH_FIELD}
             placeholder="tu@email.com"
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-300">Contraseña</label>
+          <label htmlFor="signup-password" className={FIELD_LABEL}>
+            Contraseña
+          </label>
           <input
+            id="signup-password"
             type="password"
             required
             minLength={8}
+            autoComplete="new-password"
+            aria-describedby="signup-password-hint"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            placeholder="Mínimo 8 caracteres"
+            className={AUTH_FIELD}
           />
+          <p id="signup-password-hint" className="mt-1 text-xs text-f3">
+            Mínimo 8 caracteres
+          </p>
         </div>
 
         {error && (
-          <p className="rounded-lg bg-red-900/30 px-3 py-2 text-sm text-red-400">{error}</p>
+          <p role="alert" className={ERROR_NOTE}>
+            {error}
+          </p>
         )}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-50"
-        >
+        <button type="submit" disabled={loading} className={`${PRIMARY_BUTTON} mt-1.5 w-full`}>
           {loading ? "Registrando..." : "Crear cuenta"}
         </button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-gray-500">
+      <p className="mt-5 border-t border-ln pt-[18px] text-sm text-f2">
         ¿Ya tienes cuenta?{" "}
-        <Link href="/login" className="text-indigo-400 hover:underline">
+        <Link href="/login" className="font-medium text-au underline underline-offset-4">
           Inicia sesión
         </Link>
       </p>
-    </div>
+    </>
   )
 }

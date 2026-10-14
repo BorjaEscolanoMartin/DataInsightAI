@@ -1,15 +1,20 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { salesFixture as sales } from "@/data/demo"
+import { formatNumber } from "@/lib/format"
 import { AnalysisView } from "./AnalysisView"
 
-// AnalysisView renders each summary value as the element right after its label.
+// The dataset section is a <dl>: each value is the element right after its label.
 function stat(label: string): string | null {
-  return screen.getByText(label).nextElementSibling?.textContent ?? null
+  return screen.getByText(label, { selector: "dt" }).nextElementSibling?.textContent ?? null
+}
+
+function sectionTitles(): (string | null)[] {
+  return screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent)
 }
 
 describe("AnalysisView", () => {
-  it("falls back to the dataset counts and hides every section without a profile", () => {
+  it("falls back to the dataset counts and shows only the dataset section without a profile", () => {
     render(
       <AnalysisView
         filename="ventas.csv"
@@ -20,17 +25,16 @@ describe("AnalysisView", () => {
       />,
     )
 
-    expect(stat("Archivo")).toBe("ventas.csv")
-    expect(stat("Filas")).toBe((12).toLocaleString())
+    expect(screen.getByRole("heading", { level: 1, name: "ventas.csv" })).toBeTruthy()
+    expect(stat("Filas")).toBe("12")
     expect(stat("Columnas")).toBe("3")
-    expect(stat("Tamaño")).toBe("2.0 KB")
-    expect(screen.queryByText("Columna fecha")).toBeNull()
-    expect(screen.queryByText("Insights generados por IA")).toBeNull()
-    expect(screen.queryByText("Predicciones automáticas")).toBeNull()
+    expect(stat("Tamaño")).toBe("2,0 KB")
+    expect(screen.queryByText("Columna de fecha")).toBeNull()
+    expect(sectionTitles()).toEqual(["01 Dataset"])
     expect(screen.queryByRole("table")).toBeNull()
   })
 
-  it("renders the profile counts and every section of a full analysis", () => {
+  it("numbers every section of a full analysis in order", () => {
     render(
       <AnalysisView
         filename={sales.filename}
@@ -42,12 +46,53 @@ describe("AnalysisView", () => {
     )
 
     const profile = sales.analysis.profile!
-    expect(stat("Filas")).toBe(profile.row_count.toLocaleString())
+    expect(stat("Filas")).toBe(formatNumber(profile.row_count))
     expect(stat("Columnas")).toBe(String(profile.column_count))
-    expect(stat("Columna fecha")).toBe(profile.date_column_candidate)
-    expect(screen.getByText("Insights generados por IA")).toBeTruthy()
-    expect(screen.getByText("Predicciones automáticas")).toBeTruthy()
+    expect(stat("Columna de fecha")).toBe(profile.date_column_candidate)
+    expect(sectionTitles()).toEqual([
+      "01 Dataset",
+      "02 Hallazgos",
+      "03 Predicciones",
+      "04 Gráficos",
+      "05 Columnas",
+    ])
     // One header row plus one row per profiled column.
     expect(screen.getAllByRole("row")).toHaveLength(profile.columns.length + 1)
+  })
+
+  it("numbers only the sections it shows", () => {
+    render(
+      <AnalysisView
+        filename={sales.filename}
+        sizeBytes={sales.size_bytes}
+        rowCount={null}
+        columnCount={null}
+        analysis={{ ...sales.analysis, insights: null, predictions: null }}
+      />,
+    )
+
+    expect(sectionTitles()).toEqual(["01 Dataset", "02 Gráficos", "03 Columnas"])
+  })
+
+  it("shows the eyebrow above the file name and the actions after the columns", () => {
+    render(
+      <AnalysisView
+        filename={sales.filename}
+        sizeBytes={sales.size_bytes}
+        rowCount={null}
+        columnCount={null}
+        analysis={sales.analysis}
+        eyebrow="Demo · datos sintéticos"
+        actions={<a href="/signup">Analiza tu propio CSV</a>}
+      />,
+    )
+
+    const eyebrow = screen.getByText("Demo · datos sintéticos")
+    const title = screen.getByRole("heading", { level: 1 })
+    expect(eyebrow.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    const action = screen.getByRole("link", { name: "Analiza tu propio CSV" })
+    expect(
+      screen.getByRole("table").compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
   })
 })

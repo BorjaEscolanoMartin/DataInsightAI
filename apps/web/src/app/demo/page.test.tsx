@@ -21,6 +21,12 @@ describe("/demo", () => {
     render(<DemoPage />)
 
     expect(screen.getByRole("note").textContent).toContain("Datos sintéticos")
+    expect(screen.getByRole("group", { name: "Tema" })).toBeTruthy()
+    expect(screen.getByRole("link", { name: "DataInsight AI, ir al inicio" }).getAttribute("href")).toBe("/")
+    expect(screen.getByText("Demo · datos sintéticos")).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Analiza tu propio CSV" }).getAttribute("href")).toBe(
+      "/signup",
+    )
     const sales = screen.getByRole("button", { name: "Ventas diarias · previsión" })
     const housing = screen.getByRole("button", { name: "Viviendas · regresión" })
     expect(sales.getAttribute("aria-pressed")).toBe("true")
@@ -45,14 +51,15 @@ describe("/demo", () => {
 
   it("resets the analysis view state when the dataset changes", () => {
     render(<DemoPage />)
-    const trends = () => screen.getByRole("button", { name: /^Tendencias/ })
+    const ventas = () => screen.getByRole("button", { name: "Ventas" })
 
-    // Insight categories start open (▲); close the trends of the sales dataset.
-    fireEvent.click(trends())
-    expect(trends().textContent).toContain("▼")
+    // Expand a column of the sales dataset, switch to housing and back.
+    fireEvent.click(ventas())
+    expect(ventas().getAttribute("aria-expanded")).toBe("true")
 
     fireEvent.click(screen.getByRole("button", { name: "Viviendas · regresión" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ventas diarias · previsión" }))
 
-    expect(trends().textContent).toContain("▲")
+    expect(ventas().getAttribute("aria-expanded")).toBe("false")
   })
 })

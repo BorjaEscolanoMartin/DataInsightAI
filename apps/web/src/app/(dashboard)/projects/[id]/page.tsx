@@ -8,6 +8,10 @@ import { useProject, useProjectDatasets, useUploadDataset, useAnalysisPoll } fro
 import { api } from "@/lib/api"
 import { Dropzone } from "@/components/upload/Dropzone"
 import { AnalysisView } from "@/components/analysis/AnalysisView"
+import { ReportHeader } from "@/components/ui/ReportHeader"
+import { Section } from "@/components/ui/Section"
+import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/ui/styles"
+import { formatNumber } from "@/lib/format"
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "En cola...",
@@ -67,83 +71,133 @@ export default function ProjectPage() {
     }
   }
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link href="/projects" className="text-sm text-gray-500 hover:text-gray-300">
-          ← Proyectos
-        </Link>
-        <span className="text-gray-700">/</span>
-        <h1 className="text-xl font-bold text-gray-100">{project?.name ?? "..."}</h1>
-      </div>
+  const crumb = (
+    <>
+      <Link href="/projects" className="underline-offset-4 hover:underline">
+        Proyectos
+      </Link>{" "}
+      / {project?.name ?? "…"}
+    </>
+  )
+  const errorNote = uploadError && (
+    <p role="alert" className="border-l-2 border-fg pl-3 text-sm text-fg">
+      {uploadError}
+    </p>
+  )
+  const uploadNew = (
+    <UploadNewCsv disabled={upload.isPending || analyzing} onFile={handleFile} />
+  )
 
-      {isLoading ? (
-        <p className="text-gray-500">Cargando...</p>
-      ) : latest ? (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-sm font-medium text-gray-400">Dataset</h2>
-            <div className="flex items-center gap-2">
-              {activeAnalysis?.status === "completed" && activeAnalysis?.id && (
-                <button
-                  onClick={() => handleDownloadPdf(activeAnalysis.id, latest.dataset.filename)}
-                  disabled={downloading}
-                  className="rounded-lg border border-indigo-700 px-3 py-1.5 text-sm text-indigo-400 transition hover:border-indigo-500 hover:text-indigo-200 disabled:opacity-50"
-                >
-                  {downloading ? "Generando..." : "↓ Informe PDF"}
-                </button>
-              )}
-              <label className="cursor-pointer rounded-lg border border-gray-700 px-3 py-1.5 text-sm text-gray-400 transition hover:border-gray-500 hover:text-gray-200">
-                Subir nuevo CSV
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="hidden"
-                  onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
-                  disabled={upload.isPending || analyzing}
-                />
-              </label>
-            </div>
+  if (isLoading) {
+    return <p className="text-f2">Cargando...</p>
+  }
+
+  if (!latest) {
+    return (
+      <div className="space-y-14">
+        <ReportHeader
+          eyebrow={crumb}
+          title="Sube un CSV y DataInsight prepara el informe por ti"
+          lead="Perfil de cada columna, hallazgos redactados por Claude y, si hay una columna de fecha, una previsión."
+        />
+        <Section
+          number="01"
+          title="Subir datos"
+          context="Una fila por registro y una cabecera con el nombre de cada columna."
+        >
+          <div className="space-y-3">
+            <Dropzone onFile={handleFile} isLoading={upload.isPending} />
+            <p className="text-sm text-f2">
+              ¿No tienes uno a mano?{" "}
+              <Link href="/demo" className="text-au underline underline-offset-4">
+                Mira el análisis de ejemplo
+              </Link>
+              .
+            </p>
+            {errorNote}
           </div>
+        </Section>
+      </div>
+    )
+  }
 
-          {uploadError && (
-            <p className="rounded-lg bg-red-900/20 px-3 py-2 text-sm text-red-400">{uploadError}</p>
-          )}
-
-          {analyzing ? (
-            <div className="flex flex-col items-center justify-center gap-4 rounded-xl border border-gray-800 bg-gray-900/50 py-16">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-700 border-t-indigo-500" />
-              <p className="text-sm text-gray-400">
+  if (analyzing || activeAnalysis?.status === "failed") {
+    const failed = !analyzing
+    return (
+      <div className="space-y-14">
+        <ReportHeader
+          eyebrow={crumb}
+          title={project?.name ?? latest.dataset.filename}
+          lead="El análisis se actualiza solo cuando termina."
+        />
+        <Section number="01" title="Estado">
+          <div className="space-y-4">
+            <div
+              role="status"
+              className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1 border-b border-ln pb-3"
+            >
+              <p className="min-w-0 [overflow-wrap:anywhere]">
+                <span className="font-medium text-fg">{latest.dataset.filename}</span>{" "}
+                <span className="text-sm text-f2">
+                  {formatNumber(latest.dataset.size_bytes / 1024, 1, 1)} KB
+                </span>
+              </p>
+              <p className={`text-sm font-semibold ${failed ? "text-fg" : "text-au"}`}>
                 {STATUS_LABEL[activeAnalysis?.status ?? "pending"]}
               </p>
             </div>
-          ) : activeAnalysis?.status === "failed" ? (
-            <div className="rounded-xl border border-red-900/50 bg-red-900/10 p-5">
-              <p className="text-sm text-red-400">
-                El análisis falló: {latestAnalysis?.status ?? "error desconocido"}
-              </p>
-            </div>
-          ) : (
-            <AnalysisView
-              filename={latest.dataset.filename}
-              sizeBytes={latest.dataset.size_bytes}
-              rowCount={latest.dataset.row_count}
-              columnCount={latest.dataset.column_count}
-              analysis={activeAnalysis ?? latest.analysis}
-            />
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <p className="text-sm text-gray-400">
-            Sube un archivo CSV para obtener el perfilado automático del dataset.
-          </p>
-          <Dropzone onFile={handleFile} isLoading={upload.isPending} />
-          {uploadError && (
-            <p className="rounded-lg bg-red-900/20 px-3 py-2 text-sm text-red-400">{uploadError}</p>
-          )}
-        </div>
-      )}
+            {failed && uploadNew}
+            {errorNote}
+          </div>
+        </Section>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {errorNote}
+      <AnalysisView
+        filename={latest.dataset.filename}
+        sizeBytes={latest.dataset.size_bytes}
+        rowCount={latest.dataset.row_count}
+        columnCount={latest.dataset.column_count}
+        analysis={activeAnalysis ?? latest.analysis}
+        eyebrow={crumb}
+        actions={
+          <>
+            {uploadNew}
+            {activeAnalysis?.status === "completed" && activeAnalysis.id && (
+              <button
+                type="button"
+                onClick={() => handleDownloadPdf(activeAnalysis.id, latest.dataset.filename)}
+                disabled={downloading}
+                className={SECONDARY_BUTTON}
+              >
+                {downloading ? "Generando..." : "Descargar el informe en PDF"}
+              </button>
+            )}
+          </>
+        }
+      />
     </div>
+  )
+}
+
+/** File input behind a button-styled label; the input stays focusable (sr-only, not hidden). */
+function UploadNewCsv({ disabled, onFile }: { disabled: boolean; onFile: (file: File) => void }) {
+  return (
+    <label
+      className={`${PRIMARY_BUTTON} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-au has-[:disabled]:opacity-50`}
+    >
+      Subir nuevo CSV
+      <input
+        type="file"
+        accept=".csv"
+        className="sr-only"
+        onChange={(e) => e.target.files?.[0] && onFile(e.target.files[0])}
+        disabled={disabled}
+      />
+    </label>
   )
 }
