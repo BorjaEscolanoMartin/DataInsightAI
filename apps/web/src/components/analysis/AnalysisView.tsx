@@ -4,6 +4,8 @@ import type { ReactNode } from "react"
 import { ChartGrid } from "@/components/charts/ChartGrid"
 import { hasInsights, InsightsPanel } from "@/components/insights/InsightsPanel"
 import { hasPredictions, PredictionsPanel } from "@/components/predictions/PredictionsPanel"
+import { ReportHeader } from "@/components/ui/ReportHeader"
+import { Section } from "@/components/ui/Section"
 import { formatNumber } from "@/lib/format"
 import type { Analysis } from "@/types/api"
 import { ColumnTable } from "./ColumnTable"
@@ -15,7 +17,7 @@ export interface AnalysisViewProps {
   columnCount: number | null
   analysis: Pick<Analysis, "profile" | "insights" | "predictions">
   /** Short line above the file name, in the accent («Demo · datos sintéticos»). */
-  eyebrow?: string
+  eyebrow?: ReactNode
   /** Calls to action shown after the last section. */
   actions?: ReactNode
 }
@@ -80,20 +82,16 @@ export function AnalysisView({
 
   return (
     <article className="space-y-14">
-      <header className="space-y-3">
-        {eyebrow && (
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-au">{eyebrow}</p>
-        )}
-        <h1 className="font-serif text-4xl leading-tight text-fg [overflow-wrap:anywhere] md:text-5xl">
-          {filename}
-        </h1>
-        <p className="text-f2">
-          Perfil, hallazgos y predicciones generados automáticamente a partir del CSV.
-        </p>
-      </header>
+      <ReportHeader
+        eyebrow={eyebrow}
+        title={filename}
+        lead="Perfil, hallazgos y predicciones generados automáticamente a partir del CSV."
+      />
 
-      {sections.map((section, i) => (
-        <Section key={section.title} number={String(i + 1).padStart(2, "0")} {...section} />
+      {sections.map(({ title, context, content }, i) => (
+        <Section key={title} number={String(i + 1).padStart(2, "0")} title={title} context={context}>
+          {content}
+        </Section>
       ))}
 
       {actions && (
@@ -102,21 +100,6 @@ export function AnalysisView({
         </div>
       )}
     </article>
-  )
-}
-
-function Section({ number, title, context, content }: SectionSpec & { number: string }) {
-  return (
-    <section className="grid grid-cols-1 gap-6 border-t-2 border-fg pt-5 md:grid-cols-[200px_minmax(0,1fr)] md:gap-10">
-      <div>
-        <h2 className="font-serif leading-tight text-fg">
-          <span className="block text-lg tabular-nums text-au">{number}</span>{" "}
-          <span className="block text-2xl">{title}</span>
-        </h2>
-        {context && <p className="mt-2 text-sm text-f2">{context}</p>}
-      </div>
-      <div className="min-w-0">{content}</div>
-    </section>
   )
 }
 
