@@ -70,8 +70,8 @@ def test_low_cardinality_numeric_columns_are_grouped_and_identifiers_are_not():
 
 def test_columns_with_the_widest_spread_of_means_come_first_and_at_most_four():
     rows = 60
-    # precio is 0..59; spread (widest group mean minus narrowest): a 30, otra 3, d 2.5, c 1.5,
-    # b 1, e 0.5.
+    # precio is 0.5..59.5 (a counter of whole numbers would be an identifier); spread (widest
+    # group mean minus narrowest): a 30, otra 3, d 2.5, c 1.5, b 1, e 0.5.
     df = pd.DataFrame({
         "a": ["x" if i < 30 else "y" for i in range(rows)],
         "b": ["x" if i % 2 else "y" for i in range(rows)],
@@ -79,7 +79,7 @@ def test_columns_with_the_widest_spread_of_means_come_first_and_at_most_four():
         "d": ["x" if i % 5 else "y" for i in range(rows)],
         "e": ["x" if i != 30 else "y" for i in range(rows)],
         "otra": [float(i % 7) for i in range(rows)],
-        "precio": [float(i) for i in range(rows)],
+        "precio": [i + 0.5 for i in range(rows)],
     })
 
     result = _summarise(df)
@@ -90,7 +90,8 @@ def test_columns_with_the_widest_spread_of_means_come_first_and_at_most_four():
 def test_more_than_ten_groups_keep_the_ten_largest_and_join_the_rest():
     labels = [f"g{k:02d}" for k in range(12) for _ in range(12 - k)]
     df = pd.DataFrame({
-        "metros": [float(i) for i in range(len(labels))],
+        # Decimals: whole numbers rising by one would be a row counter, not a feature.
+        "metros": [i + 0.5 for i in range(len(labels))],
         "precio": [float(k) for k in range(12) for _ in range(12 - k)],
         "grupo": labels,
     })
@@ -131,7 +132,8 @@ def test_the_target_outliers_are_described_by_their_most_common_groups():
 def test_the_target_outliers_keep_their_three_most_common_groups():
     zones = ["z1"] * 4 + ["z2"] * 3 + ["z3"] * 2 + ["z4"]
     df = pd.DataFrame({
-        "metros": [float(i) for i in range(50)],
+        # Decimals: whole numbers rising by one would be a row counter, not a feature.
+        "metros": [i + 0.5 for i in range(50)],
         "zona": ["base"] * 40 + zones,
         "precio": [100.0 + i % 5 for i in range(40)] + [1000.0] * 10,
     })

@@ -3,16 +3,20 @@
 from typing import Any
 
 
-def _numeric(profile: dict[str, Any]) -> list[dict[str, Any]]:
-    return [c for c in profile.get("columns", []) if c["type"] == "numeric"]
+def measures(profile: dict[str, Any]) -> list[str]:
+    """The numeric columns that are not identifiers, in file order."""
+    return [
+        c["name"] for c in profile.get("columns", [])
+        if c["type"] == "numeric" and not c.get("is_identifier")
+    ]
 
 
 def forecast_target(profile: dict[str, Any]) -> str | None:
     """The first numeric column that is not an identifier."""
-    return next((c["name"] for c in _numeric(profile) if not c.get("is_identifier")), None)
+    return next(iter(measures(profile)), None)
 
 
 def regression_target(profile: dict[str, Any]) -> str | None:
-    """The last numeric column, when there is another one to use as a feature."""
-    numeric = _numeric(profile)
-    return numeric[-1]["name"] if len(numeric) >= 2 else None
+    """The last numeric column that is not an identifier, when another one can be a feature."""
+    numeric = measures(profile)
+    return numeric[-1] if len(numeric) >= 2 else None

@@ -95,6 +95,17 @@ def test_without_a_date_column_the_last_numeric_column_is_regressed(forecast, re
     forecast.assert_not_called()
 
 
+def test_regression_features_leave_out_identifier_columns(forecast, regression):
+    profile = _profile(
+        {"id": "numeric", "superficie": "numeric", "zona": "categorical", "precio": "numeric"},
+        identifiers=("id",),
+    )
+
+    _run_predictions(CONTENT, profile)
+
+    regression.assert_called_once_with(CONTENT, "precio", ["superficie", "zona"])
+
+
 def test_analysis_downloads_the_storage_path_saved_with_the_dataset(
     db_session, make_dataset, monkeypatch
 ):

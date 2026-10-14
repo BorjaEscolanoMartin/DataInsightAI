@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from app.db.models import Analysis, Dataset
 from app.db.session import SessionLocal
 from app.services.profiling import profile_csv
-from app.services.targets import forecast_target, regression_target
+from app.services.targets import forecast_target, measures, regression_target
 from app.storage.supabase_client import download_file
 from app.workers.celery_app import celery_app
 
@@ -35,7 +35,7 @@ def _run_predictions(content: bytes, profile: dict) -> dict | None:
     target = regression_target(profile)
     if target:
         from app.services.ml_baseline import run_regression
-        features = [c for c in numeric_cols if c != target]
+        features = [c for c in measures(profile) if c != target]
         cat_cols = [c["name"] for c in columns if c["type"] in ("categorical", "boolean")]
         all_features = features + cat_cols
         try:
