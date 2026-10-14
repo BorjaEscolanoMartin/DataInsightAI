@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react"
+import { act, render } from "@testing-library/react"
 import { cloneElement, type ReactElement } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { ValueColumnChart } from "./BarChartComp"
@@ -42,13 +42,23 @@ describe("chart animation", () => {
     expect(heights.every((h) => h > 0)).toBe(true)
   })
 
-  it("animates the bars from nothing otherwise", () => {
+  it("grows the two bars from nothing otherwise", async () => {
     preferReducedMotion(false)
     const { container } = render(
       <ValueColumnChart data={[{ name: "1", count: 10 }, { name: "2", count: 20 }]} />,
     )
 
-    expect(barHeights(container).every((h) => !(h > 0))).toBe(true)
+    // Both bars are there from the start, with no shape yet: the animation draws them.
+    expect(container.querySelectorAll(".recharts-bar-rectangle")).toHaveLength(2)
+    expect(barHeights(container)).toEqual([])
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 1200))
+    })
+
+    const heights = barHeights(container)
+    expect(heights).toHaveLength(2)
+    expect(heights.every((h) => h > 0)).toBe(true)
   })
 })
 
