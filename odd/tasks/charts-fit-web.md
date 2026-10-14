@@ -23,8 +23,8 @@ Quoted from the brief (W1–W10); decisions in the Log.
 |---|---|---|---|---|
 | T1 | S1 | inline | done: RED (`histogram` helper missing; no note under the title), GREEN; `histogramView` (pure, tested) gives the Spanish ranges, the outlier side, the axis ends with shared decimals and the note; the chart draws outlier bars in `--au` 4 px apart with their label in `--au` under them; old `bin`-only data keeps its labels and axis; checked in Chromium (housing, dark, 1280) | 13ecb73 |
 | T2 | S2 | inline | done: RED (`bars` helper missing; no orientation), GREEN; `isValueBars` (one helper, commented: the API only sends `value` in whole-number column bars) picks `ValueColumnChart` (vertical `--fg` columns, every value labelled) or `CategoricalBarChart`; each root marks `data-orientation` for the jsdom test | 5ecabf2 |
-| T3 | S3 | inline | done: RED (`axis` helper missing), GREEN; `niceAxisMax` (346 → 400, 950 → 1.000; next multiple of the leading power of ten) sets the category bars' domain with 5 ticks; `numberTick` writes axis numbers in Spanish; right margin 24 px keeps the last label whole | (this commit) |
-| T4 | S4 | inline | pending | |
+| T3 | S3 | inline | done: RED (`axis` helper missing), GREEN; `niceAxisMax` (346 → 400, 950 → 1.000; next multiple of the leading power of ten) sets the category bars' domain with 5 ticks; `numberTick` writes axis numbers in Spanish; right margin 24 px keeps the last label whole | f35ca9b |
+| T4 | S4 | inline | done: RED (`scatterAxis` missing), GREEN; 5 % margin, clamped at 0 when every value is ≥ 0, round ticks (1, 2, 2,5, 5 × 10ⁿ) covering the margin, Spanish tick numbers; points unchanged (`--au` at 0,45 with a 1 px opaque stroke) | (this commit) |
 | T5 | S5 | inline | pending | |
 | T6 | S6 | inline | pending | |
 | T7 | S9 | inline | pending | |

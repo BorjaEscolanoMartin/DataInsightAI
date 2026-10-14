@@ -1,6 +1,7 @@
 "use client"
 
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { numberTick, scatterAxis } from "./axis"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
@@ -11,6 +12,9 @@ interface Props {
 
 export function ScatterChartComp({ data, xCol, yCol }: Props) {
   const clean = data.filter((d) => d.x !== null && d.y !== null) as { x: number; y: number }[]
+  // Axes fitted to the points with a 5 % margin, never below 0 for non-negative data (W4).
+  const xAxis = scatterAxis(clean.map((d) => d.x))
+  const yAxis = scatterAxis(clean.map((d) => d.y))
 
   return (
     <ResponsiveContainer width="100%" height={220}>
@@ -20,12 +24,26 @@ export function ScatterChartComp({ data, xCol, yCol }: Props) {
           dataKey="x"
           name={xCol}
           type="number"
+          domain={xAxis?.domain}
+          ticks={xAxis?.ticks}
+          tickFormatter={numberTick}
           tick={AXIS_TICK}
           axisLine={AXIS_LINE}
           tickLine={false}
           label={{ value: xCol, position: "insideBottom", offset: -4, ...AXIS_TICK }}
         />
-        <YAxis dataKey="y" name={yCol} type="number" tick={AXIS_TICK} axisLine={AXIS_LINE} tickLine={false} width={48} />
+        <YAxis
+          dataKey="y"
+          name={yCol}
+          type="number"
+          domain={yAxis?.domain}
+          ticks={yAxis?.ticks}
+          tickFormatter={numberTick}
+          tick={AXIS_TICK}
+          axisLine={AXIS_LINE}
+          tickLine={false}
+          width={56}
+        />
         <Tooltip {...TOOLTIP_PROPS} cursor={{ stroke: "var(--ln)" }} />
         {/* One series. A 0,45 fill alone falls under 3:1 on the light background; the opaque 1 px
             stroke keeps each point's edge at 4,69:1 (light) and 10,31:1 (dark) (S21). */}
