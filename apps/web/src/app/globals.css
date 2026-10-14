@@ -25,7 +25,7 @@
 }
 
 /* Browsers without light-dark() (before Chrome 123, Firefox 120, Safari 17.5) get the light
-   theme, so the page keeps its colours. */
+   theme, so the page keeps its colours, and no theme toggle. */
 @supports not (color: light-dark(#000, #fff)) {
   :root {
     color-scheme: light;
@@ -38,6 +38,11 @@
     --f3: #6b6b6b;
     --inv: #ffffff;
     --au: #8e6b2c;
+  }
+
+  /* The theme cannot change here, so the toggle is not shown. */
+  [data-theme-toggle] {
+    display: none;
   }
 }
 
