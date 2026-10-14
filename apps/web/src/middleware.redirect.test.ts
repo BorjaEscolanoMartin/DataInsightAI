@@ -5,11 +5,24 @@ import { middleware } from "./middleware"
 
 // The real middleware runs on a real request; only Supabase is replaced, so getUser says
 // whether there is a session.
-const session = vi.hoisted(() => ({ user: null as null | { id: string } }))
+const session = vi.hoisted(() => ({ user: null as null | { id: string }, refresh: false }))
 
+// When the session is refreshed, getUser writes the new cookies through setAll, as
+// @supabase/ssr does.
 vi.mock("@supabase/ssr", () => ({
-  createServerClient: () => ({
-    auth: { getUser: async () => ({ data: { user: session.user } }) },
+  createServerClient: (
+    _url: string,
+    _key: string,
+    options: { cookies: { setAll: (c: { name: string; value: string; options?: object }[]) => void } },
+  ) => ({
+    auth: {
+      getUser: async () => {
+        if (session.refresh) {
+          options.cookies.setAll([{ name: "sb-access-token", value: "renewed", options: { path: "/" } }])
+        }
+        return { data: { user: session.user } }
+      },
+    },
   }),
 }))
 
@@ -23,6 +36,7 @@ async function visit(path: string, signedIn: boolean) {
 describe("middleware redirects", () => {
   beforeEach(() => {
     session.user = null
+    session.refresh = false
   })
 
   it.each([
@@ -45,5 +59,19 @@ describe("middleware redirects", () => {
 
     expect(response.status).toBe(307)
     expect(response.headers.get("location")).toBe(`${ORIGIN}${target}`)
+  })
+
+  it.each([
+    ["/", false],
+    ["/", true],
+    ["/projects", false],
+    ["/login", true],
+  ])("keeps the refreshed session cookies when it redirects %s (signed in: %s)", async (path, signedIn) => {
+    session.refresh = true
+
+    const response = await visit(path, signedIn)
+
+    expect(response.status).toBe(307)
+    expect(response.cookies.get("sb-access-token")?.value).toBe("renewed")
   })
 })
