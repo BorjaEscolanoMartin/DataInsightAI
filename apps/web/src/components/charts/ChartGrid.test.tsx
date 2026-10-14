@@ -72,4 +72,19 @@ describe("ChartGrid", () => {
     expect(banos.querySelector("[data-orientation]")?.getAttribute("data-orientation")).toBe("vertical")
     expect(zona.querySelector("[data-orientation]")?.getAttribute("data-orientation")).toBe("horizontal")
   })
+
+  it("spans the whole grid with a heatmap of more than four variables", () => {
+    const heatmap = (columns: string[]): ChartSpec => ({
+      id: `heat_${columns.length}`,
+      type: "heatmap",
+      title: `Correlación ${columns.length}`,
+      columns,
+      data: columns.flatMap((x) => columns.map((y) => ({ x, y, value: 1 }))),
+    })
+    render(<ChartGrid charts={[heatmap(["a", "b", "c", "d", "e"]), heatmap(["a", "b", "c", "d"])]} />)
+
+    const [wide, compact] = screen.getAllByRole("figure")
+    expect(wide.parentElement?.className).toContain("col-span-full")
+    expect(compact.parentElement?.className ?? "").not.toContain("col-span-full")
+  })
 })

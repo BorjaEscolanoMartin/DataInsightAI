@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-import { correlationCellColor, HeatmapChart } from "./HeatmapChart"
+import { correlationCellColor, HeatmapChart, isWideHeatmap } from "./HeatmapChart"
 
 describe("correlationCellColor", () => {
   it.each([
@@ -35,3 +35,36 @@ describe("HeatmapChart", () => {
     expect(screen.getAllByText("1,00")).toHaveLength(2)
   })
 })
+
+const SIX = ["Metros", "Habitaciones", "Baños", "Antigüedad (años)", "Distancia al mar (km)", "Precio"]
+const matrix = (columns: string[]) =>
+  columns.flatMap((x) => columns.map((y) => ({ x, y, value: x === y ? 1 : 0.5 })))
+
+describe("isWideHeatmap", () => {
+  it("is wide with more than four variables", () => {
+    expect(isWideHeatmap(SIX.slice(0, 5))).toBe(true)
+    expect(isWideHeatmap(SIX.slice(0, 4))).toBe(false)
+  })
+})
+
+describe("HeatmapChart sizes", () => {
+  it("writes the full names of a wide heatmap and keeps a 620 px minimum inside its scroll box", () => {
+    render(<HeatmapChart columns={SIX} data={matrix(SIX)} />)
+
+    const grid = screen.getByRole("img")
+    expect(grid.style.minWidth).toBe("620px")
+    expect(grid.parentElement?.className).toContain("overflow-x-auto")
+    const label = screen.getAllByText("Distancia al mar (km)")[0]
+    expect(label.className).not.toContain("truncate")
+  })
+
+  it("keeps a compact heatmap of four variables or fewer as it is", () => {
+    const four = SIX.slice(0, 4)
+    render(<HeatmapChart columns={four} data={matrix(four)} />)
+
+    const grid = screen.getByRole("img")
+    expect(grid.style.minWidth).toBe("")
+    expect(screen.getAllByText("Antigüedad (años)")[0].className).toContain("truncate")
+  })
+})
+

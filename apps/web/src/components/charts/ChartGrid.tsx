@@ -7,7 +7,7 @@ import { histogramView, type HistogramDatum } from "./histogram"
 import { CategoricalBarChart, ValueColumnChart } from "./BarChartComp"
 import { isValueBars } from "./bars"
 import { TimeSeriesChart } from "./LineChartComp"
-import { HeatmapChart } from "./HeatmapChart"
+import { HeatmapChart, isWideHeatmap } from "./HeatmapChart"
 import { ScatterChartComp } from "./ScatterChartComp"
 
 interface Props {
@@ -59,8 +59,8 @@ export function ChartGrid({ charts }: Props) {
                   </ChartCard>
                 </div>
               )
-            case "heatmap":
-              return (
+            case "heatmap": {
+              const card = (
                 <ChartCard key={chart.id} title={chart.title}>
                   <HeatmapChart
                     columns={chart.columns ?? []}
@@ -68,6 +68,14 @@ export function ChartGrid({ charts }: Props) {
                   />
                 </ChartCard>
               )
+              return isWideHeatmap(chart.columns ?? []) ? (
+                <div key={chart.id} className="col-span-full">
+                  {card}
+                </div>
+              ) : (
+                card
+              )
+            }
             case "scatter":
               return (
                 <ChartCard key={chart.id} title={chart.title}>
