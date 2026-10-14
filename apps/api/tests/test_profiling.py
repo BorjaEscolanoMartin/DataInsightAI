@@ -370,3 +370,20 @@ def test_uniformity_counts_every_category_not_only_the_top_ten():
     counts = {f"c{i:02d}": 5 for i in range(10)} | {"c10": 1}
 
     assert _bar_ids(counts) == {"bar_categoria", "bar_otro"}
+
+
+def test_old_saved_charts_still_validate_unchanged():
+    from app.schemas.datasets import DatasetProfileOut
+
+    # Profiles saved before the numeric bounds: label-only bins, whole numbers as a histogram.
+    old_charts = [
+        {"id": "hist_Baños", "type": "histogram", "title": "Distribución de Baños",
+         "column": "Baños", "data": [{"bin": "1–1.15", "count": 775}]},
+        {"id": "bar_Zona", "type": "bar", "title": "Top valores de Zona", "column": "Zona",
+         "data": [{"name": "Centro", "count": 346}]},
+    ]
+    profile = {"row_count": 1, "column_count": 1, "columns": [], "charts": old_charts}
+
+    validated = DatasetProfileOut.model_validate(profile)
+
+    assert [c.model_dump(exclude_none=True) for c in validated.charts] == old_charts
