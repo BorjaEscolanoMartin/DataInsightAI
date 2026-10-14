@@ -52,4 +52,13 @@ describe("/projects", () => {
     expect(screen.getByRole("button", { name: "Renombrar Tienda online" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Borrar Tienda online" })).toBeTruthy()
   })
+
+  it("writes each project's creation date as a short Spanish date", () => {
+    state.projects = [PROJECT]
+
+    render(<ProjectsPage />)
+
+    expect(screen.getByText("1 oct 2026")).toBeTruthy()
+    expect(screen.queryByText("1/10/2026")).toBeNull()
+  })
 })
