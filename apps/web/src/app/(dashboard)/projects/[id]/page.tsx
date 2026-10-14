@@ -10,7 +10,7 @@ import { Dropzone } from "@/components/upload/Dropzone"
 import { AnalysisView } from "@/components/analysis/AnalysisView"
 import { ReportHeader } from "@/components/ui/ReportHeader"
 import { Section } from "@/components/ui/Section"
-import { PRIMARY_BUTTON, TEXT_LINK } from "@/components/ui/styles"
+import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/ui/styles"
 import { formatNumber } from "@/lib/format"
 
 const STATUS_LABEL: Record<string, string> = {
@@ -172,7 +172,7 @@ export default function ProjectPage() {
                 type="button"
                 onClick={() => handleDownloadPdf(activeAnalysis.id, latest.dataset.filename)}
                 disabled={downloading}
-                className={TEXT_LINK}
+                className={SECONDARY_BUTTON}
               >
                 {downloading ? "Generando..." : "Descargar el informe en PDF"}
               </button>
@@ -188,7 +188,7 @@ export default function ProjectPage() {
 function UploadNewCsv({ disabled, onFile }: { disabled: boolean; onFile: (file: File) => void }) {
   return (
     <label
-      className={`${PRIMARY_BUTTON} cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-au`}
+      className={`${PRIMARY_BUTTON} cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-au has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50`}
     >
       Subir nuevo CSV
       <input

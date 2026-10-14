@@ -14,6 +14,26 @@
   --f3: light-dark(#6b6b6b, #8a8a8a);
   --inv: light-dark(#ffffff, #0a0a0a);
   --au: light-dark(#8e6b2c, #d4b87a);
+
+  /* Relief tokens for controls only (docs: odd/tasks/redesign.md, S19); composed below. */
+  --trk: light-dark(#ececec, #0d0d0d);
+  --trk-in: light-dark(rgba(0, 0, 0, 0.09), rgba(0, 0, 0, 0.8));
+  --trk-hi: light-dark(rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.05));
+  --knob-a: light-dark(#ffffff, #ffffff);
+  --knob-b: light-dark(#f5f5f5, #d8d8d8);
+  --knob-hi: light-dark(#ffffff, #ffffff);
+  --knob-ring: light-dark(rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0));
+  --knob-sh: light-dark(rgba(0, 0, 0, 0.16), rgba(0, 0, 0, 0));
+  --knob-sh2: light-dark(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.65));
+  --pri-a: light-dark(#2e2e2e, #ffffff);
+  --pri-b: light-dark(#0a0a0a, #d6d6d6);
+  --pri-hi: light-dark(rgba(255, 255, 255, 0.18), #ffffff);
+  --pri-sh: light-dark(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.6));
+  --sec-a: light-dark(#ffffff, #1f1f1f);
+  --sec-b: light-dark(#f3f3f3, #151515);
+  --sec-bd: light-dark(#d9d9d9, rgba(255, 255, 255, 0.1));
+  --sec-hi: light-dark(#ffffff, rgba(255, 255, 255, 0.07));
+  --sec-sh: light-dark(rgba(0, 0, 0, 0.07), rgba(0, 0, 0, 0.5));
 }
 
 :root[data-theme="light"] {
@@ -38,6 +58,24 @@
     --f3: #6b6b6b;
     --inv: #ffffff;
     --au: #8e6b2c;
+    --trk: #ececec;
+    --trk-in: rgba(0, 0, 0, 0.09);
+    --trk-hi: rgba(255, 255, 255, 0);
+    --knob-a: #ffffff;
+    --knob-b: #f5f5f5;
+    --knob-hi: #ffffff;
+    --knob-ring: rgba(0, 0, 0, 0.05);
+    --knob-sh: rgba(0, 0, 0, 0.16);
+    --knob-sh2: rgba(0, 0, 0, 0);
+    --pri-a: #2e2e2e;
+    --pri-b: #0a0a0a;
+    --pri-hi: rgba(255, 255, 255, 0.18);
+    --pri-sh: rgba(0, 0, 0, 0.25);
+    --sec-a: #ffffff;
+    --sec-b: #f3f3f3;
+    --sec-bd: #d9d9d9;
+    --sec-hi: #ffffff;
+    --sec-sh: rgba(0, 0, 0, 0.07);
   }
 
   /* The theme cannot change here, so the toggle is not shown. */
@@ -58,4 +96,94 @@
   --color-au: var(--au);
   --font-serif: var(--font-newsreader), Georgia, serif;
   --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* Relief on controls only (S19): each composition lives here once, in both themes. */
+@layer components {
+  .ctl-track {
+    background: var(--trk);
+    box-shadow:
+      inset 0 1px 3px var(--trk-in),
+      0 1px 0 var(--trk-hi);
+    border-radius: 12px;
+    padding: 3px;
+  }
+
+  .ctl-segment {
+    border-radius: 9px;
+    background: transparent;
+    color: var(--f2);
+  }
+
+  .ctl-segment[aria-pressed="true"] {
+    background: linear-gradient(180deg, var(--knob-a), var(--knob-b));
+    color: #0a0a0a;
+    box-shadow:
+      inset 0 1px 0 var(--knob-hi),
+      0 0 0 1px var(--knob-ring),
+      0 1px 2px var(--knob-sh),
+      0 2px 8px var(--knob-sh2);
+  }
+
+  .btn-primary {
+    background: linear-gradient(180deg, var(--pri-a), var(--pri-b));
+    color: var(--inv);
+    border: 0;
+    border-radius: 12px;
+    box-shadow:
+      inset 0 1px 0 var(--pri-hi),
+      0 2px 8px var(--pri-sh);
+  }
+
+  .btn-secondary,
+  .btn-row {
+    background: linear-gradient(180deg, var(--sec-a), var(--sec-b));
+    color: var(--fg);
+    border: 1px solid var(--sec-bd);
+    border-radius: 12px;
+    box-shadow:
+      inset 0 1px 0 var(--sec-hi),
+      0 1px 2px var(--sec-sh);
+  }
+
+  .btn-row {
+    border-radius: 10px;
+  }
+
+  /* Hover and pressed, with no transitions. A row button is the visual inside a larger
+     accessible button. A control is inert when it is disabled or wraps a disabled input (the
+     «Subir nuevo CSV» label): no hover, no press, a not-allowed cursor. */
+  .btn-primary:not(:disabled, :has(:disabled)):hover {
+    opacity: 0.92;
+  }
+
+  .btn-secondary:not(:disabled, :has(:disabled)):hover,
+  :not(:disabled):hover > .btn-row {
+    border-color: var(--f3);
+  }
+
+  .ctl-segment[aria-pressed="false"]:not(:disabled):hover {
+    color: var(--fg);
+  }
+
+  :is(.ctl-segment, .btn-primary, .btn-secondary):not(:disabled, :has(:disabled)):active,
+  :not(:disabled):active > .btn-row {
+    transform: translateY(1px);
+  }
+
+  :is(.ctl-segment, .btn-primary, .btn-secondary):is(:disabled, :has(:disabled)),
+  :disabled > .btn-row {
+    cursor: not-allowed;
+  }
+
+  .gold-rule {
+    height: 1px;
+    background: linear-gradient(90deg, var(--au), transparent 70%);
+  }
+}
+
+/* The accent focus ring stays visible on top of the relief. */
+:where(a, button, [role="button"], summary):focus-visible {
+  outline: 2px solid var(--au);
+  outline-offset: 2px;
 }

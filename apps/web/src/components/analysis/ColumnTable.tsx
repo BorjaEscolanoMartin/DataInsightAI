@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { ChevronIcon } from "@/components/ui/icons"
 import { formatNumber } from "@/lib/format"
 import type { ColumnProfile } from "@/types/api"
 
@@ -57,15 +58,19 @@ function ColumnRow({ col }: { col: ColumnProfile }) {
               type="button"
               aria-expanded={expanded}
               onClick={() => setExpanded((v) => !v)}
-              className="flex min-h-11 items-center gap-1.5 text-left font-medium text-fg hover:text-au"
+              className="flex min-h-11 items-center gap-3 text-left font-medium text-fg"
             >
-              {col.name}
-              <span aria-hidden="true" className="text-xs text-f3">
-                {expanded ? "▾" : "▸"}
+              {/* The 36 px relief button is the visual; the whole 44 px row cell is the target. */}
+              <span className="btn-row inline-flex size-9 shrink-0 items-center justify-center">
+                <ChevronIcon className={expanded ? "rotate-90" : undefined} />
               </span>
+              {col.name}
             </button>
           ) : (
-            <span className="flex min-h-11 items-center text-fg">{col.name}</span>
+            <span className="flex min-h-11 items-center gap-3 text-fg">
+              <span aria-hidden="true" className="size-9 shrink-0" />
+              {col.name}
+            </span>
           )}
         </td>
         <td className="py-1 pr-4 text-f2">{TYPE_LABELS[col.type] ?? col.type}</td>
@@ -106,7 +111,7 @@ export function ColumnTable({ columns }: { columns: ColumnProfile[] }) {
       <table className="w-full text-left text-sm">
         <thead className="border-b border-fg">
           <tr>
-            <th className="py-2 pr-4 font-semibold">Columna</th>
+            <th className="py-2 pr-4 pl-12 font-semibold">Columna</th>
             <th className="py-2 pr-4 font-semibold">Tipo</th>
             <th className="py-2 pr-4 text-right font-semibold">Nulos</th>
             <th className="py-2 pr-4 text-right font-semibold">Únicos</th>

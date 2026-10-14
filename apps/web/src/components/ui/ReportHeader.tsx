@@ -5,9 +5,11 @@ interface Props {
   eyebrow?: ReactNode
   title: string
   lead: string
+  /** The gold rule under the header of the analysis view (S19). */
+  rule?: boolean
 }
 
-export function ReportHeader({ eyebrow, title, lead }: Props) {
+export function ReportHeader({ eyebrow, title, lead, rule }: Props) {
   return (
     <header className="space-y-3">
       {eyebrow && (
@@ -17,6 +19,7 @@ export function ReportHeader({ eyebrow, title, lead }: Props) {
         {title}
       </h1>
       <p className="max-w-2xl text-f2">{lead}</p>
+      {rule && <div aria-hidden="true" className="gold-rule !mt-6" />}
     </header>
   )
 }
