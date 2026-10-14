@@ -1,7 +1,7 @@
 import io
 import math
 import re
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -17,14 +17,19 @@ def _safe_float(val: Any) -> float | None:
         return None
 
 
-def parse_dates(values: pd.Series, errors: str = "raise") -> pd.Series:
+def parse_dates(values: pd.Series, errors: Literal["raise", "coerce"] = "raise") -> pd.Series:
     """The one date reading of the profile: type detection, date ranges and the time series."""
     return pd.to_datetime(values, format="mixed", dayfirst=False, errors=errors)
 
 
 def _date_range(series: pd.Series) -> dict[str, str]:
     """Earliest and latest calendar date of a date column, ISO 8601, ignoring unreadable cells."""
-    dates = parse_dates(series, errors="coerce").dropna()
+    try:
+        dates = parse_dates(series, errors="coerce").dropna()
+    except (ValueError, TypeError, OverflowError):
+        # A column typed as a date from its first values can still hold values that cannot be read
+        # together (mixed time zones): it gets no range, and the profile goes on.
+        return {}
     if dates.empty:
         return {}
     return {"min_date": dates.min().date().isoformat(), "max_date": dates.max().date().isoformat()}

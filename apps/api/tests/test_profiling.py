@@ -230,3 +230,18 @@ def test_the_profile_schema_keeps_the_range_and_reads_old_profiles():
     legacy = DatasetProfileOut.model_validate(old)
     fecha = next(c for c in legacy.columns if c.name == "fecha")
     assert (fecha.min_date, fecha.max_date) == (None, None)
+
+
+def test_a_date_column_with_mixed_time_zones_profiles_without_a_range():
+    # Typed as a date from its first 50 values, but later rows change the UTC offset: the whole
+    # column cannot be read in one go. The profile must not fail; the column just has no range.
+    rows = [f"2025-03-{d:02d}T10:00:00+01:00,{d}" for d in range(1, 31)] * 2
+    rows += [f"2025-04-{d:02d}T10:00:00+02:00,{d}" for d in range(1, 31)]
+    content = ("momento,valor\n" + "\n".join(rows) + "\n").encode()
+
+    result = profile_csv(content)
+
+    momento = _column(result, "momento")
+    assert momento["type"] == "date"
+    assert "min_date" not in momento and "max_date" not in momento
+    assert _column(result, "valor")["max_val"] == 30
