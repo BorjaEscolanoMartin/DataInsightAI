@@ -93,9 +93,16 @@ def test_histogram_keeps_empty_bins_between_distant_values():
     bins = _histogram([1, 1.2, 1.5, 20.5, 21])
 
     assert [b["count"] for b in bins] == [3] + [0] * 18 + [2]
-    assert bins[0] == {"bin": "1–2", "start": 1.0, "end": 2.0, "count": 3}
-    assert bins[1]["bin"] == "2–3"
-    assert bins[-1] == {"bin": "20–21", "start": 20.0, "end": 21.0, "count": 2}
+    assert bins[0] == {"start": 1.0, "end": 2.0, "count": 3}
+    assert (bins[1]["start"], bins[1]["end"]) == (2.0, 3.0)
+    assert bins[-1] == {"start": 20.0, "end": 21.0, "count": 2}
+
+
+def test_new_histogram_bins_carry_no_text_label():
+    # The web writes the bounds itself; only analyses saved before keep a "bin" label.
+    bins = _histogram([-1000.5] + [i + 0.5 for i in range(20)] + [1000.5])
+
+    assert all(set(b) == {"start", "end", "count"} for b in bins)
 
 
 def test_histogram_bins_cover_the_iqr_range_and_group_the_extremes():
@@ -103,12 +110,12 @@ def test_histogram_bins_cover_the_iqr_range_and_group_the_extremes():
     bins = _histogram([-1000.5] + [i + 0.5 for i in range(20)] + [1000.5])
 
     assert len(bins) == 22
-    assert bins[0] == {"bin": "< -11", "start": None, "end": -11.0, "count": 1}
+    assert bins[0] == {"start": None, "end": -11.0, "count": 1}
     assert bins[1]["start"] == -11.0
     assert bins[1]["end"] == pytest.approx(-8.9)
     assert bins[20]["end"] == 31.0
     assert sum(b["count"] for b in bins[1:21]) == 20
-    assert bins[-1] == {"bin": "> 31", "start": 31.0, "end": None, "count": 1}
+    assert bins[-1] == {"start": 31.0, "end": None, "count": 1}
 
 
 def test_histogram_without_values_below_has_no_lower_extreme_bin():
@@ -117,7 +124,7 @@ def test_histogram_without_values_below_has_no_lower_extreme_bin():
 
     assert len(bins) == 21
     assert bins[0]["start"] == 0.5
-    assert bins[-1] == {"bin": "> 30.5", "start": 30.5, "end": None, "count": 1}
+    assert bins[-1] == {"start": 30.5, "end": None, "count": 1}
 
 
 def test_histogram_with_zero_iqr_uses_the_full_range():

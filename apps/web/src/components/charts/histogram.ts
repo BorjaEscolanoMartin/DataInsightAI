@@ -2,9 +2,9 @@ import { distinctDecimals, formatNumber } from "@/lib/format"
 
 /** A histogram bin from the API. Since #37 each bin carries its numeric bounds; an outlier bin
  *  has no `start` («< X», values below the IQR bounds) or no `end` («> Y», values above them).
- *  Older analyses only have the `bin` label. */
+ *  Analyses saved before #37 only have the `bin` label; newer ones have no label at all. */
 export interface HistogramDatum {
-  bin: string
+  bin?: string
   count: number
   start?: number | null
   end?: number | null
@@ -44,7 +44,7 @@ export function histogramView(data: HistogramDatum[]): HistogramView {
   const hasBounds = data.length > 0 && data.every((d) => d.start !== undefined && d.end !== undefined)
   if (!hasBounds) {
     return {
-      bars: data.map((d) => ({ range: d.bin, count: d.count, side: null })),
+      bars: data.map((d) => ({ range: d.bin ?? "", count: d.count, side: null })),
       axis: null,
       note: null,
     }
