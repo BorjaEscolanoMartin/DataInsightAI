@@ -21,7 +21,7 @@ Quoted from the brief (W1–W10); decisions in the Log.
 
 | ID | Specs | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1 | inline | pending | |
+| T1 | S1 | inline | done: RED (`histogram` helper missing; no note under the title), GREEN; `histogramView` (pure, tested) gives the Spanish ranges, the outlier side, the axis ends with shared decimals and the note; the chart draws outlier bars in `--au` 4 px apart with their label in `--au` under them; old `bin`-only data keeps its labels and axis; checked in Chromium (housing, dark, 1280) | (this commit) |
 | T2 | S2 | inline | pending | |
 | T3 | S3 | inline | pending | |
 | T4 | S4 | inline | pending | |

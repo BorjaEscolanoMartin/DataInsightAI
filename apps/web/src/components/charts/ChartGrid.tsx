@@ -3,6 +3,7 @@
 import type { ChartSpec } from "@/types/api"
 import { ChartCard } from "./ChartCard"
 import { HistogramChart } from "./HistogramChart"
+import { histogramView, type HistogramDatum } from "./histogram"
 import { CategoricalBarChart } from "./BarChartComp"
 import { TimeSeriesChart } from "./LineChartComp"
 import { HeatmapChart } from "./HeatmapChart"
@@ -28,12 +29,14 @@ export function ChartGrid({ charts }: Props) {
       <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2 xl:grid-cols-3">
         {ordered.map((chart) => {
           switch (chart.type) {
-            case "histogram":
+            case "histogram": {
+              const view = histogramView(chart.data as unknown as HistogramDatum[])
               return (
-                <ChartCard key={chart.id} title={chart.title}>
-                  <HistogramChart data={chart.data as { bin: string; count: number }[]} />
+                <ChartCard key={chart.id} title={chart.title} note={view.note}>
+                  <HistogramChart view={view} />
                 </ChartCard>
               )
+            }
             case "bar":
               return (
                 <ChartCard key={chart.id} title={chart.title}>
