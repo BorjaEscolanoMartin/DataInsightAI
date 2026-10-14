@@ -152,7 +152,8 @@ def test_whole_numbers_with_few_values_are_bars_of_each_value():
 
 
 def test_whole_numbers_with_more_values_stay_a_histogram():
-    charts = _charts([str(v) for v in range(11)])
+    # A repeated value keeps the column from being an identifier (distinct consecutive numbers).
+    charts = _charts([str(v) for v in range(11)] + ["5"])
 
     assert "bar_valor" not in charts
     assert charts["hist_valor"]["type"] == "histogram"
@@ -387,3 +388,26 @@ def test_old_saved_charts_still_validate_unchanged():
     validated = DatasetProfileOut.model_validate(profile)
 
     assert [c.model_dump(exclude_none=True) for c in validated.charts] == old_charts
+
+
+def _chart_ids(csv: str) -> set[str]:
+    return {c["id"] for c in profile_csv(csv.encode())["charts"]}
+
+
+def test_identifier_with_few_values_gets_no_bar_chart():
+    # A consecutive range of ten whole numbers: discrete, but an identifier.
+    ids = _chart_ids("id,valor\n" + "".join(f"{i},{i * 1.5 + 0.25}\n" for i in range(1, 11)))
+
+    assert "bar_id" not in ids
+    assert "hist_id" not in ids
+    assert "hist_valor" in ids
+
+
+def test_identifier_with_many_values_gets_no_histogram():
+    # Distinct whole numbers under a name with the token "id", not a consecutive range.
+    rows = "".join(f"{100 + 7 * i},{(i % 5) * 1.5 + 0.25}\n" for i in range(30))
+    ids = _chart_ids("cliente_id,valor\n" + rows)
+
+    assert "hist_cliente_id" not in ids
+    assert "bar_cliente_id" not in ids
+    assert "hist_valor" in ids

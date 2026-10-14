@@ -151,7 +151,12 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
     charts: list[dict[str, Any]] = []
     col_types = {c["name"]: c["type"] for c in columns}
 
-    numeric_cols = [c for c, t in col_types.items() if t == "numeric" and c in df.columns]
+    # Identifier columns (the profile's `is_identifier`) describe no quantity: no chart.
+    identifiers = {c["name"] for c in columns if c.get("is_identifier")}
+    numeric_cols = [
+        c for c, t in col_types.items()
+        if t == "numeric" and c in df.columns and c not in identifiers
+    ]
     cat_cols = [c for c, t in col_types.items() if t == "categorical" and c in df.columns]
     date_candidate = next(
         (c for c, t in col_types.items() if t == "date" and c in df.columns), None
