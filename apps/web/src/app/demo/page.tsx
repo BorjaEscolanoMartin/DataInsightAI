@@ -61,7 +61,7 @@ export default function DemoPage() {
           ))}
         </div>
 
-        {/* A key per dataset resets the view's own state (open insight categories, rows). */}
+        {/* A key per dataset resets the view's own state (expanded column rows). */}
         <AnalysisView
           key={selected}
           filename={fixture.filename}
