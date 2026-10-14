@@ -18,17 +18,33 @@ function niceStep(raw: number): number {
 /** Drops the float noise of multiples of a decimal step (0.6000000000000001 → 0.6). */
 const tidy = (v: number) => Number(v.toPrecision(12))
 
-const COUNT_INTERVALS = 4
+const MIN_INTERVALS = 3
+const MAX_INTERVALS = 5
+const ROUND_STEPS = [1, 2, 2.5, 5]
 
-/** A count axis from 0 (W3): a round step (1, 2, 2,5 or 5 × 10ⁿ, and at least 1) of at least a
- *  quarter of the maximum, up to its first multiple that reaches the maximum (346 → 400, 950 → 1.000), with
- *  evenly spaced ticks, rather than the next big jump. */
+/** A count axis from 0 (W3, insights-yearly S6): among the steps 1, 2, 2,5 and 5 × 10ⁿ (whole,
+ *  since rows are counted) that cover the maximum in 3 to 5 intervals, the one with the lowest
+ *  top, and of those the fewest intervals (640 → 0–750 by 250, 346 → 0–400 by 100,
+ *  950 → 0–1.000 by 250). */
 export function countAxis(max: number): { domain: [number, number]; ticks: number[] } {
   if (!(max > 0)) return { domain: [0, 1], ticks: [0, 1] }
-  // Row counts are whole numbers, so the step never goes below 1.
-  const step = Math.max(1, niceStep(max / COUNT_INTERVALS))
-  const last = Math.ceil(tidy(max / step))
-  const ticks = Array.from({ length: last + 1 }, (_, i) => tidy(i * step))
+  let best: { step: number; intervals: number } | null = null
+  for (let power = 0; 10 ** power <= max; power++) {
+    for (const multiple of ROUND_STEPS) {
+      const step = multiple * 10 ** power
+      if (!Number.isInteger(step)) continue
+      const intervals = Math.max(MIN_INTERVALS, Math.ceil(tidy(max / step)))
+      if (intervals > MAX_INTERVALS) continue
+      const top = step * intervals
+      if (!best || top < best.step * best.intervals ||
+          (top === best.step * best.intervals && intervals < best.intervals)) {
+        best = { step, intervals }
+      }
+    }
+  }
+  // A maximum below 1 still counts in whole rows: 0–3 by 1.
+  const { step, intervals } = best ?? { step: 1, intervals: MIN_INTERVALS }
+  const ticks = Array.from({ length: intervals + 1 }, (_, i) => i * step)
   return { domain: [0, ticks[ticks.length - 1]], ticks }
 }
 
