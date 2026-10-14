@@ -1,11 +1,22 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import * as format from "@/lib/format"
 import ProjectsPage from "./page"
 
 const state = vi.hoisted(() => ({
   projects: [] as unknown[],
   create: vi.fn(async () => ({})),
 }))
+
+// The real formatters, wrapped in spies to see which one the list calls.
+vi.mock("@/lib/format", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/format")>()
+  return {
+    ...actual,
+    formatInstantDate: vi.fn(actual.formatInstantDate),
+    formatIsoDate: vi.fn(actual.formatIsoDate),
+  }
+})
 
 vi.mock("@/lib/queries", () => ({
   useProjects: () => ({ data: state.projects, isLoading: false, error: null }),
@@ -25,6 +36,8 @@ describe("/projects", () => {
   beforeEach(() => {
     state.projects = []
     state.create.mockClear()
+    vi.mocked(format.formatInstantDate).mockClear()
+    vi.mocked(format.formatIsoDate).mockClear()
   })
 
   it("creates a project from a labelled field with the trimmed name", async () => {
@@ -60,5 +73,18 @@ describe("/projects", () => {
 
     expect(screen.getByText("1 oct 2026")).toBeTruthy()
     expect(screen.queryByText("1/10/2026")).toBeNull()
+  })
+
+  it("formats each creation date as an instant, not as a plain date", () => {
+    const other = { ...PROJECT, id: "p2", name: "Clínica", created_at: "2026-03-28T23:30:00Z" }
+    state.projects = [PROJECT, other]
+
+    render(<ProjectsPage />)
+
+    expect(vi.mocked(format.formatInstantDate).mock.calls.map(([iso]) => iso)).toEqual([
+      PROJECT.created_at,
+      other.created_at,
+    ])
+    expect(format.formatIsoDate).not.toHaveBeenCalled()
   })
 })
