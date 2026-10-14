@@ -45,14 +45,15 @@ describe("/demo", () => {
 
   it("resets the analysis view state when the dataset changes", () => {
     render(<DemoPage />)
-    const trends = () => screen.getByRole("button", { name: /^Tendencias/ })
+    const ventas = () => screen.getByRole("button", { name: "Ventas" })
 
-    // Insight categories start open (▲); close the trends of the sales dataset.
-    fireEvent.click(trends())
-    expect(trends().textContent).toContain("▼")
+    // Expand a column of the sales dataset, switch to housing and back.
+    fireEvent.click(ventas())
+    expect(ventas().getAttribute("aria-expanded")).toBe("true")
 
     fireEvent.click(screen.getByRole("button", { name: "Viviendas · regresión" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ventas diarias · previsión" }))
 
-    expect(trends().textContent).toContain("▲")
+    expect(ventas().getAttribute("aria-expanded")).toBe("false")
   })
 })
