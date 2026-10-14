@@ -16,6 +16,13 @@ describe("/signup", () => {
     expect(screen.getByRole("link", { name: "Inicia sesión" }).getAttribute("href")).toBe("/login")
   })
 
+  it("titles its form", () => {
+    render(<SignupPage />)
+
+    expect(screen.getByRole("heading", { level: 2, name: "Crear cuenta" })).toBeTruthy()
+    expect(screen.getByText("Con una cuenta puedes subir tus propios CSV.")).toBeTruthy()
+  })
+
   it("labels its fields and asks for at least 8 characters", () => {
     render(<SignupPage />)
 
@@ -23,6 +30,10 @@ describe("/signup", () => {
     const password = screen.getByLabelText("Contraseña")
     expect(password.getAttribute("type")).toBe("password")
     expect(password.getAttribute("minlength")).toBe("8")
+    expect(screen.getByLabelText("Email").getAttribute("autocomplete")).toBe("email")
+    expect(password.getAttribute("autocomplete")).toBe("new-password")
+    expect(password.getAttribute("aria-describedby")).toBe("signup-password-hint")
+    expect(document.getElementById("signup-password-hint")?.textContent).toBe("Mínimo 8 caracteres")
   })
 
   it("announces a failed signup as an alert", async () => {
