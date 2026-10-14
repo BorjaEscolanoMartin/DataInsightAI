@@ -50,3 +50,17 @@ export function formatDateRange(min?: string, max?: string): string | null {
   const to = max ? formatIsoDate(max) : null
   return from && to ? `${from} – ${to}` : null
 }
+
+const MAX_DISTINCT_DECIMALS = 10
+
+/** Fewest decimals that write each value differently from the one before it, unless the two
+ *  are really equal (bounds 0,0012 and 0,0036 need three: «0,001» and «0,004»). */
+export function distinctDecimals(values: number[]): number {
+  for (let decimals = 0; decimals < MAX_DISTINCT_DECIMALS; decimals++) {
+    const written = values.map((v) => formatNumber(v, decimals, decimals))
+    if (values.every((v, i) => i === 0 || v === values[i - 1] || written[i] !== written[i - 1])) {
+      return decimals
+    }
+  }
+  return MAX_DISTINCT_DECIMALS
+}

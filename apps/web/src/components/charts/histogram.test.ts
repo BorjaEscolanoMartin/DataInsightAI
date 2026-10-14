@@ -78,4 +78,17 @@ describe("histogramView", () => {
     expect(view.axis).toBeNull()
     expect(view.note).toBeNull()
   })
+
+  it("adds the decimals small values need so that neighbouring bounds differ", () => {
+    const view = histogramView([
+      { bin: "0.0012–0.0036", start: 0.0012, end: 0.0036, count: 40 },
+      { bin: "0.0036–0.006", start: 0.0036, end: 0.006, count: 30 },
+      { bin: "> 0.006", start: 0.006, end: null, count: 2 },
+    ])
+
+    expect(view.axis).toEqual({ first: "0,001", last: "0,006" })
+    expect(view.bars.map((b) => b.range)).toEqual(["0,001–0,004", "0,004–0,006", "> 0,006"])
+    expect(view.note).toBe("2 por encima de 0,006")
+  })
 })
+

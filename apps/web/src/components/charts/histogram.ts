@@ -1,4 +1,4 @@
-import { formatNumber } from "@/lib/format"
+import { distinctDecimals, formatNumber } from "@/lib/format"
 
 /** A histogram bin from the API. Since #37 each bin carries its numeric bounds; an outlier bin
  *  has no `start` («< X», values below the IQR bounds) or no `end` («> Y», values above them).
@@ -56,12 +56,16 @@ export function histogramView(data: HistogramDatum[]): HistogramView {
   const below = data.find((d) => sideOf(d) === "below")
   const above = data.find((d) => sideOf(d) === "above")
 
-  // The labels a reader compares (axis ends and outlier bounds) share their decimals.
+  // The labels a reader compares (axis ends and outlier bounds) share their decimals, and get
+  // as many as neighbouring bounds need to look different (small values).
   const first = inner[0]?.start ?? below?.end ?? 0
   const last = inner.at(-1)?.end ?? above?.start ?? first
-  const decimals = sharedDecimals([first, last])
+  const bounds = data.flatMap((d) => [d.start, d.end]).filter((v): v is number => v != null)
+  const decimals = Math.max(sharedDecimals([first, last]), distinctDecimals(bounds))
   const bound = (v: number) => formatNumber(v, decimals, decimals)
+  const rangeDecimals = Math.max(MAX_DECIMALS, decimals)
 
+  const inside = (v: number) => formatNumber(v, rangeDecimals)
   const bars = data.map((d): HistogramBar => {
     const side = sideOf(d)
     const range =
@@ -69,7 +73,7 @@ export function histogramView(data: HistogramDatum[]): HistogramView {
         ? `< ${bound(d.end as number)}`
         : side === "above"
           ? `> ${bound(d.start as number)}`
-          : `${formatNumber(d.start as number)}–${formatNumber(d.end as number)}`
+          : `${inside(d.start as number)}–${inside(d.end as number)}`
     return { range, count: d.count, side }
   })
 

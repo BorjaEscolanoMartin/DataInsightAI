@@ -32,7 +32,8 @@ Quoted from the brief (W1–W10); decisions in the Log.
 | C1 | S5 (L9) | inline | done: RED (no region), GREEN; a wide heatmap's scroll box is a `region` named «Mapa de correlaciones, desplazable en horizontal» with `tabIndex` 0 and the `--au` focus ring; a compact one adds no tab stop | 75b5257 |
 | C2 | S3 (L9) | inline | done: RED (max 1 and 2 gave 0,25 and 0,5 steps), GREEN; the count step is at least 1 (1 → 0–1, 2 → 0–2, 3 → 0–3); the 0,34 case, not a count, is gone | 91d92bd |
 | C3 | S3 (L9) | inline | done: RED (Recharts' own 350, 700, 1050, 1400), GREEN; the value columns and the histogram's count axis use `countAxis` and `numberTick` («0, 500, 1.000, 1.500»), axis width 48 px; `motion.test.tsx` becomes `rendered.test.tsx`, holding every test that renders a chart with a fixed-size container | ebc8f3c |
-| C4 | S6 (L9) | inline | done: RED (`"xl:col-span-3"` not written in grid.ts), GREEN; `lastSpanClass` reads whole class names from value-to-class maps; the test checks every class it can return appears quoted in grid.ts, where Tailwind's scanner finds it | (this commit) |
+| C4 | S6 (L9) | inline | done: RED (`"xl:col-span-3"` not written in grid.ts), GREEN; `lastSpanClass` reads whole class names from value-to-class maps; the test checks every class it can return appears quoted in grid.ts, where Tailwind's scanner finds it | c933bc8 |
+| C5 | S1 (L9) | inline | done: RED (`distinctDecimals` missing; small bounds written «0,00»), GREEN; `lib/format.ts` gets `distinctDecimals` (fewest decimals that write each value differently from the previous one, using `formatNumber` itself); the histogram's axis ends and outlier bounds take the larger of it and the exact-up-to-2 rule, and ranges up to that many (at least 2), so 0,0012–0,006 reads «0,001–0,004», «> 0,006»; existing labels unchanged | (this commit) |
 | T8 | checks, screenshots | inline | pending | |
 
 Route: inline; no writer trigger (sequential edits in the same chart components).
