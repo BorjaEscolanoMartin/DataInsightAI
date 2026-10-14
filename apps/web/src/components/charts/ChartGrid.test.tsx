@@ -119,4 +119,14 @@ describe("ChartGrid", () => {
     expect(figures[1].parentElement?.className).toContain("xl:col-span-2")
     expect(figures[0].parentElement?.className ?? "").not.toContain("col-span")
   })
+
+  it("leaves charts of an unknown type out of the grid, so the last drawn chart ends its row", () => {
+    const unknown = { id: "pie", type: "pie", title: "Tarta", data: [] } as unknown as ChartSpec
+    render(<ChartGrid charts={[CHARTS[0], CHARTS[2], unknown]} />)
+
+    const figures = screen.getAllByRole("figure")
+    expect(figures).toHaveLength(2)
+    // Two drawn small charts: the second ends the row on desktops.
+    expect(figures[1].parentElement?.className).toContain("xl:col-span-2")
+  })
 })
