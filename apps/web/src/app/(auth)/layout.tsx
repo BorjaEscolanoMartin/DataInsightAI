@@ -12,7 +12,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
     <div className="min-h-screen">
       <header className="border-b border-ln">
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
-          <Logo />
+          <Logo asLink={false} />
           <ThemeToggle />
         </div>
       </header>

@@ -3,14 +3,19 @@ import { describe, expect, it } from "vitest"
 import AuthLayout from "./layout"
 
 describe("auth layout", () => {
-  it("links the brand to the home page and offers the theme toggle", () => {
+  it("shows the brand as text, not a link, and offers the theme toggle", () => {
     render(
       <AuthLayout>
         <p>Formulario</p>
       </AuthLayout>,
     )
 
-    expect(screen.getByRole("link", { name: "DataInsight AI, ir al inicio" }).getAttribute("href")).toBe("/")
+    // On login and signup the brand is plain text: no link, nothing to focus.
+    expect(screen.queryByRole("link", { name: /DataInsight/ })).toBeNull()
+    const brand = screen.getByText("DataInsight").parentElement!
+    expect(brand.textContent).toBe("DataInsight AI")
+    expect(brand.closest("a")).toBeNull()
+    expect(brand.hasAttribute("tabindex")).toBe(false)
     expect(screen.getByRole("group", { name: "Tema" })).toBeTruthy()
     expect(screen.getByText("Formulario")).toBeTruthy()
   })

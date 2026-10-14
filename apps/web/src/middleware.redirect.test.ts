@@ -40,7 +40,7 @@ describe("middleware redirects", () => {
   })
 
   it.each([
-    ["/", false, "/demo"],
+    ["/", false, "/login"],
     ["/", true, "/projects"],
     ["/projects", false, "/login"],
     ["/login", true, "/projects"],
@@ -52,7 +52,7 @@ describe("middleware redirects", () => {
   })
 
   it.each([
-    [false, "/demo"],
+    [false, "/login"],
     [true, "/projects"],
   ])("ignores a next parameter on / (signed in: %s)", async (signedIn, target) => {
     const response = await visit("/?next=https://otra-web.com", signedIn)

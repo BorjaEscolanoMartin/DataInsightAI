@@ -32,15 +32,16 @@ export async function middleware(request: NextRequest) {
   // Every redirect goes to a fixed internal path on our own origin: nothing from the request URL
   // (query, parameters) is carried over (S25). It keeps the cookies getUser() may have refreshed,
   // otherwise the browser would lose the rotated session.
-  const redirectTo = (path: "/demo" | "/projects" | "/login") => {
+  const redirectTo = (path: "/projects" | "/login") => {
     const response = NextResponse.redirect(new URL(path, request.url))
     supabaseResponse.cookies.getAll().forEach((cookie) => response.cookies.set(cookie))
     return response
   }
 
-  // The home page decides by session: visitors see the demo, signed-in users their projects.
+  // The home page decides by session: visitors go to the login (which links to the demo),
+  // signed-in users to their projects (S31).
   if (pathname === "/") {
-    return redirectTo(user ? "/projects" : "/demo")
+    return redirectTo(user ? "/projects" : "/login")
   }
 
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/signup")
