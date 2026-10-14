@@ -10,7 +10,7 @@ CSV_NUMERIC = textwrap.dedent("""\
     2024-01-01,100,A,true
     2024-01-02,200,B,false
     2024-01-03,150,A,true
-    2024-01-04,300,C,false
+    2024-01-04,300.5,C,false
     2024-01-05,250,B,true
     2024-01-06,180,A,false
     2024-01-07,220,C,true
@@ -127,6 +127,41 @@ def test_histogram_with_zero_iqr_uses_the_full_range():
     assert bins[-1]["end"] == 9.5
     assert all(b["start"] is not None and b["end"] is not None for b in bins)
     assert sum(b["count"] for b in bins) == 12
+
+
+def _charts(values: list[str]) -> dict[str, dict]:
+    csv = "valor,nombre\n" + "".join(f"{v},x\n" for v in values)
+    return {c["id"]: c for c in profile_csv(csv.encode())["charts"]}
+
+
+def test_whole_numbers_with_few_values_are_bars_of_each_value():
+    # Ten distinct values, unordered, and an empty cell (read as a float column).
+    charts = _charts(["3", "1", "3", "", "10", "2", "4", "5", "6", "7", "8", "9", "3"])
+
+    assert "hist_valor" not in charts
+    bar = charts["bar_valor"]
+    assert (bar["type"], bar["title"], bar["column"]) == ("bar", "Distribución de valor", "valor")
+    assert bar["data"][:3] == [
+        {"name": "1", "value": 1, "count": 1},
+        {"name": "2", "value": 2, "count": 1},
+        {"name": "3", "value": 3, "count": 3},
+    ]
+    assert [b["value"] for b in bar["data"]] == list(range(1, 11))
+    assert all(isinstance(b["value"], int) for b in bar["data"])
+
+
+def test_whole_numbers_with_more_values_stay_a_histogram():
+    charts = _charts([str(v) for v in range(11)])
+
+    assert "bar_valor" not in charts
+    assert charts["hist_valor"]["type"] == "histogram"
+
+
+def test_decimal_numbers_with_few_values_stay_a_histogram():
+    charts = _charts(["1.5", "2.5", "1.5", "3.5"])
+
+    assert "bar_valor" not in charts
+    assert charts["hist_valor"]["type"] == "histogram"
 
 
 CSV_IDENTIFIERS = (

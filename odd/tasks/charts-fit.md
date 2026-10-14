@@ -16,8 +16,8 @@ Objective: charts that adapt to the data: histograms not flattened by extremes, 
 
 | ID | Specs | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1, S3 (histogram bins) | inline | done: RED (missing start/end; 20 bins over the whole range), GREEN; zero-IQR test mutation-checked | (this commit) |
-| T2 | S2, S3 (discrete bars) | inline | pending | |
+| T1 | S1, S3 (histogram bins) | inline | done: RED (missing start/end; 20 bins over the whole range), GREEN; zero-IQR test mutation-checked | 2328cb6 |
+| T2 | S2, S3 (discrete bars) | inline | done: RED (whole numbers drawn as a histogram), GREEN; boundary tests (11 values, decimals) mutation-checked; shared `MAX_DISCRETE_VALUES` replaces the breakdowns constant; the shared test CSV gets one decimal sale (300.5) so its 10 distinct whole numbers stay a histogram | (this commit) |
 | T3 | S4 | inline | pending | |
 | T4 | S5 | inline | pending | |
 | T5 | S6, S7 | inline | pending | |

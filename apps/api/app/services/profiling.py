@@ -6,6 +6,9 @@ from typing import Any, Literal
 import numpy as np
 import pandas as pd
 
+# Whole-number columns with this many distinct values or fewer are discrete: drawn as one bar per
+# value, kept out of the scatter pairs, and broken down like categories in the insights.
+MAX_DISCRETE_VALUES = 10
 
 def _safe_float(val: Any) -> float | None:
     if val is None:
@@ -98,6 +101,20 @@ def _outliers_iqr(series: pd.Series) -> int:
     return int(((series < low) | (series > high)).sum())
 
 
+def is_discrete(series: pd.Series) -> bool:
+    """A numeric column (nulls dropped) of whole numbers with few distinct values."""
+    return series.nunique() <= MAX_DISCRETE_VALUES and bool((series % 1 == 0).all())
+
+
+def _value_bars(series: pd.Series) -> list[dict[str, Any]]:
+    """The count of each value of a discrete column, in value order."""
+    counts = series.value_counts().sort_index()
+    return [
+        {"name": str(int(value)), "value": int(value), "count": int(count)}
+        for value, count in counts.items()
+    ]
+
+
 def _histogram_bins(series: pd.Series) -> list[dict[str, Any]]:
     """20 bins over the values inside the IQR bounds, plus one bin for each side's outliers.
 
@@ -141,6 +158,15 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
     for col in numeric_cols[:6]:
         series = pd.to_numeric(df[col], errors="coerce").dropna()
         if len(series) < 2:
+            continue
+        if is_discrete(series):
+            charts.append({
+                "id": f"bar_{col}",
+                "type": "bar",
+                "title": f"Distribución de {col}",
+                "column": col,
+                "data": _value_bars(series),
+            })
             continue
         charts.append({
             "id": f"hist_{col}",
