@@ -1,7 +1,7 @@
 "use client"
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
-import { niceAxisMax, numberTick } from "./axis"
+import { countAxis, numberTick } from "./axis"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 import { useReducedMotion } from "@/lib/motion"
 
@@ -12,7 +12,7 @@ interface Props {
 export function CategoricalBarChart({ data }: Props) {
   const reducedMotion = useReducedMotion()
   const height = Math.max(160, data.length * 28)
-  const top = niceAxisMax(Math.max(0, ...data.map((d) => d.count)))
+  const axis = countAxis(Math.max(0, ...data.map((d) => d.count)))
 
   return (
     <div data-orientation="horizontal">
@@ -22,8 +22,8 @@ export function CategoricalBarChart({ data }: Props) {
           <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
           <XAxis
             type="number"
-            domain={[0, top]}
-            tickCount={5}
+            domain={axis.domain}
+            ticks={axis.ticks}
             tickFormatter={numberTick}
             tick={AXIS_TICK}
             axisLine={false}

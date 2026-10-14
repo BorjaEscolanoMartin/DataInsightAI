@@ -1,20 +1,21 @@
 import { describe, expect, it } from "vitest"
-import { niceAxisMax, numberTick, scatterAxis } from "./axis"
+import { countAxis, numberTick, scatterAxis } from "./axis"
 
-describe("niceAxisMax", () => {
+describe("countAxis", () => {
   it.each([
-    [346, 400],
-    [950, 1000],
-    [1000, 1000],
-    [7, 7],
-    [12, 20],
-    [0.34, 0.4],
-  ])("rounds %s up to %s, the next multiple of its leading power of ten", (max, top) => {
-    expect(niceAxisMax(max)).toBeCloseTo(top, 10)
+    // max → ticks: a round step (1, 2, 2,5 or 5 × 10ⁿ) of at least a quarter of the max.
+    [346, [0, 100, 200, 300, 400]],
+    [950, [0, 250, 500, 750, 1000]],
+    [639, [0, 200, 400, 600, 800]],
+    [1000, [0, 250, 500, 750, 1000]],
+    [7, [0, 2, 4, 6, 8]],
+    [0.34, [0, 0.1, 0.2, 0.3, 0.4]],
+  ])("ends the axis of a maximum of %s at a round number with even ticks", (max, ticks) => {
+    expect(countAxis(max)).toEqual({ domain: [0, ticks.at(-1)], ticks })
   })
 
   it("gives an empty or all-zero chart an axis up to 1", () => {
-    expect(niceAxisMax(0)).toBe(1)
+    expect(countAxis(0)).toEqual({ domain: [0, 1], ticks: [0, 1] })
   })
 })
 

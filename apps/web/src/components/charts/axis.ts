@@ -1,13 +1,5 @@
 import { formatNumber } from "@/lib/format"
 
-/** Top of a count axis: the largest value rounded up to the next multiple of its leading power
- *  of ten (346 → 400, 950 → 1.000), not to the next big step (W3). */
-export function niceAxisMax(max: number): number {
-  if (!(max > 0)) return 1
-  const unit = 10 ** Math.floor(Math.log10(max))
-  return Math.ceil(max / unit) * unit
-}
-
 /** Axis tick numbers in Spanish («1.000», «0,5»). */
 export function numberTick(value: number): string {
   return formatNumber(value)
@@ -25,6 +17,19 @@ function niceStep(raw: number): number {
 
 /** Drops the float noise of multiples of a decimal step (0.6000000000000001 → 0.6). */
 const tidy = (v: number) => Number(v.toPrecision(12))
+
+const COUNT_INTERVALS = 4
+
+/** A count axis from 0 (W3): a round step (1, 2, 2,5 or 5 × 10ⁿ) of at least a quarter of the
+ *  maximum, up to its first multiple that reaches the maximum (346 → 400, 950 → 1.000), with
+ *  evenly spaced ticks, rather than the next big jump. */
+export function countAxis(max: number): { domain: [number, number]; ticks: number[] } {
+  if (!(max > 0)) return { domain: [0, 1], ticks: [0, 1] }
+  const step = niceStep(max / COUNT_INTERVALS)
+  const last = Math.ceil(tidy(max / step))
+  const ticks = Array.from({ length: last + 1 }, (_, i) => tidy(i * step))
+  return { domain: [0, ticks[ticks.length - 1]], ticks }
+}
 
 /** A scatter axis fitted to its data (W4): a 5 % margin on each side, never below 0 when every
  *  value is 0 or more, and round ticks at a 1, 2, 2,5 or 5 step that cover the margin. Null
