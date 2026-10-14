@@ -16,3 +16,8 @@ export const TOOLTIP_PROPS = {
   itemStyle: { color: "var(--fg)" },
   cursor: { fill: "var(--s2)", stroke: "var(--ln)" },
 }
+
+/** The shared tooltip props, still when the system reduces motion (W9). */
+export function chartTooltip(reducedMotion: boolean) {
+  return { ...TOOLTIP_PROPS, isAnimationActive: !reducedMotion }
+}

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest"
-import { formatDateRange, formatInstantDate, formatIsoDate, formatNumber } from "./format"
+import {
+  distinctDecimals,
+  formatDateRange,
+  formatInstantDate,
+  formatIsoDate,
+  formatNumber,
+} from "./format"
 
 describe("formatNumber", () => {
   it.each([
@@ -82,5 +88,20 @@ describe("formatInstantDate", () => {
 
   it("returns null for a value that is not an instant", () => {
     expect(formatInstantDate("no es una fecha")).toBeNull()
+  })
+})
+
+describe("distinctDecimals", () => {
+  it.each([
+    [[25, 31.85, 38.7], 0],
+    [[1, 1.04, 1.08], 2],
+    [[0.0012, 0.0036, 0.006], 3],
+    [[1, 1.004], 3],
+  ])("writes %j with %s decimals so that no two neighbours look the same", (values, decimals) => {
+    expect(distinctDecimals(values)).toBe(decimals)
+  })
+
+  it("ignores neighbours that are really equal", () => {
+    expect(distinctDecimals([5, 5, 6])).toBe(0)
   })
 })
