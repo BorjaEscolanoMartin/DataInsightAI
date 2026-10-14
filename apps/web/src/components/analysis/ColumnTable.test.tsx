@@ -36,16 +36,33 @@ const COLUMNS: ColumnProfile[] = [
     outlier_count: 0,
   },
   {
-    name: "Promoción",
+    name: "Día de la semana",
     type: "categorical",
+    null_count: 0,
+    null_pct: 0,
+    unique_count: 7,
+    top_categories: [
+      { value: "Martes", count: 105 },
+      { value: "Miércoles", count: 105 },
+      { value: "Jueves", count: 104 },
+      { value: "Viernes", count: 104 },
+      { value: "Sábado", count: 104 },
+      { value: "Domingo", count: 104 },
+      { value: "Lunes", count: 104 },
+    ],
+  },
+  {
+    name: "Activo",
+    type: "boolean",
     null_count: 0,
     null_pct: 0,
     unique_count: 2,
     top_categories: [
-      { value: "No", count: 680 },
-      { value: "Sí", count: 50 },
+      { value: "true", count: 3 },
+      { value: "false", count: 1 },
     ],
   },
+  { name: "Fecha", type: "date", null_count: 0, null_pct: 0, unique_count: 730 },
 ]
 
 function row(name: string): HTMLElement {
@@ -89,15 +106,29 @@ describe("ColumnTable", () => {
     expect(screen.queryByText("Mediana")).toBeNull()
   })
 
-  it("keeps non-numeric columns as plain rows with their top values inline", () => {
+  it.each([
+    [
+      "Día de la semana",
+      "Martes 105 · Miércoles 105 · Jueves 104…",
+      "Martes105Miércoles105Jueves104Viernes104Sábado104Domingo104Lunes104",
+    ],
+    ["Activo", "true 3 · false 1", "true3false1"],
+  ])("expands the %s column to every category and its count", (name, inline, strip) => {
     render(<ColumnTable columns={COLUMNS} />)
-    const promo = row("Promoción")
+    const button = screen.getByRole("button", { name })
+    expect(row(name).textContent).toContain(inline)
 
-    expect(within(promo).queryByRole("button")).toBeNull()
-    expect(promo.textContent).toContain("No 680 · Sí 50")
-    const rows = screen.getAllByRole("row").length
-    fireEvent.click(promo)
-    expect(screen.getAllByRole("row")).toHaveLength(rows)
+    fireEvent.click(button)
+
+    expect(button.getAttribute("aria-expanded")).toBe("true")
+    const detail = row(name).nextElementSibling as HTMLElement
+    expect(detail.textContent).toBe(strip)
+  })
+
+  it("keeps a date column as a plain row", () => {
+    render(<ColumnTable columns={COLUMNS} />)
+
+    expect(within(row("Fecha")).queryByRole("button")).toBeNull()
   })
 
   it("summarises nulls and numeric columns in Spanish", () => {

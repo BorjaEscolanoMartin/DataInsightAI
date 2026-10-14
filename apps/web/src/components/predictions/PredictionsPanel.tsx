@@ -9,29 +9,38 @@ interface Props {
   predictions: PredictionsOut
 }
 
+function hasForecast(predictions: PredictionsOut): boolean {
+  return !!predictions.forecast && predictions.forecast.points.length > 0
+}
+
+function hasRegression(predictions: PredictionsOut): boolean {
+  return !!predictions.regression && predictions.regression.feature_importance.length > 0
+}
+
+export function hasPredictions(predictions: PredictionsOut | null | undefined): predictions is PredictionsOut {
+  return !!predictions && (hasForecast(predictions) || hasRegression(predictions))
+}
+
 export function PredictionsPanel({ predictions }: Props) {
+  if (!hasPredictions(predictions)) return null
   const { forecast, regression } = predictions
-  const hasForecast = forecast && forecast.points.length > 0
-  const hasRegression = regression && regression.feature_importance.length > 0
-  if (!hasForecast && !hasRegression) return null
 
   return (
-    <div className="space-y-8">
-      <h2 className="font-serif text-2xl text-fg">Predicciones automáticas</h2>
+    <div className="space-y-10">
 
-      {hasForecast && (
+      {hasForecast(predictions) && (
         <div>
           <h3 className="mb-2 font-serif text-xl text-fg">
-            Forecasting — {nextHorizonText(forecast!)}
+            Previsión de {forecast!.target_column}: {nextHorizonText(forecast!)}
           </h3>
           <ForecastChart forecast={forecast!} />
         </div>
       )}
 
-      {hasRegression && (
+      {hasRegression(predictions) && (
         <div>
           <h3 className="mb-2 font-serif text-xl text-fg">
-            Regresión baseline (RandomForest) — importancia de variables
+            Regresión (RandomForest): importancia de variables
           </h3>
           <FeatureImportance regression={regression!} />
         </div>

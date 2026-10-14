@@ -28,10 +28,25 @@ function summary(col: ColumnProfile): string {
   return top.length > 3 ? `${shown}…` : shown
 }
 
+function detail(col: ColumnProfile, categories: { value: string; count: number }[]): [string, string][] {
+  if (col.type === "numeric") {
+    return [
+      ["Mín.", fmt(col.min_val, 2)],
+      ["P25", fmt(col.p25, 2)],
+      ["Mediana", fmt(col.p50, 2)],
+      ["P75", fmt(col.p75, 2)],
+      ["Máx.", fmt(col.max_val, 2)],
+    ]
+  }
+  return categories.map((c) => [c.value, formatNumber(c.count)])
+}
+
 function ColumnRow({ col }: { col: ColumnProfile }) {
   const [expanded, setExpanded] = useState(false)
-  // Only numeric columns have a distribution to show (S4).
-  const expandable = col.type === "numeric"
+  // Numeric columns show their five-number summary; categorical and boolean ones every category
+  // with its count (S4). Date and text columns have nothing more to show.
+  const categories = col.type === "categorical" || col.type === "boolean" ? (col.top_categories ?? []) : []
+  const expandable = col.type === "numeric" || categories.length > 0
 
   return (
     <>
@@ -70,16 +85,10 @@ function ColumnRow({ col }: { col: ColumnProfile }) {
         <tr className="border-b border-ln bg-s2">
           <td colSpan={5} className="px-3 py-2">
             <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-              {[
-                ["Mín.", col.min_val],
-                ["P25", col.p25],
-                ["Mediana", col.p50],
-                ["P75", col.p75],
-                ["Máx.", col.max_val],
-              ].map(([label, value]) => (
-                <div key={label as string} className="flex gap-2">
+              {detail(col, categories).map(([label, value]) => (
+                <div key={label} className="flex gap-2">
                   <dt className="text-f3">{label}</dt>
-                  <dd className="font-medium tabular-nums text-fg">{fmt(value as number | undefined, 2)}</dd>
+                  <dd className="font-medium tabular-nums text-fg">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -90,7 +99,7 @@ function ColumnRow({ col }: { col: ColumnProfile }) {
   )
 }
 
-/** Every profiled column; numeric rows expand to their five-number summary. */
+/** Every profiled column; numeric, categorical and boolean rows expand to their detail. */
 export function ColumnTable({ columns }: { columns: ColumnProfile[] }) {
   return (
     <div className="overflow-x-auto">
@@ -110,7 +119,6 @@ export function ColumnTable({ columns }: { columns: ColumnProfile[] }) {
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-xs text-f3">Pulsa una columna numérica para ver su distribución.</p>
     </div>
   )
 }

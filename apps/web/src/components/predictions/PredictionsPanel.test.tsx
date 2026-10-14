@@ -35,12 +35,12 @@ describe("PredictionsPanel forecast", () => {
   it("shows WAPE first, MAE as detail, the aggregation and the horizon", () => {
     const { container } = renderForecast(NEW_FORECAST)
 
-    expect(screen.getByRole("heading", { name: "Forecasting — próximos 12 meses" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Previsión de Ventas: próximos 12 meses" })).toBeTruthy()
     const text = container.textContent ?? ""
     expect(text).toContain("Objetivo: Suma mensual de Ventas")
     expect(text).toContain("Horizonte: 12 meses")
-    expect(text).toContain("WAPE backtest: 9.7%")
-    expect(text).toContain("MAE: 268.5")
+    expect(text).toContain("WAPE del backtest: 9,7 %")
+    expect(text).toContain("MAE: 268,5")
     expect(text.indexOf("WAPE")).toBeLessThan(text.indexOf("MAE"))
     expect(text).not.toContain("MAPE")
   })
@@ -54,7 +54,7 @@ describe("PredictionsPanel forecast", () => {
   ] as const)("names the %s horizon and sum in its own unit", (frequency, horizon, title, target) => {
     const { container } = renderForecast({ ...NEW_FORECAST, frequency, horizon })
 
-    expect(screen.getByRole("heading", { name: `Forecasting — ${title}` })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: `Previsión de Ventas: ${title}` })).toBeTruthy()
     expect(container.textContent).toContain(`Objetivo: ${target}`)
   })
 
@@ -68,11 +68,11 @@ describe("PredictionsPanel forecast", () => {
   it("renders an old analysis with only mape and horizon_days", () => {
     const { container } = renderForecast(OLD_FORECAST)
 
-    expect(screen.getByRole("heading", { name: "Forecasting — próximos 14 días" })).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Previsión de Ventas: próximos 14 días" })).toBeTruthy()
     const text = container.textContent ?? ""
     expect(text).toContain("Objetivo: Ventas")
     expect(text).toContain("Horizonte: 14 días")
-    expect(text).toContain("MAPE backtest: 9.0%")
+    expect(text).toContain("MAPE del backtest: 9,0 %")
     expect(text).not.toContain("WAPE")
     expect(text).not.toContain("MAE:")
     expect(text).not.toContain("Suma")

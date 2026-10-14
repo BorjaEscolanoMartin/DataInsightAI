@@ -23,7 +23,6 @@ export function ChartGrid({ charts }: Props) {
 
   return (
     <div>
-      <h2 className="mb-4 font-serif text-2xl text-fg">Visualizaciones automáticas</h2>
       {/* grid-cols-1 is not a no-op: it gives the mobile column a minmax(0, 1fr) track, so a wide
           chart (the correlation heatmap) scrolls inside its block instead of widening the page. */}
       <div className="grid grid-cols-1 gap-x-8 gap-y-8 md:grid-cols-2 xl:grid-cols-3">

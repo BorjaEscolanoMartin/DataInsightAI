@@ -13,14 +13,15 @@ const SECTIONS = [
   { key: "recommendations" as const, label: "Recomendaciones", color: "text-f2" },
 ]
 
+export function hasInsights(insights: Insights | null | undefined): insights is Insights {
+  return !!insights && Object.values(insights).flat().length > 0
+}
+
 export function InsightsPanel({ insights }: Props) {
-  const total = Object.values(insights).flat().length
-  if (total === 0) return null
+  if (!hasInsights(insights)) return null
 
   return (
-    <div className="space-y-4">
-      <h2 className="font-serif text-2xl text-fg">Insights generados por IA</h2>
-
+    <div>
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
         {SECTIONS.map(({ key, label, color }) => {
           const items = insights[key]

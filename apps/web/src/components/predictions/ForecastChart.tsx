@@ -13,6 +13,7 @@ import {
 } from "recharts"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "@/components/charts/chartTheme"
 import { horizonText, targetText } from "@/lib/forecast"
+import { formatNumber } from "@/lib/format"
 import type { ForecastOut } from "@/types/api"
 
 interface Props {
@@ -31,23 +32,23 @@ export function ForecastChart({ forecast }: Props) {
       <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-f2">
         {forecast.wape != null && (
           <span>
-            WAPE backtest:{" "}
+            WAPE del backtest:{" "}
             <strong className="font-serif text-2xl font-medium tabular-nums text-fg">
-              {forecast.wape.toFixed(1)}%
+              {formatNumber(forecast.wape, 1, 1)} %
             </strong>
           </span>
         )}
         {forecast.mape != null && (
           <span>
-            MAPE backtest:{" "}
+            MAPE del backtest:{" "}
             <strong className="font-serif text-2xl font-medium tabular-nums text-fg">
-              {forecast.mape.toFixed(1)}%
+              {formatNumber(forecast.mape, 1, 1)} %
             </strong>
           </span>
         )}
         {forecast.mae != null && (
           <span>
-            MAE: <strong className="font-medium tabular-nums text-fg">{forecast.mae.toFixed(1)}</strong>
+            MAE: <strong className="font-medium tabular-nums text-fg">{formatNumber(forecast.mae, 1, 1)}</strong>
           </span>
         )}
       </div>
