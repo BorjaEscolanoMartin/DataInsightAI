@@ -68,3 +68,20 @@ describe("HeatmapChart sizes", () => {
   })
 })
 
+describe("HeatmapChart scroll box", () => {
+  it("lets the keyboard reach the scroll box of a wide heatmap", () => {
+    render(<HeatmapChart columns={SIX} data={matrix(SIX)} />)
+
+    const box = screen.getByRole("region", { name: "Mapa de correlaciones, desplazable en horizontal" })
+    expect(box.tabIndex).toBe(0)
+    expect(box.className).toContain("overflow-x-auto")
+  })
+
+  it("adds no tab stop to a compact heatmap, which fits its cell", () => {
+    const four = SIX.slice(0, 4)
+    render(<HeatmapChart columns={four} data={matrix(four)} />)
+
+    expect(screen.queryByRole("region")).toBeNull()
+  })
+})
+

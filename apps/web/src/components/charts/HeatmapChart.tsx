@@ -48,7 +48,16 @@ export function HeatmapChart({ columns, data }: Props) {
   const name = wide ? "text-f3" : "truncate text-f3"
 
   return (
-    <div className="overflow-x-auto">
+    // A wide heatmap scrolls sideways on narrow screens: its box takes the keyboard focus so the
+    // hidden columns can be reached with the arrow keys.
+    <div
+      className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-au"
+      {...(wide && {
+        role: "region",
+        "aria-label": "Mapa de correlaciones, desplazable en horizontal",
+        tabIndex: 0,
+      })}
+    >
       <div
         role="img"
         aria-label={`Coeficientes de correlación. ${pairs.join("; ")}`}
