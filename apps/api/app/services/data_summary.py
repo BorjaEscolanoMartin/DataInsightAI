@@ -30,6 +30,18 @@ class PeriodMean(NamedTuple):
     complete: bool
 
 
+class YearExtremes(NamedTuple):
+    """A calendar year's highest and lowest period, chosen among its complete periods."""
+    year: str
+    # Every period of the year is present and complete.
+    complete: bool
+    # First and last period of the year in the data, complete or not.
+    first: str
+    last: str
+    highest: PeriodMean
+    lowest: PeriodMean
+
+
 class DayValue(NamedTuple):
     date: str
     value: float
@@ -51,6 +63,27 @@ def pct_change(value: float, base: float) -> float | None:
 
 def _change(start_label: str, end_label: str, start: float, end: float) -> Change:
     return Change(start_label, end_label, start, end, end - start, pct_change(end, start))
+
+
+def _year_extremes(periods: list[PeriodMean], period: str) -> list[YearExtremes]:
+    """Per calendar year, its highest and lowest complete period; years with fewer than two
+    complete periods, and yearly data, have none."""
+    if period == "Y":
+        return []
+    by_year: dict[str, list[PeriodMean]] = {}
+    for p in periods:
+        by_year.setdefault(p.label[:4], []).append(p)
+    years = []
+    for year, items in by_year.items():
+        full = [p for p in items if p.complete]
+        if len(full) < 2:
+            continue
+        complete = len(items) == _PERIODS_PER_YEAR[period] and len(full) == len(items)
+        years.append(YearExtremes(
+            year, complete, items[0].label, items[-1].label,
+            max(full, key=lambda p: p.mean), min(full, key=lambda p: p.mean),
+        ))
+    return years
 
 
 def temporal_summary(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any] | None:
@@ -107,6 +140,7 @@ def temporal_summary(df: pd.DataFrame, profile: dict[str, Any]) -> dict[str, Any
         "lowest": days(by_day.nsmallest(PEAKS)),
         "trend": trend,
         "year_over_year": year_over_year,
+        "years": _year_extremes(periods, period),
     }
 
 

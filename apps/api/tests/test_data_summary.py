@@ -97,6 +97,66 @@ def test_less_than_two_years_has_no_year_comparison():
     assert temporal_summary(_frame(rows), PROFILE)["year_over_year"] is None
 
 
+def _years(summary: dict) -> list[tuple]:
+    return [
+        (y.year, y.complete, y.first, y.last, y.highest.label, y.highest.mean, y.lowest.label,
+         y.lowest.mean)
+        for y in summary["years"]
+    ]
+
+
+def test_each_calendar_year_gets_its_highest_and_lowest_month_marking_incomplete_years():
+    # Oct 2024 to Sep 2026, every month complete; each month's value is unique.
+    days = _days(date(2024, 10, 1), date(2026, 9, 30))
+    rows = [(d, (d.year - 2024) * 100 + d.month) for d in days]
+
+    summary = temporal_summary(_frame(rows), PROFILE)
+
+    assert _years(summary) == [
+        ("2024", False, "2024-10", "2024-12", "2024-12", 12, "2024-10", 10),
+        ("2025", True, "2025-01", "2025-12", "2025-12", 112, "2025-01", 101),
+        ("2026", False, "2026-01", "2026-09", "2026-09", 209, "2026-01", 201),
+    ]
+
+
+def test_a_partial_month_is_never_a_year_extreme():
+    # January starts on the 15th and April ends on the 10th: both are partial.
+    values = {1: 90, 2: 20, 3: 30, 4: 5}
+    rows = [(d, values[d.month]) for d in _days(date(2024, 1, 15), date(2024, 4, 10))]
+
+    summary = temporal_summary(_frame(rows), PROFILE)
+
+    assert _years(summary) == [("2024", False, "2024-01", "2024-04", "2024-03", 30, "2024-02", 20)]
+
+
+def test_a_year_with_fewer_than_two_complete_months_has_no_extremes():
+    rows = [(d, d.month) for d in _days(date(2024, 1, 15), date(2024, 3, 10))]
+
+    assert temporal_summary(_frame(rows), PROFILE)["years"] == []
+
+
+def test_quarters_are_grouped_by_year_too():
+    quarters = [date(2023, m, 1) for m in (1, 4, 7, 10)] + [date(2024, 1, 1), date(2024, 4, 1)]
+    rows = list(zip(quarters, [40, 10, 30, 20, 50, 60], strict=True))
+
+    summary = temporal_summary(_frame(rows), PROFILE)
+
+    assert summary["period"] == "Q"
+    assert _years(summary) == [
+        ("2023", True, "2023Q1", "2023Q4", "2023Q1", 40, "2023Q2", 10),
+        ("2024", False, "2024Q1", "2024Q2", "2024Q2", 60, "2024Q1", 50),
+    ]
+
+
+def test_yearly_data_has_no_extremes_within_a_year():
+    rows = [(date(y, 1, 1), y - 2000) for y in range(2015, 2025)]
+
+    summary = temporal_summary(_frame(rows), PROFILE)
+
+    assert summary["period"] == "Y"
+    assert summary["years"] == []
+
+
 def test_weekly_data_is_averaged_per_month():
     # Mondays from 2024-01-01 to 2024-03-18. January is complete (the week before falls in
     # December); March is not, because the next week (the 25th) would still be in March.
