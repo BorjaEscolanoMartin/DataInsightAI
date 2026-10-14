@@ -129,7 +129,7 @@ def _histogram_bins(series: pd.Series) -> list[dict[str, Any]]:
     """20 bins over the values inside the IQR bounds, plus one bin for each side's outliers.
 
     `start` and `end` are the bin's bounds; an outlier bin has no `start` («< X») or no `end`
-    («> Y»). `bin` is the label older clients read.
+    («> Y»). The web writes the labels; analyses saved before also carry a `bin` text label.
     """
     low, high = float(series.min()), float(series.max())
     bounds = iqr_bounds(series)
@@ -137,20 +137,15 @@ def _histogram_bins(series: pd.Series) -> list[dict[str, Any]]:
         low, high = max(low, bounds[0]), min(high, bounds[1])
     counts, edges = np.histogram(series, bins=20, range=(low, high))
     bins: list[dict[str, Any]] = [
-        {
-            "bin": f"{edges[i]:.4g}–{edges[i + 1]:.4g}",
-            "start": float(edges[i]),
-            "end": float(edges[i + 1]),
-            "count": int(counts[i]),
-        }
+        {"start": float(edges[i]), "end": float(edges[i + 1]), "count": int(counts[i])}
         for i in range(len(counts))
     ]
     below = int((series < low).sum())
     above = int((series > high).sum())
     if below:
-        bins.insert(0, {"bin": f"< {low:.4g}", "start": None, "end": low, "count": below})
+        bins.insert(0, {"start": None, "end": low, "count": below})
     if above:
-        bins.append({"bin": f"> {high:.4g}", "start": high, "end": None, "count": above})
+        bins.append({"start": high, "end": None, "count": above})
     return bins
 
 
@@ -205,7 +200,7 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         charts.append({
             "id": f"bar_{col}",
             "type": "bar",
-            "title": f"Top valores de {col}",
+            "title": f"Valores de {col}",
             "column": col,
             "data": [
                 {"name": c["value"], "count": c["count"]}
@@ -284,7 +279,7 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
                 charts.append({
                     "id": f"scatter_{col_a}_{col_b}",
                     "type": "scatter",
-                    "title": f"{col_a} vs {col_b}",
+                    "title": f"{col_a} frente a {col_b}",
                     "x_column": col_a,
                     "y_column": col_b,
                     "data": [

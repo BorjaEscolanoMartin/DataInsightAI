@@ -90,5 +90,15 @@ describe("histogramView", () => {
     expect(view.bars.map((b) => b.range)).toEqual(["0,001–0,004", "0,004–0,006", "> 0,006"])
     expect(view.note).toBe("2 por encima de 0,006")
   })
+
+  it("labels new bins, which carry no text label, from their bounds", () => {
+    const view = histogramView([
+      { start: 25, end: 162, count: 1438 },
+      { start: 162, end: null, count: 62 },
+    ])
+
+    expect(view.bars.map((b) => b.range)).toEqual(["25–162", "> 162"])
+    expect(view.note).toBe("62 por encima de 162")
+  })
 })
 

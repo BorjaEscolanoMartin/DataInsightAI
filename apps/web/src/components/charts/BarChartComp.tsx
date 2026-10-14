@@ -9,6 +9,21 @@ interface Props {
   data: { name: string; count: number }[]
 }
 
+// The label column fits the longest category name (as in the mockup), estimated at the 11 px
+// tick font: jsdom and the first render cannot measure text.
+const LABEL_CHAR_WIDTH = 6.2
+const LABEL_GAP = 8
+const LABEL_MIN_WIDTH = 32
+const LABEL_MAX_WIDTH = 140
+
+/** Width of the category label column: the longest name plus the gap before the bars, between
+ *  32 and 140 px (longer names are cut by the axis). */
+export function categoryLabelWidth(names: string[]): number {
+  const longest = Math.max(0, ...names.map((n) => n.length))
+  const width = Math.ceil(longest * LABEL_CHAR_WIDTH) + LABEL_GAP
+  return Math.min(LABEL_MAX_WIDTH, Math.max(LABEL_MIN_WIDTH, width))
+}
+
 export function CategoricalBarChart({ data }: Props) {
   const reducedMotion = useReducedMotion()
   const height = Math.max(160, data.length * 28)
@@ -18,7 +33,9 @@ export function CategoricalBarChart({ data }: Props) {
     <div data-orientation="horizontal">
       <ResponsiveContainer width="100%" height={height}>
         {/* The right margin keeps the last tick label («1.000») whole. */}
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24 }}>
+        {/* Each bar takes 60 % of its row, as in the mockup: Recharts leaves barCategoryGap on
+            each side of the bar, so 20 % + 60 % + 20 %. */}
+        <BarChart data={data} layout="vertical" barCategoryGap="20%" margin={{ left: 8, right: 24 }}>
           <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
           <XAxis
             type="number"
@@ -34,11 +51,12 @@ export function CategoricalBarChart({ data }: Props) {
             dataKey="name"
             tick={{ ...AXIS_TICK, fill: "var(--f2)" }}
             axisLine={false}
-            width={100}
+            width={categoryLabelWidth(data.map((d) => d.name))}
+            tickMargin={LABEL_GAP}
             tickLine={false}
           />
           <Tooltip {...chartTooltip(reducedMotion)} />
-          <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" barSize={8} />
+          <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" />
         </BarChart>
       </ResponsiveContainer>
     </div>

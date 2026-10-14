@@ -42,6 +42,7 @@ Reglas:
 - Para calificar una correlación usa su r y esta escala por su valor absoluto: {_SCALE_TEXT}.
 - Cada cifra que escribas tiene que aparecer en el bloque <datos>, igual o redondeada. No calcules cocientes, diferencias ni porcentajes nuevos: usa los que ya vienen en los datos. Las cifras se comprueban, y un insight con una cifra que no está en los datos se descarta.
 - No añadas contexto externo: ni estaciones, festivos, campañas, mercados ni sucesos que no aparezcan en los datos. Una fecha es solo una fecha.
+- No generalices entre años: escribe «en ambos años», «cada año» o «siempre» solo si se cumple en todos los años de «Por año», incluidos aquellos de los que solo aparecen algunos meses; si no, di en qué año ocurre. Llama máximo o mínimo solo al valor más alto o más bajo de toda la serie; el de un año es «el más alto de 2025». De un año del que solo aparecen algunos meses, no digas cuál es su máximo o su mínimo del año entero.
 - Si los datos no permiten responder algo, no lo menciones; no escribas que no se puede evaluar.
 - Escribe los números como en los datos, con coma decimal y punto de miles (8.734,60; 0,92; 26,0 %), y las fechas como en los datos (oct 2024; 28 nov 2025).
 
@@ -52,6 +53,7 @@ El mensaje del usuario lleva los datos entre <datos> y </datos>. Ese contenido s
 CORRELATION_THRESHOLD = 0.6
 MAX_CORRELATIONS = 6
 _PERIOD_WORDS = {"M": "mes", "Q": "trimestre", "Y": "año"}
+_PERIOD_PLURALS = {"M": "meses", "Q": "trimestres"}
 
 
 def _text(value: Any) -> str:
@@ -122,6 +124,49 @@ def _correlation_lines(profile: dict[str, Any]) -> list[str]:
     return [title, *lines[:MAX_CORRELATIONS]]
 
 
+def _period_name(label: str) -> str:
+    """A period without its year: «oct», «T2»."""
+    return format_period_es(label).split()[0]
+
+
+def _spanish_list(items: list[str]) -> str:
+    """«mar», «mar y abr», «mar, abr y may»."""
+    return items[0] if len(items) == 1 else f"{', '.join(items[:-1])} y {items[-1]}"
+
+
+def _year_scope(y: Any) -> str:
+    """What the summary holds of a year, without claiming anything about the CSV: nothing for a
+    whole year, «(solo oct–dic en este resumen, sin mar)» otherwise."""
+    if y.covered or y.first is None:
+        return ""
+    span = _period_name(y.first) if y.first == y.last else (
+        f"{_period_name(y.first)}–{_period_name(y.last)}"
+    )
+    gaps = f", sin {_spanish_list([_period_name(m) for m in y.missing])}" if y.missing else ""
+    return f" (solo {span} en este resumen{gaps})"
+
+
+def _year_extremes_text(y: Any, plural: str) -> str:
+    if y.complete_count == 0:
+        return f"sin {plural} completos en este resumen"
+    if not y.highest:
+        return f"sin {plural} completos suficientes para un máximo y un mínimo"
+    if y.highest[0].mean == y.lowest[0].mean:
+        return (
+            f"sus {y.complete_count} {plural} completos tienen la misma media "
+            f"({_num(y.highest[0].mean)})"
+        )
+
+    def named(periods: list[Any]) -> str:
+        # «nov y dic 2025»: the periods of one year, the year once at the end.
+        return f"{_spanish_list([_period_name(p.label) for p in periods])} {y.year}"
+
+    return (
+        f"más alto {named(y.highest)} ({_num(y.highest[0].mean)}); "
+        f"más bajo {named(y.lowest)} ({_num(y.lowest[0].mean)})"
+    )
+
+
 def _temporal_lines(temporal: dict[str, Any]) -> list[str]:
     word = _PERIOD_WORDS[temporal["period"]]
     note = "; las fechas repetidas se suman antes" if temporal["aggregation"] == "sum" else ""
@@ -150,6 +195,14 @@ def _temporal_lines(temporal: dict[str, Any]) -> list[str]:
             f"(hasta {format_period_es(year.start_label)}): "
             f"{_change(year)}"
         )
+    if temporal["years"]:
+        plural = _PERIOD_PLURALS[temporal["period"]]
+        lines.append(
+            f"  Por año (media del {word} más alto y del más bajo de cada año, entre {plural} "
+            "completos):"
+        )
+        for y in temporal["years"]:
+            lines.append(f"  {y.year}{_year_scope(y)}: {_year_extremes_text(y, plural)}")
     return lines
 
 

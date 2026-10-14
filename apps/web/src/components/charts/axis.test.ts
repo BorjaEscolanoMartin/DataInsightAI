@@ -3,17 +3,23 @@ import { countAxis, numberTick, scatterAxis } from "./axis"
 
 describe("countAxis", () => {
   it.each([
-    // max → ticks: a round step (1, 2, 2,5 or 5 × 10ⁿ) of at least a quarter of the max.
+    // max → ticks: a step of 1, 2, 2,5 or 5 × 10ⁿ with 3 to 5 intervals, the lowest top.
+    [640, [0, 250, 500, 750]],
+    [639, [0, 250, 500, 750]],
     [346, [0, 100, 200, 300, 400]],
+    [775, [0, 200, 400, 600, 800]],
+    // Same top with 4 and 5 intervals: the fewer intervals.
     [950, [0, 250, 500, 750, 1000]],
-    [639, [0, 200, 400, 600, 800]],
     [1000, [0, 250, 500, 750, 1000]],
+    [1260, [0, 500, 1000, 1500]],
     [7, [0, 2, 4, 6, 8]],
-    // Counts are whole: the step is never below 1.
+    [6, [0, 2, 4, 6]],
+    // Up to 5 rows: one tick per row, the axis ending at the maximum.
     [1, [0, 1]],
     [2, [0, 1, 2]],
     [3, [0, 1, 2, 3]],
-  ])("ends the axis of a maximum of %s at a round number with even ticks", (max, ticks) => {
+    [5, [0, 1, 2, 3, 4, 5]],
+  ])("ends the axis of a maximum of %s at the lowest round top", (max, ticks) => {
     expect(countAxis(max)).toEqual({ domain: [0, ticks.at(-1)], ticks })
   })
 
