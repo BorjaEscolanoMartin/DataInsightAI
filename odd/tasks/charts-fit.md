@@ -18,8 +18,8 @@ Objective: charts that adapt to the data: histograms not flattened by extremes, 
 |---|---|---|---|---|
 | T1 | S1, S3 (histogram bins) | inline | done: RED (missing start/end; 20 bins over the whole range), GREEN; zero-IQR test mutation-checked | 2328cb6 |
 | T2 | S2, S3 (discrete bars) | inline | done: RED (whole numbers drawn as a histogram), GREEN; boundary tests (11 values, decimals) mutation-checked; shared `MAX_DISCRETE_VALUES` replaces the breakdowns constant; the shared test CSV gets one decimal sale (300.5) so its 10 distinct whole numbers stay a histogram | d28a4e9 |
-| T3 | S4 | inline | done: RED (metros–habitaciones chosen), GREEN; the discrete set is computed once and shared by the histograms and the scatter; when a continuous column lies beyond the 15 heatmap columns the correlations are recomputed (test, mutation-checked) | (this commit) |
-| T4 | S5 | inline | pending | |
+| T3 | S4 | inline | done: RED (metros–habitaciones chosen), GREEN; the discrete set is computed once and shared by the histograms and the scatter; when a continuous column lies beyond the 15 heatmap columns the correlations are recomputed (test, mutation-checked) | 2ffb18f |
+| T4 | S5 | inline | done: RED (uniform days and the 1,1 bound charted), GREEN; the every-category test (the 11th category outside the top 10) mutation-checked against a top-10 ratio. A one-category column (ratio 1) also gets no chart | (this commit) |
 | T5 | S6, S7 | inline | pending | |
 
 Route: inline; no writer trigger (one understood change in `profiling.py`, sequential).

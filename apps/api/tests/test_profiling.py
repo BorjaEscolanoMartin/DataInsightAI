@@ -343,3 +343,30 @@ def test_scatter_finds_a_continuous_pair_beyond_the_heatmap_columns():
 
     scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
     assert scatters == [("c5", "c6")]
+
+
+def _bar_ids(counts: dict[str, int]) -> set[str]:
+    values = [name for name, n in counts.items() for _ in range(n)]
+    # A second, uneven column keeps its chart, so the CSV still has bar charts.
+    otros = ["a"] * (len(values) - 1) + ["b"]
+    csv = "categoria,otro\n" + "".join(f"{v},{o}\n" for v, o in zip(values, otros, strict=True))
+    return {c["id"] for c in profile_csv(csv.encode())["charts"] if c["type"] == "bar"}
+
+
+def test_nearly_uniform_categories_get_no_chart():
+    days = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+    ids = _bar_ids({d: 105 if d in ("Martes", "Miércoles") else 104 for d in days})
+
+    assert ids == {"bar_otro"}
+
+
+def test_uniformity_bound_is_one_point_one():
+    assert _bar_ids({"x": 11, "y": 10}) == {"bar_otro"}
+    assert _bar_ids({"x": 12, "y": 10}) == {"bar_categoria", "bar_otro"}
+
+
+def test_uniformity_counts_every_category_not_only_the_top_ten():
+    # The ten most frequent are even; the eleventh, outside the profile's top 10, is not.
+    counts = {f"c{i:02d}": 5 for i in range(10)} | {"c10": 1}
+
+    assert _bar_ids(counts) == {"bar_categoria", "bar_otro"}

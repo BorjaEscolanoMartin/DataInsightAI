@@ -9,6 +9,9 @@ import pandas as pd
 # Whole-number columns with this many distinct values or fewer are discrete: drawn as one bar per
 # value, kept out of the scatter pairs, and broken down like categories in the insights.
 MAX_DISCRETE_VALUES = 10
+# A categorical column whose most frequent value is at most this many times as frequent as its
+# least frequent one is nearly uniform: its bar chart would be flat, so it gets none.
+MAX_UNIFORM_RATIO = 1.1
 
 def _safe_float(val: Any) -> float | None:
     if val is None:
@@ -183,6 +186,9 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
     for col in cat_cols[:4]:
         col_data = next((c for c in columns if c["name"] == col), None)
         if not col_data or not col_data.get("top_categories"):
+            continue
+        counts = df[col].value_counts()
+        if counts.max() / counts.min() <= MAX_UNIFORM_RATIO:
             continue
         charts.append({
             "id": f"bar_{col}",
