@@ -1,7 +1,7 @@
 import io
 import math
 import re
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -17,6 +17,24 @@ def _safe_float(val: Any) -> float | None:
         return None
 
 
+def parse_dates(values: pd.Series, errors: Literal["raise", "coerce"] = "raise") -> pd.Series:
+    """The one date reading of the profile: type detection, date ranges and the time series."""
+    return pd.to_datetime(values, format="mixed", dayfirst=False, errors=errors)
+
+
+def _date_range(series: pd.Series) -> dict[str, str]:
+    """Earliest and latest calendar date of a date column, ISO 8601, ignoring unreadable cells."""
+    try:
+        dates = parse_dates(series, errors="coerce").dropna()
+    except (ValueError, TypeError, OverflowError):
+        # A column typed as a date from its first values can still hold values that cannot be read
+        # together (mixed time zones): it gets no range, and the profile goes on.
+        return {}
+    if dates.empty:
+        return {}
+    return {"min_date": dates.min().date().isoformat(), "max_date": dates.max().date().isoformat()}
+
+
 def _infer_type(series: pd.Series) -> str:
     if pd.api.types.is_bool_dtype(series):
         return "boolean"
@@ -30,7 +48,7 @@ def _infer_type(series: pd.Series) -> str:
             sample = str(non_null.iloc[0])
             if any(c in sample for c in ["-", "/", ":"]):
                 try:
-                    pd.to_datetime(non_null.head(50), format="mixed", dayfirst=False)
+                    parse_dates(non_null.head(50))
                     return "date"
                 except Exception:
                     pass
@@ -151,9 +169,7 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         try:
             y_col = numeric_cols[0]
             df_ts = df[[date_candidate, y_col]].copy()
-            df_ts[date_candidate] = pd.to_datetime(
-                df_ts[date_candidate], format="mixed", dayfirst=False, errors="coerce"
-            )
+            df_ts[date_candidate] = parse_dates(df_ts[date_candidate], errors="coerce")
             df_ts = df_ts.dropna().sort_values(date_candidate)
             if len(df_ts) > 500:
                 step = max(1, len(df_ts) // 500)
@@ -255,8 +271,10 @@ def profile_csv(content: bytes) -> dict[str, Any]:
         elif col_type in ("categorical", "boolean"):
             top = series.value_counts().head(10)
             entry["top_categories"] = [{"value": str(k), "count": int(v)} for k, v in top.items()]
-        elif col_type == "date" and date_candidate is None:
-            date_candidate = col
+        elif col_type == "date":
+            entry.update(_date_range(series))
+            if date_candidate is None:
+                date_candidate = col
 
         columns.append(entry)
 

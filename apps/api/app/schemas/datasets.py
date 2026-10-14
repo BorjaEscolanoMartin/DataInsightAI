@@ -23,6 +23,9 @@ class ColumnProfileOut(BaseModel):
     p75: float | None = None
     outlier_count: int | None = None
     top_categories: list[dict[str, Any]] | None = None
+    # Date columns only: earliest and latest calendar date, ISO 8601. Absent in older profiles.
+    min_date: str | None = None
+    max_date: str | None = None
 
 
 class ChartSpec(BaseModel):

@@ -51,3 +51,64 @@ def test_without_a_key_nothing_runs(generated, monkeypatch, tmp_path):
 
     generated.assert_not_called()
     assert list(tmp_path.iterdir()) == []
+
+
+OLD_INSIGHTS = {
+    "trends": [{"title": "Antiguo", "description": "Texto previo.", "columns": []}],
+    "anomalies": [],
+    "correlations": [],
+    "recommendations": [],
+}
+
+
+def _write_stale_fixtures(directory):
+    for name in ("ventas.json", "viviendas.json"):
+        stale = {
+            "filename": "x.csv",
+            "analysis": {"profile": {"stale": True}, "insights": OLD_INSIGHTS},
+        }
+        (directory / name).write_text(json.dumps(stale), encoding="utf-8")
+
+
+def test_keep_insights_recomputes_the_rest_without_a_key_or_a_call(
+    generated, monkeypatch, tmp_path
+):
+    from app.services.profiling import profile_csv
+
+    monkeypatch.setattr(generate_demo_fixture.settings, "anthropic_api_key", "")
+    _write_stale_fixtures(tmp_path)
+
+    generate_demo_fixture.main(["--keep-insights"])
+
+    generated.assert_not_called()
+    for fixture_name, csv_name in generate_demo_fixture.DATASETS.items():
+        fixture = json.loads((tmp_path / fixture_name).read_text(encoding="utf-8"))
+        content = (generate_demo_fixture.DEMO_DIR / csv_name).read_bytes()
+        assert fixture["filename"] == csv_name
+        assert fixture["size_bytes"] == len(content)
+        assert fixture["analysis"]["profile"] == profile_csv(content)
+        assert fixture["analysis"]["insights"] == OLD_INSIGHTS
+        assert "predictions" in fixture["analysis"]
+
+
+def test_keep_insights_needs_the_existing_fixtures(generated, tmp_path):
+    (tmp_path / "ventas.json").write_text(
+        json.dumps({"analysis": {"insights": OLD_INSIGHTS}}), encoding="utf-8"
+    )
+
+    with pytest.raises(SystemExit, match="viviendas.json"):
+        generate_demo_fixture.main(["--keep-insights"])
+
+    generated.assert_not_called()
+    assert json.loads((tmp_path / "ventas.json").read_text(encoding="utf-8")) == {
+        "analysis": {"insights": OLD_INSIGHTS}
+    }
+
+
+def test_keep_insights_and_dry_run_cannot_be_combined(generated, tmp_path):
+    _write_stale_fixtures(tmp_path)
+
+    with pytest.raises(SystemExit):
+        generate_demo_fixture.main(["--keep-insights", "--dry-run"])
+
+    generated.assert_not_called()

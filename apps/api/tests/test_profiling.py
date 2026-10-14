@@ -150,3 +150,98 @@ def test_read_csv_sniffs_the_delimiter_and_the_encoding():
 def test_read_csv_rejects_unreadable_content():
     with pytest.raises(ValueError, match="No se pudo leer el CSV"):
         read_csv(b"")
+
+
+def _column(result: dict, name: str) -> dict:
+    return next(c for c in result["columns"] if c["name"] == name)
+
+
+def test_date_column_has_its_range_in_iso():
+    content = b"fecha,ventas\n2024-03-05,1\n2024-01-02,2\n2024-12-31,3\n2024-02-29,4\n"
+
+    result = profile_csv(content)
+
+    fecha = _column(result, "fecha")
+    assert fecha["min_date"] == "2024-01-02"
+    assert fecha["max_date"] == "2024-12-31"
+    assert "min_date" not in _column(result, "ventas")
+
+
+def test_a_datetime_column_gives_calendar_dates():
+    content = (
+        b"momento,valor\n"
+        b"2025-06-01 23:59:00,1\n2025-05-30 08:15:00,2\n2025-06-02 00:00:00,3\n"
+    )
+
+    result = profile_csv(content)
+
+    momento = _column(result, "momento")
+    assert (momento["min_date"], momento["max_date"]) == ("2025-05-30", "2025-06-02")
+
+
+def test_every_date_column_has_its_own_range():
+    content = (
+        b"pedido,entrega,importe\n"
+        b"2024-01-10,2024/01/15,5\n2024-01-03,2024/01/09,7\n2024-02-01,2024/02/20,9\n"
+    )
+
+    result = profile_csv(content)
+
+    assert result["date_column_candidate"] == "pedido"
+    assert (_column(result, "pedido")["min_date"], _column(result, "pedido")["max_date"]) == (
+        "2024-01-03",
+        "2024-02-01",
+    )
+    assert (_column(result, "entrega")["min_date"], _column(result, "entrega")["max_date"]) == (
+        "2024-01-09",
+        "2024-02-20",
+    )
+
+
+def test_missing_dates_do_not_count_in_the_range():
+    content = b"fecha,ventas\n2024-01-05,1\n,2\n2024-01-01,3\n,4\n2024-01-09,5\n"
+
+    result = profile_csv(content)
+
+    fecha = _column(result, "fecha")
+    assert (fecha["min_date"], fecha["max_date"]) == ("2024-01-01", "2024-01-09")
+
+
+def test_without_a_date_column_no_column_has_a_range():
+    content = b"ventas,zona\n1,A\n2,B\n3,A\n"
+
+    result = profile_csv(content)
+
+    assert result["date_column_candidate"] is None
+    assert all("min_date" not in c and "max_date" not in c for c in result["columns"])
+
+
+def test_the_profile_schema_keeps_the_range_and_reads_old_profiles():
+    from app.schemas.datasets import DatasetProfileOut
+
+    new = DatasetProfileOut.model_validate(profile_csv(CSV_NUMERIC))
+    fecha = next(c for c in new.columns if c.name == "fecha")
+    assert (fecha.min_date, fecha.max_date) == ("2024-01-01", "2024-01-10")
+
+    old = profile_csv(CSV_NUMERIC)
+    for column in old["columns"]:
+        column.pop("min_date", None)
+        column.pop("max_date", None)
+    legacy = DatasetProfileOut.model_validate(old)
+    fecha = next(c for c in legacy.columns if c.name == "fecha")
+    assert (fecha.min_date, fecha.max_date) == (None, None)
+
+
+def test_a_date_column_with_mixed_time_zones_profiles_without_a_range():
+    # Typed as a date from its first 50 values, but later rows change the UTC offset: the whole
+    # column cannot be read in one go. The profile must not fail; the column just has no range.
+    rows = [f"2025-03-{d:02d}T10:00:00+01:00,{d}" for d in range(1, 31)] * 2
+    rows += [f"2025-04-{d:02d}T10:00:00+02:00,{d}" for d in range(1, 31)]
+    content = ("momento,valor\n" + "\n".join(rows) + "\n").encode()
+
+    result = profile_csv(content)
+
+    momento = _column(result, "momento")
+    assert momento["type"] == "date"
+    assert "min_date" not in momento and "max_date" not in momento
+    assert _column(result, "valor")["max_val"] == 30

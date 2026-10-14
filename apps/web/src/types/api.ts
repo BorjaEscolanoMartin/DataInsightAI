@@ -27,6 +27,9 @@ export interface ColumnProfile {
   std?: number
   min_val?: number
   max_val?: number
+  /** Date columns only: earliest and latest calendar date, ISO 8601 (absent in older analyses). */
+  min_date?: string
+  max_date?: string
   p25?: number
   p50?: number
   p75?: number

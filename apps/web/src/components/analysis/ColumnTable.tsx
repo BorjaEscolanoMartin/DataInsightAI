@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ChevronIcon } from "@/components/ui/icons"
-import { formatNumber } from "@/lib/format"
+import { formatDateRange, formatNumber } from "@/lib/format"
 import type { ColumnProfile } from "@/types/api"
 
 const TYPE_LABELS: Record<ColumnProfile["type"], string> = {
@@ -18,6 +18,7 @@ function fmt(n: number | undefined, decimals: number): string {
 }
 
 function summary(col: ColumnProfile): string {
+  if (col.type === "date") return formatDateRange(col.min_date, col.max_date) ?? "—"
   if (col.type === "numeric") {
     const parts = [`media ${fmt(col.mean, 1)}`, `desviación ${fmt(col.std, 1)}`]
     if ((col.outlier_count ?? 0) > 0) parts.push(`${formatNumber(col.outlier_count!)} atípicos`)

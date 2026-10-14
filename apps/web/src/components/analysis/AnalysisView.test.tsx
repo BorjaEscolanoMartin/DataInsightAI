@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
-import { salesFixture as sales } from "@/data/demo"
+import { housingFixture as housing, salesFixture as sales } from "@/data/demo"
 import { formatNumber } from "@/lib/format"
 import { AnalysisView } from "./AnalysisView"
 
@@ -48,7 +48,7 @@ describe("AnalysisView", () => {
     const profile = sales.analysis.profile!
     expect(stat("Filas")).toBe(formatNumber(profile.row_count))
     expect(stat("Columnas")).toBe(String(profile.column_count))
-    expect(stat("Columna de fecha")).toBe(profile.date_column_candidate)
+    expect(stat("Periodo")).toBe("1 oct 2024 – 30 sep 2026")
     expect(sectionTitles()).toEqual([
       "01 Dataset",
       "02 Hallazgos",
@@ -94,5 +94,77 @@ describe("AnalysisView", () => {
     expect(
       screen.getByRole("table").compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
+  })
+
+  // The sales fixture carries the date range; an old analysis is the same without it.
+  const withoutRange = {
+    ...sales.analysis,
+    profile: {
+      ...sales.analysis.profile!,
+      columns: sales.analysis.profile!.columns.map(({ min_date, max_date, ...c }) => {
+        void min_date
+        void max_date
+        return c
+      }),
+    },
+  }
+
+  const withRange = {
+    ...sales.analysis,
+    profile: {
+      ...sales.analysis.profile!,
+      columns: sales.analysis.profile!.columns.map((c) =>
+        c.name === sales.analysis.profile!.date_column_candidate
+          ? { ...c, min_date: "2024-10-01", max_date: "2026-09-30" }
+          : c,
+      ),
+    },
+  }
+
+  it("shows the period of the detected date column and names the column below", () => {
+    render(
+      <AnalysisView
+        filename={sales.filename}
+        sizeBytes={sales.size_bytes}
+        rowCount={null}
+        columnCount={null}
+        analysis={withRange}
+      />,
+    )
+
+    expect(stat("Periodo")).toBe("1 oct 2024 – 30 sep 2026")
+    expect(screen.getByText(`columna ${sales.analysis.profile!.date_column_candidate}`)).toBeTruthy()
+    expect(screen.queryByText("Columna de fecha")).toBeNull()
+  })
+
+  it("shows an old analysis without the range as before", () => {
+    render(
+      <AnalysisView
+        filename={sales.filename}
+        sizeBytes={sales.size_bytes}
+        rowCount={null}
+        columnCount={null}
+        analysis={withoutRange}
+      />,
+    )
+
+    expect(stat("Columna de fecha")).toBe(sales.analysis.profile!.date_column_candidate)
+    expect(screen.queryByText("Periodo")).toBeNull()
+  })
+
+  it("shows neither the period nor the date column without a date column", () => {
+    render(
+      <AnalysisView
+        filename={housing.filename}
+        sizeBytes={housing.size_bytes}
+        rowCount={null}
+        columnCount={null}
+        analysis={housing.analysis}
+      />,
+    )
+
+    expect(housing.analysis.profile!.date_column_candidate).toBeNull()
+    expect(screen.queryByText("Periodo")).toBeNull()
+    expect(screen.queryByText("Columna de fecha")).toBeNull()
   })
 })
