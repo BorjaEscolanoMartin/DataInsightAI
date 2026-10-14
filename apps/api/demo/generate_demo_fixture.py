@@ -9,6 +9,10 @@ Usage, from apps/api:
     python -m demo.generate_demo_fixture                 writes both fixtures
     python -m demo.generate_demo_fixture --dry-run       prints the insights and the check
                                                          report, writes nothing
+    python -m demo.generate_demo_fixture --keep-insights recomputes profile, charts and
+                                                         predictions from the CSVs and keeps the
+                                                         insights already in each fixture: no key,
+                                                         no call to Anthropic
     --model claude-opus-5-5                              uses another model (default: the app's)
 """
 
@@ -41,16 +45,27 @@ def _report(csv_name: str, model: str, insights: dict[str, Any], dropped: list[D
         print(f"DROPPED [{d.category}] {d.title}: figures not in the data: {', '.join(d.missing)}")
 
 
-def build_fixture(csv_name: str, model: str, dry_run: bool = False) -> dict[str, Any] | None:
-    """Only what the analysis view renders: no ids, paths, timestamps or Supabase data."""
+def build_fixture(
+    csv_name: str,
+    model: str,
+    dry_run: bool = False,
+    kept_insights: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Only what the analysis view renders: no ids, paths, timestamps or Supabase data.
+
+    With kept_insights, Anthropic is not called and those insights go into the fixture as they are.
+    """
     content = (DEMO_DIR / csv_name).read_bytes()
     profile = profile_csv(content)
-    insights, dropped = generate_insights_checked(profile, content, model=model)
-    if dry_run:
-        _report(csv_name, model, insights, dropped)
-        return None
-    if not any(insights.get(category) for category in insights):
-        raise RuntimeError(f"{csv_name}: Anthropic returned no insights")
+    if kept_insights is not None:
+        insights = kept_insights
+    else:
+        insights, dropped = generate_insights_checked(profile, content, model=model)
+        if dry_run:
+            _report(csv_name, model, insights, dropped)
+            return None
+        if not any(insights.get(category) for category in insights):
+            raise RuntimeError(f"{csv_name}: Anthropic returned no insights")
     return {
         "filename": csv_name,
         "size_bytes": len(content),
@@ -66,18 +81,31 @@ def build_fixture(csv_name: str, model: str, dry_run: bool = False) -> dict[str,
 
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="python -m demo.generate_demo_fixture")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="print the insights and the check report; write nothing")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--dry-run", action="store_true",
+                      help="print the insights and the check report; write nothing")
+    mode.add_argument("--keep-insights", action="store_true",
+                      help="recompute profile, charts and predictions and keep each fixture's "
+                           "insights; no API key, no call to Anthropic")
     parser.add_argument("--model", default=MODEL, help=f"Claude model (default: {MODEL})")
     args = parser.parse_args(argv)
 
+    kept: dict[str, dict[str, Any]] = {}
+    if args.keep_insights:
+        # Read every fixture first, so a missing one stops the run before anything is written.
+        for fixture_name in DATASETS:
+            path = FIXTURE_DIR / fixture_name
+            if not path.exists():
+                sys.exit(f"{path} does not exist: run without --keep-insights to create it")
+            fixture = json.loads(path.read_text(encoding="utf-8"))
+            kept[fixture_name] = fixture["analysis"]["insights"]
     # generate_insights_checked silently returns empty insights without a key: fail instead.
-    if not settings.anthropic_api_key:
+    elif not settings.anthropic_api_key:
         sys.exit("ANTHROPIC_API_KEY is not set")
     if not args.dry_run:
         FIXTURE_DIR.mkdir(parents=True, exist_ok=True)
     for fixture_name, csv_name in DATASETS.items():
-        fixture = build_fixture(csv_name, args.model, args.dry_run)
+        fixture = build_fixture(csv_name, args.model, args.dry_run, kept.get(fixture_name))
         if fixture is None:
             continue
         path = FIXTURE_DIR / fixture_name

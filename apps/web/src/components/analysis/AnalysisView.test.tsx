@@ -48,7 +48,7 @@ describe("AnalysisView", () => {
     const profile = sales.analysis.profile!
     expect(stat("Filas")).toBe(formatNumber(profile.row_count))
     expect(stat("Columnas")).toBe(String(profile.column_count))
-    expect(stat("Columna de fecha")).toBe(profile.date_column_candidate)
+    expect(stat("Periodo")).toBe("1 oct 2024 – 30 sep 2026")
     expect(sectionTitles()).toEqual([
       "01 Dataset",
       "02 Hallazgos",
@@ -96,7 +96,19 @@ describe("AnalysisView", () => {
     ).toBeTruthy()
   })
 
-  // The sales fixture predates the date range: it stands for an old analysis.
+  // The sales fixture carries the date range; an old analysis is the same without it.
+  const withoutRange = {
+    ...sales.analysis,
+    profile: {
+      ...sales.analysis.profile!,
+      columns: sales.analysis.profile!.columns.map(({ min_date, max_date, ...c }) => {
+        void min_date
+        void max_date
+        return c
+      }),
+    },
+  }
+
   const withRange = {
     ...sales.analysis,
     profile: {
@@ -132,7 +144,7 @@ describe("AnalysisView", () => {
         sizeBytes={sales.size_bytes}
         rowCount={null}
         columnCount={null}
-        analysis={sales.analysis}
+        analysis={withoutRange}
       />,
     )
 
