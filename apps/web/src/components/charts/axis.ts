@@ -18,6 +18,8 @@ function niceStep(raw: number): number {
 /** Drops the float noise of multiples of a decimal step (0.6000000000000001 → 0.6). */
 const tidy = (v: number) => Number(v.toPrecision(12))
 
+// Up to this many rows, the axis has one tick per row and ends at the maximum (1 → 0–1).
+const MAX_ROW_BY_ROW = 5
 const MIN_INTERVALS = 3
 const MAX_INTERVALS = 5
 const ROUND_STEPS = [1, 2, 2.5, 5]
@@ -25,9 +27,13 @@ const ROUND_STEPS = [1, 2, 2.5, 5]
 /** A count axis from 0 (W3, insights-yearly S6): among the steps 1, 2, 2,5 and 5 × 10ⁿ (whole,
  *  since rows are counted) that cover the maximum in 3 to 5 intervals, the one with the lowest
  *  top, and of those the fewest intervals (640 → 0–750 by 250, 346 → 0–400 by 100,
- *  950 → 0–1.000 by 250). */
+ *  950 → 0–1.000 by 250). Up to 5 rows, one tick per row up to the maximum. */
 export function countAxis(max: number): { domain: [number, number]; ticks: number[] } {
   if (!(max > 0)) return { domain: [0, 1], ticks: [0, 1] }
+  if (max <= MAX_ROW_BY_ROW) {
+    const top = Math.ceil(max)
+    return { domain: [0, top], ticks: Array.from({ length: top + 1 }, (_, i) => i) }
+  }
   let best: { step: number; intervals: number } | null = null
   for (let power = 0; 10 ** power <= max; power++) {
     for (const multiple of ROUND_STEPS) {

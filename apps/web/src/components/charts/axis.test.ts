@@ -12,11 +12,13 @@ describe("countAxis", () => {
     [950, [0, 250, 500, 750, 1000]],
     [1000, [0, 250, 500, 750, 1000]],
     [1260, [0, 500, 1000, 1500]],
-    // Counts are whole: the step is never below 1.
     [7, [0, 2, 4, 6, 8]],
-    [1, [0, 1, 2, 3]],
-    [2, [0, 1, 2, 3]],
+    [6, [0, 2, 4, 6]],
+    // Up to 5 rows: one tick per row, the axis ending at the maximum.
+    [1, [0, 1]],
+    [2, [0, 1, 2]],
     [3, [0, 1, 2, 3]],
+    [5, [0, 1, 2, 3, 4, 5]],
   ])("ends the axis of a maximum of %s at the lowest round top", (max, ticks) => {
     expect(countAxis(max)).toEqual({ domain: [0, ticks.at(-1)], ticks })
   })
