@@ -1,5 +1,6 @@
 import textwrap
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -318,3 +319,27 @@ def test_a_date_column_with_mixed_time_zones_profiles_without_a_range():
     assert momento["type"] == "date"
     assert "min_date" not in momento and "max_date" not in momento
     assert _column(result, "valor")["max_val"] == 30
+
+
+def test_scatter_pairs_leave_out_discrete_columns():
+    # habitaciones (1-10) correlates with metros almost as much as precio does.
+    rows = [(i + 0.5, 2 * i + 1.25 + (i % 3) * 0.1, i // 3 + 1) for i in range(30)]
+    csv = "metros,precio,habitaciones\n" + "".join(f"{m},{p},{h}\n" for m, p, h in rows)
+    charts = profile_csv(csv.encode())["charts"]
+
+    scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
+    assert scatters == [("metros", "precio")]
+
+
+def test_scatter_finds_a_continuous_pair_beyond_the_heatmap_columns():
+    # Nine discrete columns first: the correlated pair is the 15th and 16th numeric columns,
+    # and the heatmap's correlations only cover the first 15.
+    rng = np.random.default_rng(0)
+    df = pd.DataFrame({f"d{i}": rng.integers(1, 5, 50) for i in range(9)})
+    for i in range(6):
+        df[f"c{i}"] = rng.normal(size=50).round(3)
+    df["c6"] = (df["c5"] + rng.normal(scale=0.1, size=50)).round(3)
+    charts = profile_csv(df.to_csv(index=False).encode())["charts"]
+
+    scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
+    assert scatters == [("c5", "c6")]

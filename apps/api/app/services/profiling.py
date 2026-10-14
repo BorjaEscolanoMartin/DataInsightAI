@@ -153,13 +153,16 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
     date_candidate = next(
         (c for c, t in col_types.items() if t == "date" and c in df.columns), None
     )
+    discrete = {
+        c for c in numeric_cols if is_discrete(pd.to_numeric(df[c], errors="coerce").dropna())
+    }
 
     # Histograms — max 6 numeric columns
     for col in numeric_cols[:6]:
         series = pd.to_numeric(df[col], errors="coerce").dropna()
         if len(series) < 2:
             continue
-        if is_discrete(series):
+        if col in discrete:
             charts.append({
                 "id": f"bar_{col}",
                 "type": "bar",
@@ -242,11 +245,12 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         except Exception:
             pass
 
-    # Scatter — top 2 pairs with |r| > 0.5
-    if len(numeric_cols) >= 2:
+    # Scatter — top 2 pairs of continuous columns with |r| > 0.5
+    continuous_cols = [c for c in numeric_cols if c not in discrete]
+    if len(continuous_cols) >= 2:
         try:
-            sc_cols = numeric_cols[:10]
-            if corr_matrix is None:
+            sc_cols = continuous_cols[:10]
+            if corr_matrix is None or not set(sc_cols) <= set(corr_matrix.columns):
                 corr_matrix = df[sc_cols].apply(pd.to_numeric, errors="coerce").corr()
             pairs: list[tuple[float, str, str]] = []
             for i, col_a in enumerate(sc_cols):
