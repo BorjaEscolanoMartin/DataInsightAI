@@ -23,14 +23,14 @@ def daily_sales(rng: np.random.Generator) -> pd.DataFrame:
     t = np.arange(n)
     trend = 1800 + 1.1 * t  # gentle growth
     weekly = np.array([0.92, 0.95, 0.97, 1.0, 1.08, 1.18, 1.10])[dates.dayofweek]
-    yearly = 1 + 0.12 * np.cos(2 * np.pi * (dates.dayofyear - 350) / 365.25)  # winter peak
-    promotion = rng.random(n) < 0.08  # about 8 % of days have a promotion
-    noise = rng.normal(1, 0.06, n)
+    yearly = 1 + 0.20 * np.cos(2 * np.pi * (dates.dayofyear - 350) / 365.25)  # winter peak
+    promotion = rng.random(n) < 0.12  # about 12 % of days have a promotion
+    noise = rng.normal(1, 0.05, n)
     sales = trend * weekly * yearly * np.where(promotion, 1.25, 1.0) * noise
     black_friday = (
         (dates.month == 11) & (dates.dayofweek == 4) & (dates.day >= 22) & (dates.day <= 28)
     )
-    sales = np.where(black_friday, sales * 2.6, sales)  # realistic outlier
+    sales = np.where(black_friday, sales * 1.6, sales)  # a clear peak, not an extreme outlier
     ticket = rng.normal(31, 2.5, n).clip(22, 42)
     orders = np.round(sales / ticket).astype(int)
     visits = np.round(orders / rng.normal(0.034, 0.003, n).clip(0.025, 0.045)).astype(float)
