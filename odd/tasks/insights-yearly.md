@@ -14,8 +14,8 @@ Objective: the insights temporal summary lists each year's highest and lowest pe
 
 | ID | Specs | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1 (summary data) | inline | done: RED (no `years`), GREEN; `_year_extremes` groups the shown periods by calendar year, picks highest and lowest among complete periods, marks a year incomplete when a period is missing or partial, skips years with fewer than 2 complete periods and yearly data; mutants (1 complete period enough; partial months counted) fail | (this commit) |
-| T2 | S1 (prompt lines), S2 | inline | pending | |
+| T1 | S1 (summary data) | inline | done: RED (no `years`), GREEN; `_year_extremes` groups the shown periods by calendar year, picks highest and lowest among complete periods, marks a year incomplete when a period is missing or partial, skips years with fewer than 2 complete periods and yearly data; mutants (1 complete period enough; partial months counted) fail | 8607eb6 |
+| T2 | S1 (prompt lines), S2 | inline | done: RED (no «Por año» lines; rule missing), GREEN; the data block adds «Por año (media del mes más alto y del más bajo de cada año, entre meses completos):» and one line per year, incomplete years with their span («2024 (incompleto: ene–mar)», «T1–T2» for quarters); the D3 rule is in the system prompt word for word; no lines without years (mutation-checked) | (this commit) |
 | T3 | S3 | inline | pending | |
 | T4 | S4 | inline | pending | |
 | T5 | S5 | inline | pending (Borja runs the regeneration) | |

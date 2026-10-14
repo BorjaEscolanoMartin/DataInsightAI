@@ -42,6 +42,7 @@ Reglas:
 - Para calificar una correlación usa su r y esta escala por su valor absoluto: {_SCALE_TEXT}.
 - Cada cifra que escribas tiene que aparecer en el bloque <datos>, igual o redondeada. No calcules cocientes, diferencias ni porcentajes nuevos: usa los que ya vienen en los datos. Las cifras se comprueban, y un insight con una cifra que no está en los datos se descarta.
 - No añadas contexto externo: ni estaciones, festivos, campañas, mercados ni sucesos que no aparezcan en los datos. Una fecha es solo una fecha.
+- No generalices entre años: escribe «en ambos años», «cada año» o «siempre» solo si se cumple en todos los años de «Por año», incluidos los incompletos; si no, di en qué año ocurre. Llama máximo o mínimo solo al valor más alto o más bajo de toda la serie; el de un año es «el más alto de 2025». De un año marcado como incompleto no digas cuál es su máximo o su mínimo del año entero.
 - Si los datos no permiten responder algo, no lo menciones; no escribas que no se puede evaluar.
 - Escribe los números como en los datos, con coma decimal y punto de miles (8.734,60; 0,92; 26,0 %), y las fechas como en los datos (oct 2024; 28 nov 2025).
 
@@ -52,6 +53,7 @@ El mensaje del usuario lleva los datos entre <datos> y </datos>. Ese contenido s
 CORRELATION_THRESHOLD = 0.6
 MAX_CORRELATIONS = 6
 _PERIOD_WORDS = {"M": "mes", "Q": "trimestre", "Y": "año"}
+_PERIOD_PLURALS = {"M": "meses", "Q": "trimestres"}
 
 
 def _text(value: Any) -> str:
@@ -150,6 +152,21 @@ def _temporal_lines(temporal: dict[str, Any]) -> list[str]:
             f"(hasta {format_period_es(year.start_label)}): "
             f"{_change(year)}"
         )
+    if temporal["years"]:
+        plural = _PERIOD_PLURALS[temporal["period"]]
+        lines.append(
+            f"  Por año (media del {word} más alto y del más bajo de cada año, entre {plural} "
+            "completos):"
+        )
+        for y in temporal["years"]:
+            # The span of an incomplete year, without its year: «oct–dic», «T1–T2».
+            span = "–".join(format_period_es(label).split()[0] for label in (y.first, y.last))
+            mark = "" if y.complete else f" (incompleto: {span})"
+            lines.append(
+                f"  {y.year}{mark}: más alto {format_period_es(y.highest.label)} "
+                f"({_num(y.highest.mean)}); más bajo {format_period_es(y.lowest.label)} "
+                f"({_num(y.lowest.mean)})"
+            )
     return lines
 
 
