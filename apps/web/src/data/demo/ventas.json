@@ -5850,122 +5850,117 @@
     "insights": {
       "trends": [
         {
-          "title": "Ventas medias mensuales crecen un 40,3 %",
-          "description": "La media mensual de Ventas pasa de 1.979,24 en oct 2024 a 2.775,90 en sep 2026, un aumento de 796,66 (+40,3 %). En el último año hasta sep 2026, la media es de 2.529,28, frente a 2.087,90 en el año anterior (+21,1 %).",
+          "title": "Ventas crecen entre oct 2024 y sep 2026",
+          "description": "La media mensual de Ventas pasa de 2.078,56 en oct 2024 a 2.815,19 en sep 2026, un aumento de +736,63 (+35,4 %). El último año (hasta sep 2026) promedia 2.544,47 frente a 2.112,61 del anterior, un +20,4 %.",
           "columns": [
             "Ventas",
             "Fecha"
           ]
         },
         {
-          "title": "Picos en noviembre y valles abril-junio",
-          "description": "Las medias mensuales más altas de cada año coinciden con noviembre: 2.270,25 en nov 2024 y 2.866,65 en nov 2025. Los tramos más bajos se dan entre abril y junio: 1.924,62 en abr 2025, 1.929,52 en jun 2025 y 2.282,63 en may 2026. Los tres días con menos ventas también caen en ese tramo: 7 abr 2025 (1.502,77), 5 jun 2025 (1.506,44) y 23 jun 2025 (1.556).",
+          "title": "Patrón mensual repetido en ambos años",
+          "description": "Las medias mensuales más altas se concentran entre nov y feb (2.396,60 en dic 2024; 2.989,84 en nov 2025) y las más bajas entre abr y jul (1.791,01 en jun 2025; 2.125,58 en jun 2026). El patrón se repite en los dos años, pero con niveles más altos en el segundo.",
           "columns": [
             "Ventas",
             "Fecha"
           ]
         },
         {
-          "title": "Viernes y sábado concentran más ventas",
-          "description": "El sábado tiene la media de Ventas más alta, con 2.634,06 (+14,2 % sobre la media global), seguido del viernes con 2.475,22 (+7,3 %). El lunes es el día más bajo, con 2.056,12 (-10,9 %), seguido del martes con 2.126,61 (-7,8 %).",
+          "title": "Fines de semana con ventas medias superiores",
+          "description": "El sábado registra la media de Ventas más alta (2.651,10; +13,9 % sobre la media global), seguido del domingo (2.491,18; +7,1 %) y el viernes (2.463,73; +5,9 %). El lunes es el día más bajo, con 2.096,47 (-9,9 %).",
           "columns": [
             "Ventas",
             "Día de la semana"
-          ]
-        },
-        {
-          "title": "Días con promoción tienen ventas mayores",
-          "description": "Los 50 días con Promoción tienen una media de Ventas de 2.908,46, frente a 2.263,33 en los 680 días sin ella. La diferencia es de +645,13 (+28,5 %). Se trata de una asociación y se apoya en una muestra pequeña de días con promoción.",
-          "columns": [
-            "Ventas",
-            "Promoción"
           ]
         }
       ],
       "anomalies": [
         {
-          "title": "Venta extrema el 28 nov 2025",
-          "description": "El 28 nov 2025 se registran Ventas de 8.734,60, el máximo del dataset, frente a una media de 2.307,51. El segundo valor más alto también cae en noviembre: 22 nov 2024, con 5.439,69.",
+          "title": "Pico extremo de ventas el 28 nov 2025",
+          "description": "El 28 nov 2025 se registran Ventas de 5.756,43, el máximo del dataset y muy por encima del siguiente valor más alto (3.933,84 el 8 nov 2025). La media global es 2.326,95 con una desviación de 465,95.",
           "columns": [
             "Ventas",
             "Fecha"
           ]
         },
         {
-          "title": "Outliers de ventas concentrados en sábados",
-          "description": "Hay 8 outliers altos de Ventas, entre 3.311,57 y 8.734,60. De ellos, 6 caen en sábado y 2 en viernes. Además, 3 coinciden con días de promoción, aunque solo hay 50 días con promoción.",
+          "title": "Outliers de ventas concentrados en promociones",
+          "description": "De los 9 outliers altos de Ventas (entre 3.608,56 y 5.756,43), 7 coinciden con días con Promoción = Sí y solo 2 con No, pese a que los días con promoción son solo 91 de 730. Además, todos se reparten entre viernes (5) y sábado (4).",
           "columns": [
             "Ventas",
-            "Día de la semana",
-            "Promoción"
+            "Promoción",
+            "Día de la semana"
           ]
         },
         {
-          "title": "Valores extremos en Pedidos y Visitas web",
-          "description": "Pedidos tiene 12 outliers altos, entre 111 y 267, frente a una media de 75,56. Visitas web tiene 17 outliers altos, entre 3.385 y 7.624, con una media de 2.232,04, y además un 0,8 % de valores nulos.",
+          "title": "Mínimos de ventas en primavera 2025",
+          "description": "Los valores más bajos de Ventas se dan el 5 jun 2025 (1.421,26), el 23 jun 2025 (1.436,63) y el 7 abr 2025 (1.501,46). Coinciden con el tramo de medias mensuales más bajas de toda la serie.",
           "columns": [
-            "Pedidos",
-            "Visitas web"
+            "Ventas",
+            "Fecha"
           ]
         }
       ],
       "correlations": [
         {
-          "title": "Ventas y Pedidos: relación muy fuerte",
-          "description": "Ventas y Pedidos tienen una correlación muy fuerte (r = 0,92). Los días con más pedidos coinciden con mayores ventas.",
+          "title": "Ventas y Pedidos muy fuertemente asociados",
+          "description": "Ventas y Pedidos tienen una correlación muy fuerte (r = 0,92). Los días con más pedidos se asocian con mayores ventas.",
           "columns": [
             "Ventas",
             "Pedidos"
           ]
         },
         {
-          "title": "Pedidos y Visitas web: relación muy fuerte",
-          "description": "Pedidos y Visitas web presentan una correlación muy fuerte (r = 0,91). Un mayor número de visitas se asocia con más pedidos.",
+          "title": "Visitas web asociadas con pedidos y ventas",
+          "description": "Visitas web se correlaciona de forma muy fuerte con Pedidos (r = 0,91) y con Ventas (r = 0,85). Las ventas son mayores en los días con más tráfico web.",
           "columns": [
+            "Visitas web",
             "Pedidos",
-            "Visitas web"
+            "Ventas"
           ]
         },
         {
-          "title": "Ventas y Visitas web: relación muy fuerte",
-          "description": "Ventas y Visitas web muestran una correlación muy fuerte (r = 0,84). Las ventas son mayores cuando las visitas web son más altas, aunque esta asociación es algo menor que la de Ventas con Pedidos (r = 0,92).",
+          "title": "Promoción coincide con ventas más altas",
+          "description": "Los días con Promoción = Sí tienen una media de Ventas de 2.840,07, frente a 2.253,88 sin promoción (+586,19; +26 %). Es una asociación observada, no una prueba de efecto.",
           "columns": [
-            "Ventas",
-            "Visitas web"
+            "Promoción",
+            "Ventas"
           ]
         }
       ],
       "recommendations": [
         {
-          "title": "Revisar días extremos antes de analizar medias",
-          "description": "Conviene verificar el 28 nov 2025 (8.734,60) y el 22 nov 2024 (5.439,69) antes de usar las medias mensuales. Estos días pueden elevar la media de noviembre (2.866,65 en nov 2025). Compara los resultados con y sin los 8 outliers de Ventas.",
+          "title": "Analizar el efecto real de las promociones",
+          "description": "Las promociones coinciden con ventas un +26 % mayores y con 7 de los 9 outliers. Conviene comparar promociones en días equivalentes (mismo día de la semana y mes) para separar su asociación de otros factores.",
+          "columns": [
+            "Promoción",
+            "Ventas",
+            "Día de la semana"
+          ]
+        },
+        {
+          "title": "Revisar el registro del 28 nov 2025",
+          "description": "El valor de 5.756,43 destaca frente al resto de máximos. Verifica que sea correcto antes de usarlo en medias o modelos, ya que puede distorsionar los resultados.",
           "columns": [
             "Ventas",
             "Fecha"
           ]
         },
         {
-          "title": "Evaluar promociones comparando días equivalentes",
-          "description": "La diferencia de +28,5 % en días con Promoción se basa en solo 50 días. Compara las promociones con días sin promoción del mismo día de la semana y del mismo mes, para separar su asociación de las diferencias entre sábado (2.634,06) y lunes (2.056,12).",
+          "title": "Planificar recursos según el patrón semanal y mensual",
+          "description": "Las ventas medias son mayores los sábados (2.651,10) y en los meses entre nov y feb. Este patrón puede servir para ajustar inventario y personal.",
           "columns": [
-            "Promoción",
+            "Ventas",
             "Día de la semana",
-            "Ventas"
-          ]
-        },
-        {
-          "title": "Planificar capacidad para viernes y sábados",
-          "description": "Viernes y sábado tienen las medias de ventas más altas (2.475,22 y 2.634,06) y concentran todos los outliers de Ventas. Conviene reforzar el stock y la capacidad operativa en esos días.",
-          "columns": [
-            "Día de la semana",
-            "Ventas"
+            "Fecha"
           ]
         },
         {
           "title": "Completar los nulos de Visitas web",
-          "description": "Visitas web tiene un 0,8 % de valores nulos. Conviene completarlos o tratarlos de forma explícita, ya que esta columna muestra correlaciones muy fuertes con Pedidos (r = 0,91) y Ventas (r = 0,84).",
+          "description": "Visitas web tiene un 0,8 % de valores nulos. Dada su correlación muy fuerte con Pedidos (r = 0,91), conviene revisar o imputar esos registros.",
           "columns": [
-            "Visitas web"
+            "Visitas web",
+            "Pedidos"
           ]
         }
       ]

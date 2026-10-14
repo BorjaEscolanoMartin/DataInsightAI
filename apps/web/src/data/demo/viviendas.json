@@ -3395,32 +3395,32 @@
     "insights": {
       "trends": [
         {
-          "title": "El precio sube con el número de habitaciones",
-          "description": "La media de Precio pasa de 98.438,71 con 1 habitación (-49,2 %) a 380.160,71 con 6 habitaciones (+96 %). Los grupos de 4 y 5 habitaciones ya superan la media global de 193.967,33, con 244.071,21 y 316.550,46.",
+          "title": "El precio crece con el número de habitaciones",
+          "description": "El precio medio pasa de 98.438,71 con 1 habitación (-49,2 %) a 380.160,71 con 6 habitaciones (+96 %). Los pisos de 3 habitaciones, el grupo más numeroso (n = 519), quedan en 179.416,18, un -7,5 % frente a la media global.",
           "columns": [
             "Habitaciones",
             "Precio"
           ]
         },
         {
-          "title": "Adosados y áticos, los tipos más caros",
-          "description": "Los Adosado tienen una media de 316.331,97 (+63,1 %) y los Ático de 242.704,82 (+25,1 %). En el otro extremo, los Estudio se quedan en 79.685,71 (-58,9 %) y los Piso, que son 950 filas, en 170.864,21 (-11,9 %).",
-          "columns": [
-            "Tipo",
-            "Precio"
-          ]
-        },
-        {
-          "title": "Playa y Centro, zonas con mayor precio medio",
-          "description": "Playa registra una media de 289.701,89 (+49,4 %) y Centro de 238.687,86 (+23,1 %). Periferia es la zona más barata, con 120.570,31 (-37,8 %), seguida de Sur con 147.922,03 (-23,7 %).",
+          "title": "Playa y Centro, las zonas más caras",
+          "description": "Playa tiene un precio medio de 289.701,89 (+49,4 %) y Centro de 238.687,86 (+23,1 %). En el extremo opuesto, Periferia se queda en 120.570,31 (-37,8 %) y Sur en 147.922,03 (-23,7 %).",
           "columns": [
             "Zona",
             "Precio"
           ]
         },
         {
-          "title": "Más baños, precio medio más alto",
-          "description": "Con 1 baño la media es 150.072,26 (-22,6 %), mientras que con 3 baños sube a 331.396,83 (+70,9 %). El grupo de 4 baños alcanza 348.857,14 (+79,9 %), aunque solo tiene 7 viviendas.",
+          "title": "Adosados y estudios, extremos de precio por tipo",
+          "description": "Los adosados promedian 316.331,97 (+63,1 %) y los áticos 242.704,82 (+25,1 %). Los estudios marcan el mínimo con 79.685,71 (-58,9 %), mientras que los pisos, con 950 registros, se sitúan en 170.864,21 (-11,9 %).",
+          "columns": [
+            "Tipo",
+            "Precio"
+          ]
+        },
+        {
+          "title": "Más baños se asocia con mayor precio",
+          "description": "Las viviendas con 1 baño (n = 775) promedian 150.072,26 (-22,6 %), frente a 331.396,83 con 3 baños (+70,9 %). El grupo de 4 baños llega a 348.857,14 (+79,9 %), aunque solo tiene 7 registros.",
           "columns": [
             "Baños",
             "Precio"
@@ -3429,90 +3429,81 @@
       ],
       "anomalies": [
         {
-          "title": "49 precios atípicos concentrados en adosados",
-          "description": "Hay 49 outliers altos de Precio, entre 452.000 y 721.000. De ellos, 43 son Adosado y 6 son Ático, y por habitaciones se reparten entre 5 (17), 6 (16) y 4 (14).",
-          "columns": [
-            "Precio",
-            "Tipo",
-            "Habitaciones"
-          ]
-        },
-        {
-          "title": "62 viviendas con superficie muy superior",
-          "description": "Metros presenta 62 outliers altos, entre 163 y 239, frente a una media de 91,43 y una desviación de 32,91. El mínimo es de 25 metros.",
+          "title": "62 viviendas con superficie muy elevada",
+          "description": "Metros presenta 62 outliers altos, entre 163 y 239 m², frente a una media de 91,43 y una desviación de 32,91. Conviene revisarlos antes de modelar el precio por superficie.",
           "columns": [
             "Metros"
           ]
         },
         {
-          "title": "Viviendas con 4 baños, grupo muy reducido",
-          "description": "Los 7 outliers de Baños tienen exactamente 4 baños. Es el grupo más pequeño de la variable, con n = 7 y una media de Precio de 348.857,14.",
+          "title": "Grupo de 4 baños muy reducido",
+          "description": "Solo 7 viviendas tienen 4 baños y todas se marcan como outliers por la regla IQR. Su precio medio de 348.857,14 se apoya en muy pocos casos.",
           "columns": [
-            "Baños",
-            "Precio"
+            "Baños"
           ]
         }
       ],
       "correlations": [
         {
-          "title": "Metros y Precio, asociación fuerte",
-          "description": "Metros y Precio tienen una correlación fuerte, con r = 0,76. Las viviendas con más superficie se asocian con precios más altos.",
+          "title": "Metros y habitaciones, relación muy fuerte",
+          "description": "Metros y Habitaciones tienen una correlación muy fuerte (r = 0,85). Ambas variables aportan información muy similar sobre el tamaño de la vivienda.",
           "columns": [
             "Metros",
-            "Precio"
+            "Habitaciones"
           ]
         },
         {
-          "title": "Metros y Habitaciones, relación muy fuerte",
-          "description": "Metros y Habitaciones tienen una correlación muy fuerte, con r = 0,85. Metros también se asocia con Baños, con una correlación fuerte de r = 0,65.",
+          "title": "La superficie se asocia fuertemente con el precio",
+          "description": "Metros y Precio muestran una correlación fuerte (r = 0,76), la más alta con el precio. Habitaciones también se asocia de forma fuerte con Precio (r = 0,64).",
           "columns": [
             "Metros",
-            "Habitaciones",
-            "Baños"
+            "Precio",
+            "Habitaciones"
           ]
         },
         {
-          "title": "Habitaciones se asocia con Baños y Precio",
-          "description": "Habitaciones y Baños tienen una correlación fuerte, con r = 0,73. Habitaciones y Precio también la tienen, con r = 0,64, algo menor que la de Metros con Precio (0,76).",
+          "title": "Baños ligado a tamaño y habitaciones",
+          "description": "Habitaciones y Baños tienen una correlación fuerte (r = 0,73), y Metros y Baños también (r = 0,65). Las viviendas más grandes tienden a tener más baños.",
           "columns": [
             "Habitaciones",
             "Baños",
-            "Precio"
+            "Metros"
           ]
         }
       ],
       "recommendations": [
         {
-          "title": "Evitar contar dos veces el tamaño",
-          "description": "Metros, Habitaciones y Baños están muy relacionadas entre sí (r entre 0,65 y 0,85). Si se usan juntas para estimar el precio, conviene revisar la colinealidad o priorizar Metros, que tiene la r más alta con Precio (0,76).",
+          "title": "Evitar redundancia entre metros y habitaciones",
+          "description": "Con r = 0,85 entre Metros y Habitaciones, incluir ambas en un mismo modelo puede generar multicolinealidad. Valora usar solo Metros, que muestra la mayor correlación con Precio (r = 0,76).",
           "columns": [
             "Metros",
             "Habitaciones",
-            "Baños",
             "Precio"
           ]
         },
         {
-          "title": "Analizar los adosados por separado",
-          "description": "Los Adosado suponen 43 de los 49 outliers de Precio y tienen una media de 316.331,97. Segmentar el análisis por Tipo evitaría que estos valores distorsionen las conclusiones globales.",
+          "title": "Segmentar el análisis por zona y tipo",
+          "description": "Las medias de precio varían entre 120.570,31 en Periferia y 289.701,89 en Playa, y entre 79.685,71 en estudios y 316.331,97 en adosados. Comparar precios dentro de cada segmento dará referencias más ajustadas que la media global de 193.967,33.",
+          "columns": [
+            "Zona",
+            "Tipo",
+            "Precio"
+          ]
+        },
+        {
+          "title": "Tratar aparte los adosados de precio alto",
+          "description": "43 de los 49 outliers de Precio son adosados. Analizarlos como segmento propio o revisarlos evitará que distorsionen estimaciones generales.",
           "columns": [
             "Tipo",
             "Precio"
           ]
         },
         {
-          "title": "Comparar precios dentro de cada zona",
-          "description": "La media de Precio va de 120.570,31 en Periferia a 289.701,89 en Playa. Comparar viviendas dentro de la misma Zona da referencias más homogéneas que la media global de 193.967,33.",
+          "title": "Agrupar las categorías con pocos casos",
+          "description": "El grupo de 4 baños tiene solo 7 registros y el de 6 habitaciones 56. Unirlos con categorías vecinas dará medias más estables.",
           "columns": [
-            "Zona",
-            "Precio"
-          ]
-        },
-        {
-          "title": "Prudencia con el grupo de 4 baños",
-          "description": "El grupo de 4 baños solo tiene n = 7, así que su media de 348.857,14 es poco representativa. Conviene agruparlo con el de 3 baños (n = 126) en los análisis.",
-          "columns": [
-            "Baños"
+            "Baños",
+            "Habitaciones"
           ]
         }
       ]
