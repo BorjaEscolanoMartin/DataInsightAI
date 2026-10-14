@@ -98,6 +98,35 @@ def _outliers_iqr(series: pd.Series) -> int:
     return int(((series < low) | (series > high)).sum())
 
 
+def _histogram_bins(series: pd.Series) -> list[dict[str, Any]]:
+    """20 bins over the values inside the IQR bounds, plus one bin for each side's outliers.
+
+    `start` and `end` are the bin's bounds; an outlier bin has no `start` («< X») or no `end`
+    («> Y»). `bin` is the label older clients read.
+    """
+    low, high = float(series.min()), float(series.max())
+    bounds = iqr_bounds(series)
+    if bounds is not None:
+        low, high = max(low, bounds[0]), min(high, bounds[1])
+    counts, edges = np.histogram(series, bins=20, range=(low, high))
+    bins: list[dict[str, Any]] = [
+        {
+            "bin": f"{edges[i]:.4g}–{edges[i + 1]:.4g}",
+            "start": float(edges[i]),
+            "end": float(edges[i + 1]),
+            "count": int(counts[i]),
+        }
+        for i in range(len(counts))
+    ]
+    below = int((series < low).sum())
+    above = int((series > high).sum())
+    if below:
+        bins.insert(0, {"bin": f"< {low:.4g}", "start": None, "end": low, "count": below})
+    if above:
+        bins.append({"bin": f"> {high:.4g}", "start": high, "end": None, "count": above})
+    return bins
+
+
 def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dict[str, Any]]:
     charts: list[dict[str, Any]] = []
     col_types = {c["name"]: c["type"] for c in columns}
@@ -113,16 +142,12 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         series = pd.to_numeric(df[col], errors="coerce").dropna()
         if len(series) < 2:
             continue
-        counts, edges = np.histogram(series, bins=20)
         charts.append({
             "id": f"hist_{col}",
             "type": "histogram",
             "title": f"Distribución de {col}",
             "column": col,
-            "data": [
-                {"bin": f"{edges[i]:.4g}–{edges[i+1]:.4g}", "count": int(counts[i])}
-                for i in range(len(counts))
-            ],
+            "data": _histogram_bins(series),
         })
 
     # Bar charts — max 4 categorical columns

@@ -80,15 +80,53 @@ def test_handles_latin1_encoding():
     assert result["row_count"] == 2
 
 
-def test_histogram_keeps_empty_bins_between_distant_values():
-    csv = b"valor,nombre\n1,a\n1,b\n1,c\n21,d\n21,e\n"
-    result = profile_csv(csv)
-    hist = next(c for c in result["charts"] if c["id"] == "hist_valor")
+def _histogram(values: list[float]) -> list[dict]:
+    # A second column keeps the delimiter sniffer from taking the decimal point.
+    csv = "valor,nombre\n" + "".join(f"{v},x\n" for v in values)
+    result = profile_csv(csv.encode())
+    return next(c for c in result["charts"] if c["id"] == "hist_valor")["data"]
 
-    assert [b["count"] for b in hist["data"]] == [3] + [0] * 18 + [2]
-    assert hist["data"][0]["bin"] == "1–2"
-    assert hist["data"][1]["bin"] == "2–3"
-    assert hist["data"][-1]["bin"] == "20–21"
+
+def test_histogram_keeps_empty_bins_between_distant_values():
+    # Decimal values: whole numbers with few distinct values are drawn as bars instead.
+    bins = _histogram([1, 1.2, 1.5, 20.5, 21])
+
+    assert [b["count"] for b in bins] == [3] + [0] * 18 + [2]
+    assert bins[0] == {"bin": "1–2", "start": 1.0, "end": 2.0, "count": 3}
+    assert bins[1]["bin"] == "2–3"
+    assert bins[-1] == {"bin": "20–21", "start": 20.0, "end": 21.0, "count": 2}
+
+
+def test_histogram_bins_cover_the_iqr_range_and_group_the_extremes():
+    # Quartiles 4.75 and 15.25: the IQR bounds are -11 and 31.
+    bins = _histogram([-1000.5] + [i + 0.5 for i in range(20)] + [1000.5])
+
+    assert len(bins) == 22
+    assert bins[0] == {"bin": "< -11", "start": None, "end": -11.0, "count": 1}
+    assert bins[1]["start"] == -11.0
+    assert bins[1]["end"] == pytest.approx(-8.9)
+    assert bins[20]["end"] == 31.0
+    assert sum(b["count"] for b in bins[1:21]) == 20
+    assert bins[-1] == {"bin": "> 31", "start": 31.0, "end": None, "count": 1}
+
+
+def test_histogram_without_values_below_has_no_lower_extreme_bin():
+    # Quartiles 5.5 and 15.5: the bounds are -9.5 and 30.5; the range starts at the minimum.
+    bins = _histogram([i + 0.5 for i in range(20)] + [1000.5])
+
+    assert len(bins) == 21
+    assert bins[0]["start"] == 0.5
+    assert bins[-1] == {"bin": "> 30.5", "start": 30.5, "end": None, "count": 1}
+
+
+def test_histogram_with_zero_iqr_uses_the_full_range():
+    bins = _histogram([1.5] * 10 + [2.5, 9.5])
+
+    assert len(bins) == 20
+    assert bins[0]["start"] == 1.5
+    assert bins[-1]["end"] == 9.5
+    assert all(b["start"] is not None and b["end"] is not None for b in bins)
+    assert sum(b["count"] for b in bins) == 12
 
 
 CSV_IDENTIFIERS = (
