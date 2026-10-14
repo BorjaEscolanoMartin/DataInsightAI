@@ -99,13 +99,18 @@ def test_less_than_two_years_has_no_year_comparison():
 
 def _years(summary: dict) -> list[tuple]:
     return [
-        (y.year, y.complete, y.first, y.last, y.highest.label, y.highest.mean, y.lowest.label,
-         y.lowest.mean)
+        (y.year, y.covered, y.first, y.last, y.missing, y.complete_count,
+         [p.label for p in y.highest], y.highest[0].mean if y.highest else None,
+         [p.label for p in y.lowest], y.lowest[0].mean if y.lowest else None)
         for y in summary["years"]
     ]
 
 
-def test_each_calendar_year_gets_its_highest_and_lowest_month_marking_incomplete_years():
+def _monthly(values: dict[date, float]) -> pd.DataFrame:
+    return _frame(sorted(values.items()))
+
+
+def test_each_calendar_year_gets_its_highest_and_lowest_month_and_the_months_it_spans():
     # Oct 2024 to Sep 2026, every month complete; each month's value is unique.
     days = _days(date(2024, 10, 1), date(2026, 9, 30))
     rows = [(d, (d.year - 2024) * 100 + d.month) for d in days]
@@ -113,26 +118,58 @@ def test_each_calendar_year_gets_its_highest_and_lowest_month_marking_incomplete
     summary = temporal_summary(_frame(rows), PROFILE)
 
     assert _years(summary) == [
-        ("2024", False, "2024-10", "2024-12", "2024-12", 12, "2024-10", 10),
-        ("2025", True, "2025-01", "2025-12", "2025-12", 112, "2025-01", 101),
-        ("2026", False, "2026-01", "2026-09", "2026-09", 209, "2026-01", 201),
+        ("2024", False, "2024-10", "2024-12", [], 3, ["2024-12"], 12, ["2024-10"], 10),
+        ("2025", True, "2025-01", "2025-12", [], 12, ["2025-12"], 112, ["2025-01"], 101),
+        ("2026", False, "2026-01", "2026-09", [], 9, ["2026-09"], 209, ["2026-01"], 201),
     ]
 
 
-def test_a_partial_month_is_never_a_year_extreme():
+def test_a_partial_month_is_never_a_year_extreme_nor_part_of_its_span():
     # January starts on the 15th and April ends on the 10th: both are partial.
     values = {1: 90, 2: 20, 3: 30, 4: 5}
     rows = [(d, values[d.month]) for d in _days(date(2024, 1, 15), date(2024, 4, 10))]
 
     summary = temporal_summary(_frame(rows), PROFILE)
 
-    assert _years(summary) == [("2024", False, "2024-01", "2024-04", "2024-03", 30, "2024-02", 20)]
+    assert _years(summary) == [
+        ("2024", False, "2024-02", "2024-03", [], 2, ["2024-03"], 30, ["2024-02"], 20),
+    ]
 
 
-def test_a_year_with_fewer_than_two_complete_months_has_no_extremes():
-    rows = [(d, d.month) for d in _days(date(2024, 1, 15), date(2024, 3, 10))]
+def test_a_year_with_fewer_than_two_complete_months_is_listed_without_extremes():
+    # 10 Dec 2024 to 31 Jan 2025 then up to 10 Feb: 2024 has no complete month, 2025 one.
+    rows = [(d, d.month) for d in _days(date(2024, 12, 10), date(2025, 2, 10))]
 
-    assert temporal_summary(_frame(rows), PROFILE)["years"] == []
+    summary = temporal_summary(_frame(rows), PROFILE)
+
+    assert _years(summary) == [
+        ("2024", False, None, None, [], 0, [], None, [], None),
+        ("2025", False, "2025-01", "2025-01", [], 1, [], None, [], None),
+    ]
+
+
+def test_months_missing_inside_a_year_are_listed():
+    values = {date(2025, m, 1): 10 * m for m in range(1, 13) if m not in (3, 4)}
+
+    summary = temporal_summary(_monthly(values), PROFILE)
+
+    assert _years(summary) == [
+        ("2025", False, "2025-01", "2025-12", ["2025-03", "2025-04"], 10,
+         ["2025-12"], 120, ["2025-01"], 10),
+    ]
+
+
+def test_every_tied_month_is_named():
+    values = {date(2025, m, 1): 10 + m for m in range(1, 13)}
+    values[date(2025, 11, 1)] = values[date(2025, 12, 1)] = 50
+    values[date(2025, 6, 1)] = values[date(2025, 1, 1)] = 1
+
+    summary = temporal_summary(_monthly(values), PROFILE)
+
+    assert _years(summary) == [
+        ("2025", True, "2025-01", "2025-12", [], 12,
+         ["2025-11", "2025-12"], 50, ["2025-01", "2025-06"], 1),
+    ]
 
 
 def test_quarters_are_grouped_by_year_too():
@@ -143,8 +180,8 @@ def test_quarters_are_grouped_by_year_too():
 
     assert summary["period"] == "Q"
     assert _years(summary) == [
-        ("2023", True, "2023Q1", "2023Q4", "2023Q1", 40, "2023Q2", 10),
-        ("2024", False, "2024Q1", "2024Q2", "2024Q2", 60, "2024Q1", 50),
+        ("2023", True, "2023Q1", "2023Q4", [], 4, ["2023Q1"], 40, ["2023Q2"], 10),
+        ("2024", False, "2024Q1", "2024Q2", [], 2, ["2024Q2"], 60, ["2024Q1"], 50),
     ]
 
 
