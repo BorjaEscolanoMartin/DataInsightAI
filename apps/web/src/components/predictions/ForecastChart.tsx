@@ -20,6 +20,19 @@ interface Props {
   forecast: ForecastOut
 }
 
+/** The band's level is only known for analyses with the new fields (wape): older ones used a
+ *  band that was not calibrated (S16). */
+export function forecastBandLabel(forecast: ForecastOut): string {
+  return forecast.wape != null ? "Intervalo del 95 %" : "Intervalo"
+}
+
+/** Tooltip value: the band as «lower – upper», any other series as one number. */
+export function formatForecastValue(value: number | [number, number]): string {
+  return Array.isArray(value)
+    ? `${formatNumber(value[0])} – ${formatNumber(value[1])}`
+    : formatNumber(value)
+}
+
 export function ForecastChart({ forecast }: Props) {
   const data = forecast.points.map((p) => ({
     ds: p.ds,
@@ -76,7 +89,10 @@ export function ForecastChart({ forecast }: Props) {
             minTickGap={32}
           />
           <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={60} />
-          <Tooltip {...TOOLTIP_PROPS} />
+          <Tooltip
+            {...TOOLTIP_PROPS}
+            formatter={(value) => formatForecastValue(value as number | [number, number])}
+          />
           <Legend wrapperStyle={{ fontSize: 12, color: "var(--f2)" }} />
           <Area
             type="monotone"
@@ -84,7 +100,7 @@ export function ForecastChart({ forecast }: Props) {
             fill="var(--au)"
             fillOpacity={0.14}
             stroke="none"
-            name="Intervalo del 95 %"
+            name={forecastBandLabel(forecast)}
           />
           <Line
             type="monotone"
