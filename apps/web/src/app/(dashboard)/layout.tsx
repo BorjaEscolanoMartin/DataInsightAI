@@ -3,7 +3,7 @@ import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import { Logo } from "@/components/ui/Logo"
-import { TEXT_LINK } from "@/components/ui/styles"
+import { SECONDARY_BUTTON } from "@/components/ui/styles"
 
 async function getUser() {
   const cookieStore = await cookies()
@@ -48,7 +48,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 function LogoutButton() {
   return (
     <form action="/auth/logout" method="post">
-      <button type="submit" className={TEXT_LINK}>
+      <button type="submit" className={SECONDARY_BUTTON}>
         Cerrar sesión
       </button>
     </form>

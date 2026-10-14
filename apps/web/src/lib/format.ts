@@ -17,8 +17,31 @@ export function formatIsoDate(iso: string, options: { year?: boolean } = {}): st
   const [, year, month, day] = match
   const monthIndex = Number(month) - 1
   if (monthIndex < 0 || monthIndex > 11 || Number(day) < 1 || Number(day) > 31) return null
-  const date = `${Number(day)} ${MONTHS[monthIndex]}`
-  return options.year === false ? date : `${date} ${year}`
+  return shortDate(Number(day), monthIndex, year, options.year !== false)
+}
+
+/** Spanish short date of an instant («2026-10-01T23:30:00Z» → «2 oct 2026» in Madrid): the
+ *  calendar day in the given IANA time zone, by default the browser's. For instants (with a time),
+ *  not for plain dates, which formatIsoDate reads as written; null when the value is not an
+ *  instant. */
+export function formatInstantDate(iso: string, options: { timeZone?: string } = {}): string | null {
+  const instant = new Date(iso)
+  if (Number.isNaN(instant.getTime())) return null
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: options.timeZone,
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).formatToParts(instant)
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((p) => p.type === type)?.value)
+  return shortDate(part("day"), part("month") - 1, String(part("year")))
+}
+
+/** «2 oct 2026», or «2 oct» without the year: the one Spanish short date format. */
+function shortDate(day: number, monthIndex: number, year: string, withYear = true): string {
+  const date = `${day} ${MONTHS[monthIndex]}`
+  return withYear ? `${date} ${year}` : date
 }
 
 /** «1 oct 2024 – 30 sep 2026», or null when either end is missing or not an ISO date. */

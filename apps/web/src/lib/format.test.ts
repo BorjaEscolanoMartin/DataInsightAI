@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatDateRange, formatIsoDate, formatNumber } from "./format"
+import { formatDateRange, formatInstantDate, formatIsoDate, formatNumber } from "./format"
 
 describe("formatNumber", () => {
   it.each([
@@ -55,5 +55,32 @@ describe("formatDateRange", () => {
   it("returns null when an end is missing", () => {
     expect(formatDateRange(undefined, "2026-09-30")).toBeNull()
     expect(formatDateRange("2024-10-01", undefined)).toBeNull()
+  })
+})
+
+describe("formatInstantDate", () => {
+  it.each([
+    // Summer time (UTC+2): 23:30 UTC is already 1:30 on the next day in Madrid.
+    ["2026-10-01T23:30:00Z", "Europe/Madrid", "2 oct 2026"],
+    ["2026-07-10T22:30:00Z", "Europe/Madrid", "11 jul 2026"],
+    // Winter time (UTC+1): 22:30 UTC is still 23:30 the same day; 23:30 UTC on 31 December is
+    // already New Year.
+    ["2026-01-10T22:30:00Z", "Europe/Madrid", "10 ene 2026"],
+    ["2026-12-31T23:30:00Z", "Europe/Madrid", "1 ene 2027"],
+    ["2026-10-01T23:30:00Z", "UTC", "1 oct 2026"],
+  ])("writes %s as the calendar day in %s", (iso, timeZone, expected) => {
+    expect(formatInstantDate(iso, { timeZone })).toBe(expected)
+  })
+
+  it("uses the browser's time zone by default", () => {
+    const browserZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+
+    expect(formatInstantDate("2026-10-01T23:30:00Z")).toBe(
+      formatInstantDate("2026-10-01T23:30:00Z", { timeZone: browserZone }),
+    )
+  })
+
+  it("returns null for a value that is not an instant", () => {
+    expect(formatInstantDate("no es una fecha")).toBeNull()
   })
 })
