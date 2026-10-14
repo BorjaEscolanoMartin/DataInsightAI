@@ -2,6 +2,7 @@
 
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 import { AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "@/components/charts/chartTheme"
+import { formatNumber } from "@/lib/format"
 import type { RegressionOut } from "@/types/api"
 
 interface Props {
@@ -20,11 +21,11 @@ export function FeatureImportance({ regression }: Props) {
         <span>
           R²:{" "}
           <strong className="font-serif text-2xl font-medium tabular-nums text-fg">
-            {regression.r2.toFixed(3)}
+            {formatNumber(regression.r2, 3, 3)}
           </strong>
         </span>
         <span>
-          RMSE: <strong className="font-medium tabular-nums text-fg">{regression.rmse.toFixed(2)}</strong>
+          RMSE: <strong className="font-medium tabular-nums text-fg">{formatNumber(regression.rmse, 2, 2)}</strong>
         </span>
       </div>
       <p className="text-xs text-f3">

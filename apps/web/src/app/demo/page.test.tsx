@@ -21,6 +21,11 @@ describe("/demo", () => {
     render(<DemoPage />)
 
     expect(screen.getByRole("note").textContent).toContain("Datos sintéticos")
+    expect(screen.getByRole("group", { name: "Tema" })).toBeTruthy()
+    expect(screen.getByText("Demo · datos sintéticos")).toBeTruthy()
+    expect(screen.getByRole("link", { name: "Analiza tu propio CSV" }).getAttribute("href")).toBe(
+      "/signup",
+    )
     const sales = screen.getByRole("button", { name: "Ventas diarias · previsión" })
     const housing = screen.getByRole("button", { name: "Viviendas · regresión" })
     expect(sales.getAttribute("aria-pressed")).toBe("true")

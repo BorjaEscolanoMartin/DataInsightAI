@@ -3,6 +3,8 @@
 import Link from "next/link"
 import { useState } from "react"
 import { AnalysisView } from "@/components/analysis/AnalysisView"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { PRIMARY_BUTTON, TEXT_LINK } from "@/components/ui/styles"
 import { housingFixture, salesFixture } from "@/data/demo"
 
 // Precomputed fixtures, imported statically: the page makes no request.
@@ -21,24 +23,21 @@ export default function DemoPage() {
   const { fixture } = EXAMPLES[selected]
 
   return (
-    <div className="min-h-screen bg-gray-950">
-      <header className="border-b border-gray-800 bg-gray-900">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
-          <span className="text-lg font-bold">
-            DataInsight <span className="text-indigo-400">AI</span>
-            <span className="ml-2 text-sm font-normal text-gray-400">Demo</span>
-          </span>
-          <Link href="/login" className="text-sm text-indigo-400 hover:underline">
-            Iniciar sesión
-          </Link>
+    <div className="min-h-screen">
+      <header className="border-b border-fg">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
+          <span className="font-serif text-xl text-fg">DataInsight AI</span>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <Link href="/login" className={TEXT_LINK}>
+              Iniciar sesión
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl space-y-6 px-4 py-8">
-        <p
-          role="note"
-          className="rounded-lg border border-amber-800 bg-amber-950/40 px-4 py-3 text-sm text-amber-300"
-        >
+      <main className="mx-auto max-w-6xl space-y-8 px-4 py-10">
+        <p role="note" className="border-l-2 border-au pl-3 text-sm text-f2">
           Datos sintéticos: ambos conjuntos se han generado para esta demo y no corresponden a
           ningún negocio real.
         </p>
@@ -50,11 +49,7 @@ export default function DemoPage() {
               type="button"
               aria-pressed={id === selected}
               onClick={() => setSelected(id)}
-              className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${
-                id === selected
-                  ? "bg-indigo-600 text-white"
-                  : "border border-gray-700 text-gray-300 hover:bg-gray-800"
-              }`}
+              className="min-h-11 border border-fg px-4 text-sm font-medium text-fg hover:bg-s2 aria-pressed:bg-fg aria-pressed:text-inv"
             >
               {EXAMPLES[id].label}
             </button>
@@ -69,6 +64,12 @@ export default function DemoPage() {
           rowCount={fixture.row_count}
           columnCount={fixture.column_count}
           analysis={fixture.analysis}
+          eyebrow="Demo · datos sintéticos"
+          actions={
+            <Link href="/signup" className={PRIMARY_BUTTON}>
+              Analiza tu propio CSV
+            </Link>
+          }
         />
       </main>
     </div>
