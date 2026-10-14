@@ -11,6 +11,7 @@ import {
   Tooltip,
   Legend,
 } from "recharts"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "@/components/charts/chartTheme"
 import { horizonText, targetText } from "@/lib/forecast"
 import type { ForecastOut } from "@/types/api"
 
@@ -22,83 +23,75 @@ export function ForecastChart({ forecast }: Props) {
   const data = forecast.points.map((p) => ({
     ds: p.ds,
     yhat: +p.yhat.toFixed(2),
-    yhat_lower: +p.yhat_lower.toFixed(2),
-    yhat_upper: +p.yhat_upper.toFixed(2),
     band: [+p.yhat_lower.toFixed(2), +p.yhat_upper.toFixed(2)] as [number, number],
   }))
 
-  const tickCount = Math.min(6, data.length)
-  const step = Math.max(1, Math.floor(data.length / tickCount))
-  const ticks = data.filter((_, i) => i % step === 0).map((d) => d.ds)
-
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-4 text-xs text-gray-400">
-        <span>
-          Objetivo: <strong className="text-gray-200">{targetText(forecast)}</strong>
-        </span>
-        <span>
-          Fecha: <strong className="text-gray-200">{forecast.date_column}</strong>
-        </span>
-        <span>
-          Horizonte: <strong className="text-gray-200">{horizonText(forecast)}</strong>
-        </span>
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-sm text-f2">
         {forecast.wape != null && (
           <span>
-            WAPE backtest: <strong className="text-indigo-300">{forecast.wape.toFixed(1)}%</strong>
-          </span>
-        )}
-        {forecast.mae != null && (
-          <span>
-            MAE: <strong className="text-gray-200">{forecast.mae.toFixed(1)}</strong>
+            WAPE backtest:{" "}
+            <strong className="font-serif text-2xl font-medium tabular-nums text-fg">
+              {forecast.wape.toFixed(1)}%
+            </strong>
           </span>
         )}
         {forecast.mape != null && (
           <span>
-            MAPE backtest: <strong className="text-indigo-300">{forecast.mape.toFixed(1)}%</strong>
+            MAPE backtest:{" "}
+            <strong className="font-serif text-2xl font-medium tabular-nums text-fg">
+              {forecast.mape.toFixed(1)}%
+            </strong>
           </span>
         )}
+        {forecast.mae != null && (
+          <span>
+            MAE: <strong className="font-medium tabular-nums text-fg">{forecast.mae.toFixed(1)}</strong>
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-f3">
+        <span>
+          Objetivo: <strong className="font-medium text-f2">{targetText(forecast)}</strong>
+        </span>
+        <span>
+          Fecha: <strong className="font-medium text-f2">{forecast.date_column}</strong>
+        </span>
+        <span>
+          Horizonte: <strong className="font-medium text-f2">{horizonText(forecast)}</strong>
+        </span>
       </div>
 
       <ResponsiveContainer width="100%" height={260}>
         <ComposedChart data={data} margin={{ top: 4, right: 16, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+          <CartesianGrid stroke={GRID_STROKE} vertical={false} />
           <XAxis
             dataKey="ds"
-            ticks={ticks}
-            tick={{ fontSize: 11, fill: "#6b7280" }}
-            stroke="#374151"
+            tick={AXIS_TICK}
+            axisLine={AXIS_LINE}
+            tickLine={false}
+            interval="preserveStartEnd"
+            minTickGap={32}
           />
-          <YAxis tick={{ fontSize: 11, fill: "#6b7280" }} stroke="#374151" width={60} />
-          <Tooltip
-            contentStyle={{ background: "#111827", border: "1px solid #374151", fontSize: 12 }}
-            labelStyle={{ color: "#e5e7eb" }}
-            itemStyle={{ color: "#a5b4fc" }}
-          />
-          <Legend wrapperStyle={{ fontSize: 12, color: "#9ca3af" }} />
+          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={60} />
+          <Tooltip {...TOOLTIP_PROPS} />
+          <Legend wrapperStyle={{ fontSize: 12, color: "var(--f2)" }} />
           <Area
             type="monotone"
-            dataKey="yhat_upper"
-            fill="#4338ca"
-            stroke="transparent"
-            fillOpacity={0.15}
-            name="IC superior"
-          />
-          <Area
-            type="monotone"
-            dataKey="yhat_lower"
-            fill="#111827"
-            stroke="transparent"
-            fillOpacity={1}
-            name="IC inferior"
+            dataKey="band"
+            fill="var(--au)"
+            fillOpacity={0.14}
+            stroke="none"
+            name="Intervalo del 95 %"
           />
           <Line
             type="monotone"
             dataKey="yhat"
-            stroke="#818cf8"
-            strokeWidth={2}
+            stroke="var(--au)"
+            strokeWidth={1.5}
             dot={false}
-            name="Predicción"
+            name="Previsión"
           />
         </ComposedChart>
       </ResponsiveContainer>

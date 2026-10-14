@@ -1,14 +1,7 @@
 "use client"
 
-import {
-  ScatterChart,
-  Scatter,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
-} from "recharts"
+import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
   data: { x: number | null; y: number | null }[]
@@ -21,31 +14,20 @@ export function ScatterChartComp({ data, xCol, yCol }: Props) {
 
   return (
     <ResponsiveContainer width="100%" height={220}>
-      <ScatterChart margin={{ right: 8 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
+      <ScatterChart margin={{ right: 8, bottom: 8 }}>
+        <CartesianGrid stroke={GRID_STROKE} />
         <XAxis
           dataKey="x"
           name={xCol}
           type="number"
-          tick={{ fontSize: 10, fill: "#6b7280" }}
-          axisLine={false}
+          tick={AXIS_TICK}
+          axisLine={AXIS_LINE}
           tickLine={false}
-          label={{ value: xCol, position: "insideBottom", offset: -2, fontSize: 10, fill: "#6b7280" }}
+          label={{ value: xCol, position: "insideBottom", offset: -4, ...AXIS_TICK }}
         />
-        <YAxis
-          dataKey="y"
-          name={yCol}
-          type="number"
-          tick={{ fontSize: 10, fill: "#6b7280" }}
-          axisLine={false}
-          tickLine={false}
-        />
-        <Tooltip
-          contentStyle={{ backgroundColor: "#1f2937", border: "1px solid #374151", borderRadius: 8 }}
-          itemStyle={{ color: "#fcd34d", fontSize: 11 }}
-          cursor={{ strokeDasharray: "3 3" }}
-        />
-        <Scatter data={clean} fill="#f59e0b" opacity={0.55} />
+        <YAxis dataKey="y" name={yCol} type="number" tick={AXIS_TICK} axisLine={AXIS_LINE} tickLine={false} width={48} />
+        <Tooltip {...TOOLTIP_PROPS} cursor={{ stroke: "var(--ln)" }} />
+        <Scatter data={clean} fill="var(--fg)" fillOpacity={0.6} />
       </ScatterChart>
     </ResponsiveContainer>
   )
