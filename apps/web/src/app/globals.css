@@ -1,1 +1,39 @@
 @import "tailwindcss";
+
+/* Design tokens (docs: odd/tasks/redesign.md, S2, S11). Each colour is defined once as
+   light-dark(light, dark); color-scheme picks the side: the system preference by default, or the
+   user's explicit choice through data-theme. */
+:root {
+  color-scheme: light dark;
+  --bg: light-dark(#fafafa, #0a0a0a);
+  --s1: light-dark(#ffffff, #131313);
+  --s2: light-dark(#f1f1f1, #1c1c1c);
+  --ln: light-dark(#e5e5e5, #262626);
+  --fg: light-dark(#0a0a0a, #f5f5f5);
+  --f2: light-dark(#525252, #a3a3a3);
+  --f3: light-dark(#6b6b6b, #7c7c7c);
+  --inv: light-dark(#ffffff, #0a0a0a);
+  --au: light-dark(#8e6b2c, #d4b87a);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-ln: var(--ln);
+  --color-fg: var(--fg);
+  --color-f2: var(--f2);
+  --color-f3: var(--f3);
+  --color-inv: var(--inv);
+  --color-au: var(--au);
+  --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-plex-sans), system-ui, sans-serif;
+}
