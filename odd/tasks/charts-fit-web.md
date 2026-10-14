@@ -35,8 +35,8 @@ Quoted from the brief (W1–W10); decisions in the Log.
 | C4 | S6 (L9) | inline | done: RED (`"xl:col-span-3"` not written in grid.ts), GREEN; `lastSpanClass` reads whole class names from value-to-class maps; the test checks every class it can return appears quoted in grid.ts, where Tailwind's scanner finds it | c933bc8 |
 | C5 | S1 (L9) | inline | done: RED (`distinctDecimals` missing; small bounds written «0,00»), GREEN; `lib/format.ts` gets `distinctDecimals` (fewest decimals that write each value differently from the previous one, using `formatNumber` itself); the histogram's axis ends and outlier bounds take the larger of it and the exact-up-to-2 rule, and ranges up to that many (at least 2), so 0,0012–0,006 reads «0,001–0,004», «> 0,006»; existing labels unchanged | cd0c235 |
 | C6 | S9 (L9) | inline | done: RED (`chartTooltip` missing), GREEN; `chartTooltip(reducedMotion)` in chartTheme adds `isAnimationActive` to the shared tooltip props; the 7 tooltips of the 6 Recharts components use it instead of `TOOLTIP_PROPS` | 15803bf |
-| C7 | S6 (L9) | inline | done: RED (an unknown type took the stretch), GREEN; `RENDERERS` (type → drawing) is the one list of drawn types; `ChartGrid` drops charts without a renderer before ordering and counting | (this commit) |
-| T8 | checks, screenshots | inline | pending | |
+| C7 | S6 (L9) | inline | done: RED (an unknown type took the stretch), GREEN; `RENDERERS` (type → drawing) is the one list of drawn types; `ChartGrid` drops charts without a renderer before ordering and counting | b5ac4a6 |
+| T8 | checks, screenshots | inline | done: web 170/170, tsc, eslint, build; /demo First Load JS 242 → 244 kB (+2 kB, under the 5 kB warning); 8 screenshots (sales and housing, 1280 and 390 px, dark and light) with no console errors and no page-wide horizontal scroll, copied to `.claude/rediseno/capturas-graficos/` (git-ignored) | (this commit) |
 
 Route: inline; no writer trigger (sequential edits in the same chart components).
 
