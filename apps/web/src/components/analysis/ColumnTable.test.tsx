@@ -63,6 +63,15 @@ const COLUMNS: ColumnProfile[] = [
     ],
   },
   { name: "Fecha", type: "date", null_count: 0, null_pct: 0, unique_count: 730 },
+  {
+    name: "Entrega",
+    type: "date",
+    null_count: 0,
+    null_pct: 0,
+    unique_count: 700,
+    min_date: "2024-10-01",
+    max_date: "2026-09-30",
+  },
 ]
 
 function row(name: string): HTMLElement {
@@ -129,6 +138,13 @@ describe("ColumnTable", () => {
     render(<ColumnTable columns={COLUMNS} />)
 
     expect(within(row("Fecha")).queryByRole("button")).toBeNull()
+  })
+
+  it("summarises a date column with its range, or as before without one", () => {
+    render(<ColumnTable columns={COLUMNS} />)
+
+    expect(row("Entrega").textContent).toContain("1 oct 2024 – 30 sep 2026")
+    expect(within(row("Fecha")).getAllByRole("cell").at(-1)?.textContent).toBe("—")
   })
 
   it("summarises nulls and numeric columns in Spanish", () => {

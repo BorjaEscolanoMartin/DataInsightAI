@@ -1,6 +1,7 @@
 "use client"
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { formatIsoDate } from "@/lib/format"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
@@ -8,16 +9,8 @@ interface Props {
   yColumn: string
 }
 
-function formatDate(iso: string): string {
-  try {
-    return new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short" })
-  } catch {
-    return iso
-  }
-}
-
 export function TimeSeriesChart({ data, yColumn }: Props) {
-  const formatted = data.map((d) => ({ ...d, label: formatDate(d.date) }))
+  const formatted = data.map((d) => ({ ...d, label: formatIsoDate(d.date, { year: false }) ?? d.date }))
 
   return (
     <ResponsiveContainer width="100%" height={240}>

@@ -6,7 +6,7 @@ import { hasInsights, InsightsPanel } from "@/components/insights/InsightsPanel"
 import { hasPredictions, PredictionsPanel } from "@/components/predictions/PredictionsPanel"
 import { ReportHeader } from "@/components/ui/ReportHeader"
 import { Section } from "@/components/ui/Section"
-import { formatNumber } from "@/lib/format"
+import { formatDateRange, formatNumber } from "@/lib/format"
 import type { Analysis } from "@/types/api"
 import { ColumnTable } from "./ColumnTable"
 
@@ -48,9 +48,7 @@ export function AnalysisView({
           <Stat label="Filas" value={formatNumber(profile?.row_count ?? rowCount ?? 0)} />
           <Stat label="Columnas" value={formatNumber(profile?.column_count ?? columnCount ?? 0)} />
           <Stat label="Tamaño" value={`${formatNumber(sizeBytes / 1024, 1, 1)} KB`} />
-          {profile?.date_column_candidate && (
-            <Stat label="Columna de fecha" value={profile.date_column_candidate} highlight />
-          )}
+          {profile?.date_column_candidate && <DateStat profile={profile} />}
         </dl>
       ),
     },
@@ -104,15 +102,38 @@ export function AnalysisView({
   )
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+/** «Periodo» with the detected date column's range and its name below; an analysis without the
+ *  range (older ones) keeps «Columna de fecha» (S2, S4). */
+function DateStat({ profile }: { profile: NonNullable<Analysis["profile"]> }) {
+  const name = profile.date_column_candidate!
+  const column = profile.columns.find((c) => c.name === name)
+  const range = formatDateRange(column?.min_date, column?.max_date)
+  if (!range) return <Stat label="Columna de fecha" value={name} highlight />
+  return <Stat label="Periodo" value={range} note={`columna ${name}`} highlight small />
+}
+
+function Stat({
+  label,
+  value,
+  highlight,
+  note,
+  small,
+}: {
+  label: string
+  value: string
+  highlight?: boolean
+  note?: string
+  small?: boolean
+}) {
   return (
     <div className="min-w-0">
       <dt className="text-xs text-f3">{label}</dt>
       <dd
-        className={`mt-1 font-serif text-4xl tabular-nums [overflow-wrap:anywhere] ${highlight ? "text-au" : "text-fg"}`}
+        className={`mt-1 font-serif tabular-nums [overflow-wrap:anywhere] ${small ? "text-2xl" : "text-4xl"} ${highlight ? "text-au" : "text-fg"}`}
       >
         {value}
       </dd>
+      {note && <dd className="mt-1 text-xs text-f3">{note}</dd>}
     </div>
   )
 }
