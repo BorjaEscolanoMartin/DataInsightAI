@@ -1,5 +1,7 @@
 "use client"
 
+import { formatNumber } from "@/lib/format"
+
 interface HeatmapDatum {
   x: string
   y: string
@@ -11,71 +13,57 @@ interface Props {
   data: HeatmapDatum[]
 }
 
-function corrColor(value: number): string {
-  const abs = Math.abs(value)
-  if (value >= 0) {
-    return `rgba(99,102,241,${(0.15 + abs * 0.85).toFixed(2)})`
-  }
-  return `rgba(239,68,68,${(0.15 + abs * 0.85).toFixed(2)})`
+/** Cell background: the accent for positive r, a neutral tone for negative r, from 10 % (r = 0)
+ *  to 50 % (|r| = 1) over the page background (docs: odd/tasks/redesign.md, S13). */
+export function correlationCellColor(r: number): string {
+  const share = Math.round(10 + 40 * Math.min(1, Math.abs(r)))
+  const tone = r < 0 ? "--f3" : "--au"
+  return `color-mix(in srgb, var(${tone}) ${share}%, var(--bg))`
 }
 
-function textColor(value: number): string {
-  return Math.abs(value) > 0.5 ? "#f9fafb" : "#9ca3af"
+function formatR(r: number): string {
+  return formatNumber(r, 2, 2)
 }
 
 export function HeatmapChart({ columns, data }: Props) {
   const lookup = new Map(data.map((d) => [`${d.x}||${d.y}`, d.value]))
-  const cellSize = Math.max(32, Math.min(56, Math.floor(480 / columns.length)))
-  const labelWidth = 80
+  const value = (row: string, col: string) => lookup.get(`${row}||${col}`) ?? 0
+
+  const pairs = columns.flatMap((a, i) =>
+    columns.slice(i + 1).map((b) => `${a} y ${b}: ${formatR(value(a, b))}`),
+  )
 
   return (
     <div className="overflow-x-auto">
-      <div style={{ minWidth: labelWidth + columns.length * cellSize }}>
-        {/* Column headers */}
-        <div className="flex" style={{ marginLeft: labelWidth }}>
-          {columns.map((col) => (
-            <div
-              key={col}
-              className="truncate text-center text-xs text-gray-500"
-              style={{ width: cellSize, fontSize: 9 }}
-              title={col}
-            >
-              {col.length > 8 ? col.slice(0, 7) + "…" : col}
-            </div>
-          ))}
-        </div>
-
-        {/* Rows */}
-        {columns.map((rowCol) => (
-          <div key={rowCol} className="flex items-center">
-            <div
-              className="truncate text-right text-xs text-gray-400 pr-2"
-              style={{ width: labelWidth, fontSize: 10 }}
-              title={rowCol}
-            >
-              {rowCol.length > 10 ? rowCol.slice(0, 9) + "…" : rowCol}
-            </div>
-            {columns.map((colCol) => {
-              const val = lookup.get(`${rowCol}||${colCol}`) ?? 0
-              return (
-                <div
-                  key={colCol}
-                  className="flex items-center justify-center rounded-sm text-xs font-medium"
-                  style={{
-                    width: cellSize,
-                    height: cellSize,
-                    backgroundColor: corrColor(val),
-                    color: textColor(val),
-                    fontSize: cellSize < 40 ? 8 : 10,
-                  }}
-                  title={`${rowCol} × ${colCol}: ${val.toFixed(2)}`}
-                >
-                  {val.toFixed(2)}
-                </div>
-              )
-            })}
-          </div>
+      <div
+        role="img"
+        aria-label={`Coeficientes de correlación. ${pairs.join("; ")}`}
+        className="grid gap-[3px] text-sm"
+        style={{ gridTemplateColumns: `78px repeat(${columns.length}, minmax(44px, 1fr))` }}
+      >
+        <span />
+        {columns.map((col) => (
+          <span key={col} className="truncate text-center text-xs text-f3" title={col}>
+            {col}
+          </span>
         ))}
+        {columns.map((row) => [
+          <span key={row} className="self-center truncate text-xs text-f3" title={row}>
+            {row}
+          </span>,
+          ...columns.map((col) => {
+            const r = value(row, col)
+            return (
+              <span
+                key={`${row}||${col}`}
+                className="flex h-11 items-center justify-center font-medium tabular-nums text-fg"
+                style={{ background: correlationCellColor(r) }}
+              >
+                {formatR(r)}
+              </span>
+            )
+          }),
+        ])}
       </div>
     </div>
   )
