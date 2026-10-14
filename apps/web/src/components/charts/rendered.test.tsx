@@ -1,7 +1,7 @@
 import { act, render } from "@testing-library/react"
 import { cloneElement, type ReactElement } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { ValueColumnChart } from "./BarChartComp"
+import { CategoricalBarChart, categoryLabelWidth, ValueColumnChart } from "./BarChartComp"
 import { HistogramChart } from "./HistogramChart"
 import { histogramView } from "./histogram"
 
@@ -90,6 +90,35 @@ describe("count axes", () => {
     const { container } = render(<HistogramChart view={view} />)
 
     expect(yTicks(container)).toEqual(["0", "500", "1.000", "1.500"])
+  })
+})
+
+describe("category bars", () => {
+  const ZONAS = [
+    { name: "Centro", count: 346 },
+    { name: "Norte", count: 338 },
+    { name: "Periferia", count: 256 },
+  ]
+
+  it("fits the label column to the longest name", () => {
+    expect(categoryLabelWidth(["Centro", "Periferia"])).toBe(categoryLabelWidth(["Periferia"]))
+    expect(categoryLabelWidth(["Periferia"])).toBeGreaterThan(categoryLabelWidth(["Sur"]))
+    expect(categoryLabelWidth(["Una categoría con un nombre muy, muy largo"])).toBe(140)
+  })
+
+  it("draws each bar 60 % of its row, right after the label column", () => {
+    preferReducedMotion(true)
+    const { container } = render(<CategoricalBarChart data={ZONAS} />)
+
+    const bars = [...container.querySelectorAll(".recharts-bar-rectangle path")]
+    expect(bars).toHaveLength(3)
+    const [first, second] = bars.map((b) => ({
+      x: Number(b.getAttribute("x")),
+      y: Number(b.getAttribute("y")),
+      height: Number(b.getAttribute("height")),
+    }))
+    expect(first.height / (second.y - first.y)).toBeCloseTo(0.6, 1)
+    expect(first.x).toBeCloseTo(8 + categoryLabelWidth(ZONAS.map((z) => z.name)), 0)
   })
 })
 
