@@ -1,6 +1,7 @@
 "use client"
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
+import { niceAxisMax, numberTick } from "./axis"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 
 interface Props {
@@ -9,13 +10,23 @@ interface Props {
 
 export function CategoricalBarChart({ data }: Props) {
   const height = Math.max(160, data.length * 28)
+  const top = niceAxisMax(Math.max(0, ...data.map((d) => d.count)))
 
   return (
     <div data-orientation="horizontal">
       <ResponsiveContainer width="100%" height={height}>
-        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 16 }}>
+        {/* The right margin keeps the last tick label («1.000») whole. */}
+        <BarChart data={data} layout="vertical" margin={{ left: 8, right: 24 }}>
           <CartesianGrid stroke={GRID_STROKE} horizontal={false} />
-          <XAxis type="number" tick={AXIS_TICK} axisLine={false} tickLine={false} />
+          <XAxis
+            type="number"
+            domain={[0, top]}
+            tickCount={5}
+            tickFormatter={numberTick}
+            tick={AXIS_TICK}
+            axisLine={false}
+            tickLine={false}
+          />
           <YAxis
             type="category"
             dataKey="name"
