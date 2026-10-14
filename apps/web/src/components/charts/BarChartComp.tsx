@@ -2,7 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { countAxis, numberTick } from "./axis"
-import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, chartTooltip } from "./chartTheme"
 import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
@@ -37,7 +37,7 @@ export function CategoricalBarChart({ data }: Props) {
             width={100}
             tickLine={false}
           />
-          <Tooltip {...TOOLTIP_PROPS} />
+          <Tooltip {...chartTooltip(reducedMotion)} />
           <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" barSize={8} />
         </BarChart>
       </ResponsiveContainer>
@@ -65,7 +65,7 @@ export function ValueColumnChart({ data }: Props) {
             tickLine={false}
             width={48}
           />
-          <Tooltip {...TOOLTIP_PROPS} />
+          <Tooltip {...chartTooltip(reducedMotion)} />
           <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" />
         </BarChart>
       </ResponsiveContainer>

@@ -2,7 +2,7 @@
 
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { formatIsoDate } from "@/lib/format"
-import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, chartTooltip } from "./chartTheme"
 import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
@@ -28,7 +28,7 @@ export function TimeSeriesChart({ data, yColumn }: Props) {
           tickLine={false}
         />
         <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={48} />
-        <Tooltip {...TOOLTIP_PROPS} formatter={(v: number) => [v, yColumn]} />
+        <Tooltip {...chartTooltip(reducedMotion)} formatter={(v: number) => [v, yColumn]} />
         <Line
           isAnimationActive={!reducedMotion}
           type="linear"

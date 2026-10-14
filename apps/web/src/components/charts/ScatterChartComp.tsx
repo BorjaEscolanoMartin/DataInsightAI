@@ -2,7 +2,7 @@
 
 import { ScatterChart, Scatter, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts"
 import { numberTick, scatterAxis } from "./axis"
-import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, chartTooltip } from "./chartTheme"
 import { useReducedMotion } from "@/lib/motion"
 
 interface Props {
@@ -46,7 +46,7 @@ export function ScatterChartComp({ data, xCol, yCol }: Props) {
           tickLine={false}
           width={56}
         />
-        <Tooltip {...TOOLTIP_PROPS} cursor={{ stroke: "var(--ln)" }} />
+        <Tooltip {...chartTooltip(reducedMotion)} cursor={{ stroke: "var(--ln)" }} />
         {/* One series. A 0,45 fill alone falls under 3:1 on the light background; the opaque 1 px
             stroke keeps each point's edge at 4,69:1 (light) and 10,31:1 (dark) (S21). */}
         <Scatter isAnimationActive={!reducedMotion} data={clean} fill="var(--au)" fillOpacity={0.45} stroke="var(--au)" strokeWidth={1} />

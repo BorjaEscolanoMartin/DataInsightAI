@@ -1,7 +1,7 @@
 "use client"
 
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
-import { AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "@/components/charts/chartTheme"
+import { AXIS_TICK, GRID_STROKE, chartTooltip } from "@/components/charts/chartTheme"
 import { formatNumber } from "@/lib/format"
 import type { RegressionOut } from "@/types/api"
 import { useReducedMotion } from "@/lib/motion"
@@ -46,7 +46,7 @@ export function FeatureImportance({ regression }: Props) {
             tickLine={false}
             width={110}
           />
-          <Tooltip {...TOOLTIP_PROPS} formatter={(v: number) => [`${v}%`, "Importancia"]} />
+          <Tooltip {...chartTooltip(reducedMotion)} formatter={(v: number) => [`${v}%`, "Importancia"]} />
           <Bar isAnimationActive={!reducedMotion} dataKey="importance" barSize={10}>
             {/* The most important variable is the one highlighted in the accent. */}
             {data.map((d, i) => (

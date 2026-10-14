@@ -14,7 +14,7 @@ import {
   type RectangleProps,
 } from "recharts"
 import { countAxis, numberTick } from "./axis"
-import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
+import { AXIS_LINE, AXIS_TICK, GRID_STROKE, chartTooltip } from "./chartTheme"
 import type { HistogramBar, HistogramView } from "./histogram"
 import { useReducedMotion } from "@/lib/motion"
 
@@ -87,7 +87,7 @@ export function HistogramChart({ view }: Props) {
           tickLine={false}
           width={48}
         />
-        <Tooltip {...TOOLTIP_PROPS} />
+        <Tooltip {...chartTooltip(reducedMotion)} />
         <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" shape={shape}>
           {bars.map((b, i) => (
             <Cell key={i} fill={b.side ? "var(--au)" : "var(--fg)"} />
