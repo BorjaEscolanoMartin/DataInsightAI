@@ -6,7 +6,7 @@ import { AnalysisView } from "@/components/analysis/AnalysisView"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import { Logo } from "@/components/ui/Logo"
 import { Segmented } from "@/components/ui/Segmented"
-import { PRIMARY_BUTTON, TEXT_LINK } from "@/components/ui/styles"
+import { PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/ui/styles"
 import { housingFixture, salesFixture } from "@/data/demo"
 
 // Precomputed fixtures, imported statically: the page makes no request.
@@ -28,10 +28,10 @@ export default function DemoPage() {
     <div className="min-h-screen">
       <header className="border-b border-fg">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
-          <Logo href="/demo" />
+          <Logo />
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            <Link href="/login" className={TEXT_LINK}>
+            <Link href="/login" className={SECONDARY_BUTTON}>
               Iniciar sesión
             </Link>
           </div>

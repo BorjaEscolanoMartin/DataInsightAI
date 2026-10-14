@@ -188,7 +188,7 @@ export default function ProjectPage() {
 function UploadNewCsv({ disabled, onFile }: { disabled: boolean; onFile: (file: File) => void }) {
   return (
     <label
-      className={`${PRIMARY_BUTTON} cursor-pointer focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-au has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50`}
+      className={`${PRIMARY_BUTTON} focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-au has-[:disabled]:opacity-50`}
     >
       Subir nuevo CSV
       <input

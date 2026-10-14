@@ -31,7 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="min-h-screen">
         <header className="border-b border-fg">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
-            <Logo href="/projects" />
+            <Logo />
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm text-f2 [overflow-wrap:anywhere]">{user?.email}</span>
               <ThemeToggle />

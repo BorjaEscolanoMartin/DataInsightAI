@@ -22,7 +22,7 @@ describe("/demo", () => {
 
     expect(screen.getByRole("note").textContent).toContain("Datos sintéticos")
     expect(screen.getByRole("group", { name: "Tema" })).toBeTruthy()
-    expect(screen.getByRole("link", { name: "DataInsight AI, ir a la demo" }).getAttribute("href")).toBe("/demo")
+    expect(screen.getByRole("link", { name: "DataInsight AI, ir al inicio" }).getAttribute("href")).toBe("/")
     expect(screen.getByText("Demo · datos sintéticos")).toBeTruthy()
     expect(screen.getByRole("link", { name: "Analiza tu propio CSV" }).getAttribute("href")).toBe(
       "/signup",

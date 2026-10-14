@@ -13,7 +13,7 @@ describe("dashboard layout", () => {
   it("shows the brand, the user, the theme toggle and the logout button", async () => {
     render(await DashboardLayout({ children: <p>Contenido</p> }))
 
-    expect(screen.getByRole("link", { name: "DataInsight AI, ir a Proyectos" }).getAttribute("href")).toBe("/projects")
+    expect(screen.getByRole("link", { name: "DataInsight AI, ir al inicio" }).getAttribute("href")).toBe("/")
     expect(screen.getByText("ana@example.com")).toBeTruthy()
     expect(screen.getByRole("group", { name: "Tema" })).toBeTruthy()
     expect(screen.getByRole("button", { name: "Cerrar sesión" })).toBeTruthy()

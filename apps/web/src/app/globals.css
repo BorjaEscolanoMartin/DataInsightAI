@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
-/* Design tokens (docs: odd/tasks/redesign.md, S2, S11). Each colour is defined once as
-   light-dark(light, dark); color-scheme picks the side: the system preference by default, or the
-   user's explicit choice through data-theme. */
+/* Design tokens (docs: odd/tasks/redesign.md, S2, S11, S24). Each colour is defined once as
+   light-dark(light, dark); color-scheme picks the side: dark by default, light when the user
+   chooses it through data-theme. */
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
   --bg: light-dark(#fafafa, #0a0a0a);
   --s1: light-dark(#ffffff, #131313);
   --s2: light-dark(#f1f1f1, #1c1c1c);
@@ -44,38 +44,44 @@
   color-scheme: dark;
 }
 
-/* Browsers without light-dark() (before Chrome 123, Firefox 120, Safari 17.5) get the light
-   theme, so the page keeps its colours, and no theme toggle. */
+/* Browsers without light-dark() (before Chrome 123, Firefox 120, Safari 17.5) get the default
+   dark theme with plain values, so the page keeps its colours, and no theme toggle (S24). */
 @supports not (color: light-dark(#000, #fff)) {
   :root {
-    color-scheme: light;
-    --bg: #fafafa;
-    --s1: #ffffff;
-    --s2: #f1f1f1;
-    --ln: #e5e5e5;
-    --fg: #0a0a0a;
-    --f2: #525252;
-    --f3: #6b6b6b;
-    --inv: #ffffff;
-    --au: #8e6b2c;
-    --trk: #ececec;
-    --trk-in: rgba(0, 0, 0, 0.09);
-    --trk-hi: rgba(255, 255, 255, 0);
+    color-scheme: dark;
+    --bg: #0a0a0a;
+    --s1: #131313;
+    --s2: #1c1c1c;
+    --ln: #262626;
+    --fg: #f5f5f5;
+    --f2: #a3a3a3;
+    --f3: #8a8a8a;
+    --inv: #0a0a0a;
+    --au: #d4b87a;
+    --trk: #0d0d0d;
+    --trk-in: rgba(0, 0, 0, 0.8);
+    --trk-hi: rgba(255, 255, 255, 0.05);
     --knob-a: #ffffff;
-    --knob-b: #f5f5f5;
+    --knob-b: #d8d8d8;
     --knob-hi: #ffffff;
-    --knob-ring: rgba(0, 0, 0, 0.05);
-    --knob-sh: rgba(0, 0, 0, 0.16);
-    --knob-sh2: rgba(0, 0, 0, 0);
-    --pri-a: #2e2e2e;
-    --pri-b: #0a0a0a;
-    --pri-hi: rgba(255, 255, 255, 0.18);
-    --pri-sh: rgba(0, 0, 0, 0.25);
-    --sec-a: #ffffff;
-    --sec-b: #f3f3f3;
-    --sec-bd: #d9d9d9;
-    --sec-hi: #ffffff;
-    --sec-sh: rgba(0, 0, 0, 0.07);
+    --knob-ring: rgba(0, 0, 0, 0);
+    --knob-sh: rgba(0, 0, 0, 0);
+    --knob-sh2: rgba(0, 0, 0, 0.65);
+    --pri-a: #ffffff;
+    --pri-b: #d6d6d6;
+    --pri-hi: #ffffff;
+    --pri-sh: rgba(0, 0, 0, 0.6);
+    --sec-a: #1f1f1f;
+    --sec-b: #151515;
+    --sec-bd: rgba(255, 255, 255, 0.1);
+    --sec-hi: rgba(255, 255, 255, 0.07);
+    --sec-sh: rgba(0, 0, 0, 0.5);
+  }
+
+  /* A «Claro» stored earlier must not switch native controls to light over these dark values:
+     same specificity as the rule above, later in the sheet, so it wins. */
+  :root[data-theme="light"] {
+    color-scheme: dark;
   }
 
   /* The theme cannot change here, so the toggle is not shown. */
@@ -179,6 +185,17 @@
   .gold-rule {
     height: 1px;
     background: linear-gradient(90deg, var(--au), transparent 70%);
+  }
+}
+
+/* Tailwind 4's preflight leaves buttons with the default arrow (S29): every enabled button, and
+   every label that opens a file picker, gets the pointer once here. Disabled controls keep
+   not-allowed (the relief rules above). */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label:has(> input[type="file"]:not(:disabled)) {
+    cursor: pointer;
   }
 }
 

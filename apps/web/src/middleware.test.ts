@@ -11,7 +11,7 @@ describe("middleware matcher", () => {
     },
   )
 
-  it.each(["/projects", "/projects/123", "/login", "/signup", "/demos"])(
+  it.each(["/", "/projects", "/projects/123", "/login", "/signup", "/demos"])(
     "still runs on %s",
     (url) => {
       expect(unstable_doesMiddlewareMatch({ config, url })).toBe(true)
