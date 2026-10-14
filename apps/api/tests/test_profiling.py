@@ -471,3 +471,14 @@ def test_identifier_is_left_out_of_heatmap_evolution_and_scatter():
     scatters = [(c["x_column"], c["y_column"]) for c in charts if c["type"] == "scatter"]
     assert scatters
     assert all("id" not in pair for pair in scatters)
+
+
+def test_new_category_and_scatter_titles():
+    rows = [
+        (i + 0.5, 2 * i + 1.25 + (i % 3) * 0.1, "Centro" if i % 4 else "Playa") for i in range(30)
+    ]
+    csv = "metros,precio,zona\n" + "".join(f"{m},{p},{z}\n" for m, p, z in rows)
+    titles = {c["type"]: c["title"] for c in profile_csv(csv.encode())["charts"]}
+
+    assert titles["bar"] == "Valores de zona"
+    assert titles["scatter"] == "metros frente a precio"

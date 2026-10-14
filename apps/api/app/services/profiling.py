@@ -200,7 +200,7 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
         charts.append({
             "id": f"bar_{col}",
             "type": "bar",
-            "title": f"Top valores de {col}",
+            "title": f"Valores de {col}",
             "column": col,
             "data": [
                 {"name": c["value"], "count": c["count"]}
@@ -279,7 +279,7 @@ def _compute_charts(df: pd.DataFrame, columns: list[dict[str, Any]]) -> list[dic
                 charts.append({
                     "id": f"scatter_{col_a}_{col_b}",
                     "type": "scatter",
-                    "title": f"{col_a} vs {col_b}",
+                    "title": f"{col_a} frente a {col_b}",
                     "x_column": col_a,
                     "y_column": col_b,
                     "data": [
