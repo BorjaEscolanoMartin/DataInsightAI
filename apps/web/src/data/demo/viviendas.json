@@ -188,127 +188,106 @@
           "column": "Metros",
           "data": [
             {
-              "bin": "25–31.85",
               "start": 25.0,
               "end": 31.85,
               "count": 28
             },
             {
-              "bin": "31.85–38.7",
               "start": 31.85,
               "end": 38.7,
               "count": 37
             },
             {
-              "bin": "38.7–45.55",
               "start": 38.7,
               "end": 45.55,
               "count": 57
             },
             {
-              "bin": "45.55–52.4",
               "start": 45.55,
               "end": 52.4,
               "count": 36
             },
             {
-              "bin": "52.4–59.25",
               "start": 52.4,
               "end": 59.25,
               "count": 65
             },
             {
-              "bin": "59.25–66.1",
               "start": 59.25,
               "end": 66.1,
               "count": 85
             },
             {
-              "bin": "66.1–72.95",
               "start": 66.1,
               "end": 72.94999999999999,
               "count": 75
             },
             {
-              "bin": "72.95–79.8",
               "start": 72.94999999999999,
               "end": 79.8,
               "count": 150
             },
             {
-              "bin": "79.8–86.65",
               "start": 79.8,
               "end": 86.65,
               "count": 199
             },
             {
-              "bin": "86.65–93.5",
               "start": 86.65,
               "end": 93.5,
               "count": 132
             },
             {
-              "bin": "93.5–100.3",
               "start": 93.5,
               "end": 100.35,
               "count": 133
             },
             {
-              "bin": "100.3–107.2",
               "start": 100.35,
               "end": 107.19999999999999,
               "count": 113
             },
             {
-              "bin": "107.2–114",
               "start": 107.19999999999999,
               "end": 114.05,
               "count": 106
             },
             {
-              "bin": "114–120.9",
               "start": 114.05,
               "end": 120.89999999999999,
               "count": 65
             },
             {
-              "bin": "120.9–127.8",
               "start": 120.89999999999999,
               "end": 127.75,
               "count": 46
             },
             {
-              "bin": "127.8–134.6",
               "start": 127.75,
               "end": 134.6,
               "count": 33
             },
             {
-              "bin": "134.6–141.4",
               "start": 134.6,
               "end": 141.45,
               "count": 24
             },
             {
-              "bin": "141.4–148.3",
               "start": 141.45,
               "end": 148.3,
               "count": 20
             },
             {
-              "bin": "148.3–155.2",
               "start": 148.3,
               "end": 155.15,
               "count": 13
             },
             {
-              "bin": "155.2–162",
               "start": 155.15,
               "end": 162.0,
               "count": 21
             },
             {
-              "bin": "> 162",
               "start": 162.0,
               "end": null,
               "count": 62
@@ -388,121 +367,101 @@
           "column": "Antigüedad (años)",
           "data": [
             {
-              "bin": "0–2.95",
               "start": 0.0,
               "end": 2.95,
               "count": 64
             },
             {
-              "bin": "2.95–5.9",
               "start": 2.95,
               "end": 5.9,
               "count": 67
             },
             {
-              "bin": "5.9–8.85",
               "start": 5.9,
               "end": 8.850000000000001,
               "count": 85
             },
             {
-              "bin": "8.85–11.8",
               "start": 8.850000000000001,
               "end": 11.8,
               "count": 72
             },
             {
-              "bin": "11.8–14.75",
               "start": 11.8,
               "end": 14.75,
               "count": 85
             },
             {
-              "bin": "14.75–17.7",
               "start": 14.75,
               "end": 17.700000000000003,
               "count": 70
             },
             {
-              "bin": "17.7–20.65",
               "start": 17.700000000000003,
               "end": 20.650000000000002,
               "count": 71
             },
             {
-              "bin": "20.65–23.6",
               "start": 20.650000000000002,
               "end": 23.6,
               "count": 67
             },
             {
-              "bin": "23.6–26.55",
               "start": 23.6,
               "end": 26.55,
               "count": 78
             },
             {
-              "bin": "26.55–29.5",
               "start": 26.55,
               "end": 29.5,
               "count": 69
             },
             {
-              "bin": "29.5–32.45",
               "start": 29.5,
               "end": 32.45,
               "count": 73
             },
             {
-              "bin": "32.45–35.4",
               "start": 32.45,
               "end": 35.400000000000006,
               "count": 79
             },
             {
-              "bin": "35.4–38.35",
               "start": 35.400000000000006,
               "end": 38.35,
               "count": 73
             },
             {
-              "bin": "38.35–41.3",
               "start": 38.35,
               "end": 41.300000000000004,
               "count": 77
             },
             {
-              "bin": "41.3–44.25",
               "start": 41.300000000000004,
               "end": 44.25,
               "count": 75
             },
             {
-              "bin": "44.25–47.2",
               "start": 44.25,
               "end": 47.2,
               "count": 89
             },
             {
-              "bin": "47.2–50.15",
               "start": 47.2,
               "end": 50.150000000000006,
               "count": 71
             },
             {
-              "bin": "50.15–53.1",
               "start": 50.150000000000006,
               "end": 53.1,
               "count": 83
             },
             {
-              "bin": "53.1–56.05",
               "start": 53.1,
               "end": 56.050000000000004,
               "count": 73
             },
             {
-              "bin": "56.05–59",
               "start": 56.050000000000004,
               "end": 59.0,
               "count": 79
@@ -516,121 +475,101 @@
           "column": "Distancia al mar (km)",
           "data": [
             {
-              "bin": "0.1–0.545",
               "start": 0.1,
               "end": 0.545,
               "count": 105
             },
             {
-              "bin": "0.545–0.99",
               "start": 0.545,
               "end": 0.99,
               "count": 118
             },
             {
-              "bin": "0.99–1.435",
               "start": 0.99,
               "end": 1.435,
               "count": 155
             },
             {
-              "bin": "1.435–1.88",
               "start": 1.435,
               "end": 1.8800000000000001,
               "count": 74
             },
             {
-              "bin": "1.88–2.325",
               "start": 1.8800000000000001,
               "end": 2.325,
               "count": 65
             },
             {
-              "bin": "2.325–2.77",
               "start": 2.325,
               "end": 2.77,
               "count": 61
             },
             {
-              "bin": "2.77–3.215",
               "start": 2.77,
               "end": 3.2150000000000003,
               "count": 66
             },
             {
-              "bin": "3.215–3.66",
               "start": 3.2150000000000003,
               "end": 3.66,
               "count": 70
             },
             {
-              "bin": "3.66–4.105",
               "start": 3.66,
               "end": 4.1049999999999995,
               "count": 61
             },
             {
-              "bin": "4.105–4.55",
               "start": 4.1049999999999995,
               "end": 4.55,
               "count": 53
             },
             {
-              "bin": "4.55–4.995",
               "start": 4.55,
               "end": 4.995,
               "count": 51
             },
             {
-              "bin": "4.995–5.44",
               "start": 4.995,
               "end": 5.4399999999999995,
               "count": 75
             },
             {
-              "bin": "5.44–5.885",
               "start": 5.4399999999999995,
               "end": 5.885,
               "count": 61
             },
             {
-              "bin": "5.885–6.33",
               "start": 5.885,
               "end": 6.33,
               "count": 77
             },
             {
-              "bin": "6.33–6.775",
               "start": 6.33,
               "end": 6.7749999999999995,
               "count": 58
             },
             {
-              "bin": "6.775–7.22",
               "start": 6.7749999999999995,
               "end": 7.22,
               "count": 78
             },
             {
-              "bin": "7.22–7.665",
               "start": 7.22,
               "end": 7.665,
               "count": 70
             },
             {
-              "bin": "7.665–8.11",
               "start": 7.665,
               "end": 8.11,
               "count": 82
             },
             {
-              "bin": "8.11–8.555",
               "start": 8.11,
               "end": 8.555,
               "count": 60
             },
             {
-              "bin": "8.555–9",
               "start": 8.555,
               "end": 9.0,
               "count": 60
@@ -644,127 +583,106 @@
           "column": "Precio",
           "data": [
             {
-              "bin": "2.2e+04–4.342e+04",
               "start": 22000.0,
               "end": 43425.0,
               "count": 10
             },
             {
-              "bin": "4.342e+04–6.485e+04",
               "start": 43425.0,
               "end": 64850.0,
               "count": 47
             },
             {
-              "bin": "6.485e+04–8.628e+04",
               "start": 64850.0,
               "end": 86275.0,
               "count": 95
             },
             {
-              "bin": "8.628e+04–1.077e+05",
               "start": 86275.0,
               "end": 107700.0,
               "count": 141
             },
             {
-              "bin": "1.077e+05–1.291e+05",
               "start": 107700.0,
               "end": 129125.0,
               "count": 173
             },
             {
-              "bin": "1.291e+05–1.506e+05",
               "start": 129125.0,
               "end": 150550.0,
               "count": 168
             },
             {
-              "bin": "1.506e+05–1.72e+05",
               "start": 150550.0,
               "end": 171975.0,
               "count": 133
             },
             {
-              "bin": "1.72e+05–1.934e+05",
               "start": 171975.0,
               "end": 193400.0,
               "count": 122
             },
             {
-              "bin": "1.934e+05–2.148e+05",
               "start": 193400.0,
               "end": 214825.0,
               "count": 103
             },
             {
-              "bin": "2.148e+05–2.362e+05",
               "start": 214825.0,
               "end": 236250.0,
               "count": 86
             },
             {
-              "bin": "2.362e+05–2.577e+05",
               "start": 236250.0,
               "end": 257675.0,
               "count": 81
             },
             {
-              "bin": "2.577e+05–2.791e+05",
               "start": 257675.0,
               "end": 279100.0,
               "count": 63
             },
             {
-              "bin": "2.791e+05–3.005e+05",
               "start": 279100.0,
               "end": 300525.0,
               "count": 61
             },
             {
-              "bin": "3.005e+05–3.22e+05",
               "start": 300525.0,
               "end": 321950.0,
               "count": 44
             },
             {
-              "bin": "3.22e+05–3.434e+05",
               "start": 321950.0,
               "end": 343375.0,
               "count": 37
             },
             {
-              "bin": "3.434e+05–3.648e+05",
               "start": 343375.0,
               "end": 364800.0,
               "count": 27
             },
             {
-              "bin": "3.648e+05–3.862e+05",
               "start": 364800.0,
               "end": 386225.0,
               "count": 23
             },
             {
-              "bin": "3.862e+05–4.076e+05",
               "start": 386225.0,
               "end": 407650.0,
               "count": 20
             },
             {
-              "bin": "4.076e+05–4.291e+05",
               "start": 407650.0,
               "end": 429075.0,
               "count": 7
             },
             {
-              "bin": "4.291e+05–4.505e+05",
               "start": 429075.0,
               "end": 450500.0,
               "count": 10
             },
             {
-              "bin": "> 4.505e+05",
               "start": 450500.0,
               "end": null,
               "count": 49
@@ -774,7 +692,7 @@
         {
           "id": "bar_Zona",
           "type": "bar",
-          "title": "Top valores de Zona",
+          "title": "Valores de Zona",
           "column": "Zona",
           "data": [
             {
@@ -802,7 +720,7 @@
         {
           "id": "bar_Tipo",
           "type": "bar",
-          "title": "Top valores de Tipo",
+          "title": "Valores de Tipo",
           "column": "Tipo",
           "data": [
             {
@@ -1021,7 +939,7 @@
         {
           "id": "scatter_Metros_Precio",
           "type": "scatter",
-          "title": "Metros vs Precio",
+          "title": "Metros frente a Precio",
           "x_column": "Metros",
           "y_column": "Precio",
           "data": [
@@ -2232,32 +2150,32 @@
     "insights": {
       "trends": [
         {
-          "title": "El precio crece con el número de habitaciones",
-          "description": "El precio medio pasa de 98.438,71 con 1 habitación (-49,2 %) a 380.160,71 con 6 habitaciones (+96 %). Los pisos de 3 habitaciones, el grupo más numeroso (n = 519), quedan en 179.416,18, un -7,5 % frente a la media global.",
+          "title": "El precio sube con el número de habitaciones",
+          "description": "El precio medio va de 98.438,71 con 1 habitación (-49,2 % frente a la media global) a 380.160,71 con 6 habitaciones (+96 %). Los grupos intermedios siguen la misma progresión: 141.857,99 con 2, 179.416,18 con 3, 244.071,21 con 4 y 316.550,46 con 5.",
           "columns": [
             "Habitaciones",
             "Precio"
           ]
         },
         {
-          "title": "Playa y Centro, las zonas más caras",
-          "description": "Playa tiene un precio medio de 289.701,89 (+49,4 %) y Centro de 238.687,86 (+23,1 %). En el extremo opuesto, Periferia se queda en 120.570,31 (-37,8 %) y Sur en 147.922,03 (-23,7 %).",
-          "columns": [
-            "Zona",
-            "Precio"
-          ]
-        },
-        {
-          "title": "Adosados y estudios, extremos de precio por tipo",
-          "description": "Los adosados promedian 316.331,97 (+63,1 %) y los áticos 242.704,82 (+25,1 %). Los estudios marcan el mínimo con 79.685,71 (-58,9 %), mientras que los pisos, con 950 registros, se sitúan en 170.864,21 (-11,9 %).",
+          "title": "Adosados más caros, estudios más baratos",
+          "description": "Los adosados tienen un precio medio de 316.331,97 (+63,1 %) y los áticos de 242.704,82 (+25,1 %). En el otro extremo, los estudios se quedan en 79.685,71 (-58,9 %) y los pisos, el tipo más frecuente con 950 filas, en 170.864,21 (-11,9 %).",
           "columns": [
             "Tipo",
             "Precio"
           ]
         },
         {
-          "title": "Más baños se asocia con mayor precio",
-          "description": "Las viviendas con 1 baño (n = 775) promedian 150.072,26 (-22,6 %), frente a 331.396,83 con 3 baños (+70,9 %). El grupo de 4 baños llega a 348.857,14 (+79,9 %), aunque solo tiene 7 registros.",
+          "title": "Playa y Centro, las zonas más caras",
+          "description": "Playa registra el precio medio más alto, 289.701,89 (+49,4 %), seguida de Centro con 238.687,86 (+23,1 %). Periferia es la zona más barata, con 120.570,31 (-37,8 %), por debajo de Sur (147.922,03) y Norte (168.908,28).",
+          "columns": [
+            "Zona",
+            "Precio"
+          ]
+        },
+        {
+          "title": "Más baños coinciden con precios mayores",
+          "description": "Las viviendas con 1 baño promedian 150.072,26 (-22,6 %) y las de 2 baños 220.349,66 (+13,6 %). Con 3 baños la media sube a 331.396,83 (+70,9 %) y con 4 a 348.857,14 (+79,9 %), aunque este último grupo solo tiene 7 viviendas.",
           "columns": [
             "Baños",
             "Precio"
@@ -2266,32 +2184,33 @@
       ],
       "anomalies": [
         {
-          "title": "62 viviendas con superficie muy elevada",
-          "description": "Metros presenta 62 outliers altos, entre 163 y 239 m², frente a una media de 91,43 y una desviación de 32,91. Conviene revisarlos antes de modelar el precio por superficie.",
+          "title": "Viviendas de superficie muy superior",
+          "description": "Metros presenta 62 valores atípicos altos, entre 163 y 239, frente a una media de 91,43 y una desviación de 32,91. El mínimo es de 25 metros.",
           "columns": [
             "Metros"
           ]
         },
         {
           "title": "Grupo de 4 baños muy reducido",
-          "description": "Solo 7 viviendas tienen 4 baños y todas se marcan como outliers por la regla IQR. Su precio medio de 348.857,14 se apoya en muy pocos casos.",
+          "description": "Solo 7 viviendas tienen 4 baños, y todas se marcan como atípicas por la regla IQR. Su precio medio de 348.857,14 se basa en muy pocos casos.",
           "columns": [
-            "Baños"
+            "Baños",
+            "Precio"
           ]
         }
       ],
       "correlations": [
         {
-          "title": "Metros y habitaciones, relación muy fuerte",
-          "description": "Metros y Habitaciones tienen una correlación muy fuerte (r = 0,85). Ambas variables aportan información muy similar sobre el tamaño de la vivienda.",
+          "title": "Metros y habitaciones, asociación muy fuerte",
+          "description": "Metros y Habitaciones tienen una correlación de r = 0,85, muy fuerte. Las viviendas más grandes tienden a tener más habitaciones.",
           "columns": [
             "Metros",
             "Habitaciones"
           ]
         },
         {
-          "title": "La superficie se asocia fuertemente con el precio",
-          "description": "Metros y Precio muestran una correlación fuerte (r = 0,76), la más alta con el precio. Habitaciones también se asocia de forma fuerte con Precio (r = 0,64).",
+          "title": "La superficie se asocia con el precio",
+          "description": "Metros y Precio muestran una correlación fuerte, r = 0,76, la más alta de Precio con cualquier variable numérica. Habitaciones también se asocia con Precio, con r = 0,64 (fuerte).",
           "columns": [
             "Metros",
             "Precio",
@@ -2299,8 +2218,8 @@
           ]
         },
         {
-          "title": "Baños ligado a tamaño y habitaciones",
-          "description": "Habitaciones y Baños tienen una correlación fuerte (r = 0,73), y Metros y Baños también (r = 0,65). Las viviendas más grandes tienden a tener más baños.",
+          "title": "Baños ligados a superficie y habitaciones",
+          "description": "Habitaciones y Baños tienen una correlación fuerte de r = 0,73. Metros y Baños también se asocian de forma fuerte, con r = 0,65.",
           "columns": [
             "Habitaciones",
             "Baños",
@@ -2310,17 +2229,18 @@
       ],
       "recommendations": [
         {
-          "title": "Evitar redundancia entre metros y habitaciones",
-          "description": "Con r = 0,85 entre Metros y Habitaciones, incluir ambas en un mismo modelo puede generar multicolinealidad. Valora usar solo Metros, que muestra la mayor correlación con Precio (r = 0,76).",
+          "title": "Cuidado con variables redundantes en modelos",
+          "description": "Metros, Habitaciones y Baños están muy relacionadas entre sí (r = 0,85 entre Metros y Habitaciones). Si se construye un modelo de precio, conviene evaluar si incluir todas o priorizar Metros, que tiene la correlación más alta con Precio (r = 0,76).",
           "columns": [
             "Metros",
             "Habitaciones",
+            "Baños",
             "Precio"
           ]
         },
         {
-          "title": "Segmentar el análisis por zona y tipo",
-          "description": "Las medias de precio varían entre 120.570,31 en Periferia y 289.701,89 en Playa, y entre 79.685,71 en estudios y 316.331,97 en adosados. Comparar precios dentro de cada segmento dará referencias más ajustadas que la media global de 193.967,33.",
+          "title": "Analizar el precio segmentando por zona y tipo",
+          "description": "Las medias por grupo varían mucho: de 120.570,31 en Periferia a 289.701,89 en Playa, y de 79.685,71 en estudios a 316.331,97 en adosados. Comparar precios dentro de cada segmento dará referencias más útiles que la media global de 193.967,33.",
           "columns": [
             "Zona",
             "Tipo",
@@ -2328,19 +2248,18 @@
           ]
         },
         {
-          "title": "Tratar aparte los adosados de precio alto",
-          "description": "43 de los 49 outliers de Precio son adosados. Analizarlos como segmento propio o revisarlos evitará que distorsionen estimaciones generales.",
+          "title": "Revisar por separado los adosados atípicos",
+          "description": "43 de los 49 precios atípicos son adosados, con valores entre 452.000 y 721.000. Conviene verificar estos registros y valorar analizarlos aparte para que no distorsionen las medias.",
           "columns": [
-            "Tipo",
-            "Precio"
+            "Precio",
+            "Tipo"
           ]
         },
         {
-          "title": "Agrupar las categorías con pocos casos",
-          "description": "El grupo de 4 baños tiene solo 7 registros y el de 6 habitaciones 56. Unirlos con categorías vecinas dará medias más estables.",
+          "title": "Interpretar con cautela el grupo de 4 baños",
+          "description": "Con solo 7 viviendas, la media de 348.857,14 del grupo de 4 baños es poco estable. Puede agruparse con las de 3 baños (n = 126) para comparaciones más robustas.",
           "columns": [
-            "Baños",
-            "Habitaciones"
+            "Baños"
           ]
         }
       ]
