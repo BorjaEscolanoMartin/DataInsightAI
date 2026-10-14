@@ -3,7 +3,7 @@ from datetime import date, timedelta
 import pandas as pd
 import pytest
 
-from app.services.data_summary import pct_change, temporal_summary
+from app.services.data_summary import pct_change, summary_target, temporal_summary
 
 PROFILE = {
     "date_column_candidate": "fecha",
@@ -166,3 +166,16 @@ def test_pct_change_is_relative_to_the_size_of_the_base(value, base, pct):
     result = pct_change(value, base)
 
     assert result == (pytest.approx(pct) if pct is not None else None)
+
+
+def test_without_a_date_the_summary_target_skips_a_final_identifier():
+    profile = {
+        "date_column_candidate": None,
+        "columns": [
+            {"name": "metros", "type": "numeric", "is_identifier": False},
+            {"name": "precio", "type": "numeric", "is_identifier": False},
+            {"name": "id", "type": "numeric", "is_identifier": True},
+        ],
+    }
+
+    assert summary_target(profile) == "precio"

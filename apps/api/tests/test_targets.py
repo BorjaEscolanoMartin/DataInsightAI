@@ -35,3 +35,25 @@ def test_regression_target_is_none_with_a_single_numeric_column():
     profile = _profile({"zona": "categorical", "precio": "numeric"})
 
     assert regression_target(profile) is None
+
+
+def test_regression_target_is_the_last_numeric_column_that_is_not_an_identifier():
+    profile = _profile(
+        {"metros": "numeric", "precio": "numeric", "id": "numeric"}, identifiers=("id",)
+    )
+
+    assert regression_target(profile) == "precio"
+
+
+def test_regression_target_is_none_with_only_identifiers():
+    profile = _profile(
+        {"id": "numeric", "pedido_id": "numeric"}, identifiers=("id", "pedido_id")
+    )
+
+    assert regression_target(profile) is None
+
+
+def test_regression_target_needs_another_numeric_column_that_is_not_an_identifier():
+    profile = _profile({"precio": "numeric", "id": "numeric"}, identifiers=("id",))
+
+    assert regression_target(profile) is None
