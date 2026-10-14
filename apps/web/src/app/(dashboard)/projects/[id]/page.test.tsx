@@ -1,18 +1,21 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { salesFixture as sales } from "@/data/demo"
 import type { DatasetWithAnalysis } from "@/types/api"
 import ProjectPage from "./page"
 
-const state = vi.hoisted(() => ({ datasets: [] as unknown[] }))
+const state = vi.hoisted(() => ({
+  datasets: [] as unknown[],
+  upload: vi.fn<(file: File) => Promise<unknown>>(async () => ({})),
+}))
 
 vi.mock("next/navigation", () => ({ useParams: () => ({ id: "p1" }) }))
 vi.mock("@/lib/api", () => ({ api: { downloadPdf: vi.fn() } }))
 vi.mock("@/lib/queries", () => ({
   useProject: () => ({ data: { id: "p1", name: "Tienda online" } }),
   useProjectDatasets: () => ({ data: state.datasets, isLoading: false }),
-  useUploadDataset: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUploadDataset: () => ({ mutateAsync: state.upload, isPending: false }),
   useAnalysisPoll: () => ({ data: undefined }),
 }))
 
@@ -55,6 +58,7 @@ function breadcrumb() {
 describe("/projects/[id]", () => {
   beforeEach(() => {
     state.datasets = []
+    state.upload.mockReset()
   })
 
   it("offers the upload section and the demo when the project has no dataset", () => {
@@ -105,5 +109,22 @@ describe("/projects/[id]", () => {
     ]) {
       expect(table.compareDocumentPosition(action) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     }
+  })
+
+  it.each([
+    ["no dataset", null],
+    ["a failed analysis", "failed"],
+    ["a completed analysis", "completed"],
+  ])("shows a failed upload as an alert with %s", async (_, status) => {
+    state.datasets = status ? [dataset(status)] : []
+    state.upload.mockRejectedValueOnce(new Error("El servidor no ha aceptado el fichero"))
+    const { container } = renderPage()
+    const input = status
+      ? screen.getByLabelText("Subir nuevo CSV")
+      : (container.querySelector('input[type="file"]') as HTMLInputElement)
+
+    fireEvent.change(input, { target: { files: [new File(["a,b\n1,2"], "datos.csv", { type: "text/csv" })] } })
+
+    expect((await screen.findByRole("alert")).textContent).toBe("El servidor no ha aceptado el fichero")
   })
 })

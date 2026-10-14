@@ -23,8 +23,9 @@ export function ThemeToggle() {
     setChoice(next)
   }
 
+  // data-theme-toggle: globals.css hides it where light-dark() is missing and the theme cannot change.
   return (
-    <div role="group" aria-label="Tema" className="flex border border-ln">
+    <div role="group" aria-label="Tema" data-theme-toggle className="flex border border-ln">
       {OPTIONS.map(({ choice: option, label }) => (
         <button
           key={option}

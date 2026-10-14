@@ -1,7 +1,17 @@
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
+
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-950 p-4">
-      <div className="w-full max-w-sm">{children}</div>
+    <div className="flex min-h-screen flex-col">
+      <header className="border-b border-fg">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
+          <span className="font-serif text-xl text-fg">DataInsight AI</span>
+          <ThemeToggle />
+        </div>
+      </header>
+      <main className="flex flex-1 items-start justify-center px-4 py-16">
+        <div className="w-full max-w-sm">{children}</div>
+      </main>
     </div>
   )
 }
