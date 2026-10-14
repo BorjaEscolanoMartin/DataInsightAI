@@ -5,12 +5,12 @@ interface Props {
   insights: Insights
 }
 
-// One accent only: trends in the accent, anomalies in ink, the rest secondary (S2).
+// The four category titles share one style, in the accent (S20).
 const SECTIONS = [
-  { key: "trends" as const, label: "Tendencias", color: "text-au" },
-  { key: "anomalies" as const, label: "Anomalías", color: "text-fg" },
-  { key: "correlations" as const, label: "Correlaciones", color: "text-f2" },
-  { key: "recommendations" as const, label: "Recomendaciones", color: "text-f2" },
+  { key: "trends" as const, label: "Tendencias" },
+  { key: "anomalies" as const, label: "Anomalías" },
+  { key: "correlations" as const, label: "Correlaciones" },
+  { key: "recommendations" as const, label: "Recomendaciones" },
 ]
 
 export function hasInsights(insights: Insights | null | undefined): insights is Insights {
@@ -23,13 +23,13 @@ export function InsightsPanel({ insights }: Props) {
   return (
     <div>
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 md:grid-cols-2">
-        {SECTIONS.map(({ key, label, color }) => {
+        {SECTIONS.map(({ key, label }) => {
           const items = insights[key]
           if (!items.length) return null
           return (
             <section key={key} className="min-w-0">
               <h3
-                className={`border-b border-fg pb-2 text-xs font-semibold uppercase tracking-[0.06em] ${color}`}
+                className="border-b border-fg pb-2 text-xs font-semibold uppercase tracking-[0.06em] text-au"
               >
                 {label}
               </h3>

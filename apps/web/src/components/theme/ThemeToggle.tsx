@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { MonitorIcon, MoonIcon, SunIcon } from "@/components/ui/icons"
+import { Segmented, type SegmentedOption } from "@/components/ui/Segmented"
 import { applyThemeChoice, readThemeChoice, type ThemeChoice } from "@/lib/theme"
 
-const OPTIONS: { choice: ThemeChoice; label: string }[] = [
-  { choice: "system", label: "Sistema" },
-  { choice: "light", label: "Claro" },
-  { choice: "dark", label: "Oscuro" },
+const OPTIONS: SegmentedOption<ThemeChoice>[] = [
+  { value: "system", label: "Sistema", icon: <MonitorIcon /> },
+  { value: "light", label: "Claro", icon: <SunIcon /> },
+  { value: "dark", label: "Oscuro", icon: <MoonIcon /> },
 ]
 
 export function ThemeToggle() {
@@ -25,18 +27,8 @@ export function ThemeToggle() {
 
   // data-theme-toggle: globals.css hides it where light-dark() is missing and the theme cannot change.
   return (
-    <div role="group" aria-label="Tema" data-theme-toggle className="flex border border-ln">
-      {OPTIONS.map(({ choice: option, label }) => (
-        <button
-          key={option}
-          type="button"
-          aria-pressed={choice === option}
-          onClick={() => choose(option)}
-          className="min-h-11 min-w-11 px-3 text-sm text-f2 hover:text-fg aria-pressed:bg-fg aria-pressed:text-inv"
-        >
-          {label}
-        </button>
-      ))}
+    <div data-theme-toggle>
+      <Segmented label="Tema" options={OPTIONS} value={choice} onChange={choose} compactBelowSm />
     </div>
   )
 }

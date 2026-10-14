@@ -3,7 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from "@/lib/queries"
-import { ERROR_NOTE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON, TEXT_LINK } from "@/components/ui/styles"
+import { ERROR_NOTE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/ui/styles"
 import type { Project } from "@/types/api"
 
 export default function ProjectsPage() {
@@ -76,7 +76,7 @@ export default function ProjectsPage() {
           <button type="submit" disabled={createProject.isPending} className={PRIMARY_BUTTON}>
             {createProject.isPending ? "Creando..." : "Crear"}
           </button>
-          <button type="button" onClick={() => setShowForm(false)} className={TEXT_LINK}>
+          <button type="button" onClick={() => setShowForm(false)} className={SECONDARY_BUTTON}>
             Cancelar
           </button>
         </form>
@@ -85,7 +85,7 @@ export default function ProjectsPage() {
       {!projects?.length ? (
         <div className="border-t-2 border-fg pt-5">
           <p className="text-f2">No tienes proyectos todavía</p>
-          <button type="button" onClick={() => setShowForm(true)} className={TEXT_LINK}>
+          <button type="button" onClick={() => setShowForm(true)} className={SECONDARY_BUTTON}>
             Crea tu primer proyecto
           </button>
         </div>
@@ -134,7 +134,7 @@ export default function ProjectsPage() {
                     setEditingId(project.id)
                     setEditingName(project.name)
                   }}
-                  className={TEXT_LINK}
+                  className={SECONDARY_BUTTON}
                 >
                   Renombrar
                 </button>
@@ -146,7 +146,7 @@ export default function ProjectsPage() {
                       deleteProject.mutate(project.id)
                     }
                   }}
-                  className={TEXT_LINK}
+                  className={SECONDARY_BUTTON}
                 >
                   Borrar
                 </button>

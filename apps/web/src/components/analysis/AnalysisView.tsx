@@ -86,6 +86,7 @@ export function AnalysisView({
         eyebrow={eyebrow}
         title={filename}
         lead="Perfil, hallazgos y predicciones generados automáticamente a partir del CSV."
+        rule
       />
 
       {sections.map(({ title, context, content }, i) => (

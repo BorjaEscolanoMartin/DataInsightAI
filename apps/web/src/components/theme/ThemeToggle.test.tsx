@@ -68,4 +68,15 @@ describe("ThemeToggle", () => {
     expect(pressed()).toEqual(["false", "false", "true"])
     expect(root.getAttribute("data-theme")).toBe("dark")
   })
+
+  it("gives each option an icon hidden from assistive technology and keeps its text", () => {
+    render(<ThemeToggle />)
+
+    for (const name of ["Sistema", "Claro", "Oscuro"]) {
+      const button = screen.getByRole("button", { name })
+      const icon = button.querySelector("svg")
+      expect(icon?.getAttribute("aria-hidden")).toBe("true")
+      expect(button.textContent).toBe(name)
+    }
+  })
 })

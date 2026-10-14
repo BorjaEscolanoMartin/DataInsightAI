@@ -4,6 +4,8 @@ import Link from "next/link"
 import { useState } from "react"
 import { AnalysisView } from "@/components/analysis/AnalysisView"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { Logo } from "@/components/ui/Logo"
+import { Segmented } from "@/components/ui/Segmented"
 import { PRIMARY_BUTTON, TEXT_LINK } from "@/components/ui/styles"
 import { housingFixture, salesFixture } from "@/data/demo"
 
@@ -26,7 +28,7 @@ export default function DemoPage() {
     <div className="min-h-screen">
       <header className="border-b border-fg">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
-          <span className="font-serif text-xl text-fg">DataInsight AI</span>
+          <Logo href="/demo" />
           <div className="flex items-center gap-4">
             <ThemeToggle />
             <Link href="/login" className={TEXT_LINK}>
@@ -42,19 +44,13 @@ export default function DemoPage() {
           ningún negocio real.
         </p>
 
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Conjunto de datos">
-          {EXAMPLE_IDS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              aria-pressed={id === selected}
-              onClick={() => setSelected(id)}
-              className="min-h-11 border border-fg px-4 text-sm font-medium text-fg hover:bg-s2 aria-pressed:bg-fg aria-pressed:text-inv"
-            >
-              {EXAMPLES[id].label}
-            </button>
-          ))}
-        </div>
+        <Segmented
+          label="Conjunto de datos"
+          options={EXAMPLE_IDS.map((id) => ({ value: id, label: EXAMPLES[id].label }))}
+          value={selected}
+          onChange={setSelected}
+          stretchBelowSm
+        />
 
         {/* A key per dataset resets the view's own state (expanded column rows). */}
         <AnalysisView

@@ -1,8 +1,8 @@
 import { Providers } from "@/components/providers"
 import { createServerClient } from "@supabase/ssr"
 import { cookies } from "next/headers"
-import Link from "next/link"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { Logo } from "@/components/ui/Logo"
 import { TEXT_LINK } from "@/components/ui/styles"
 
 async function getUser() {
@@ -31,9 +31,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
       <div className="min-h-screen">
         <header className="border-b border-fg">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-2">
-            <Link href="/projects" className="font-serif text-xl text-fg">
-              DataInsight AI
-            </Link>
+            <Logo href="/projects" />
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm text-f2 [overflow-wrap:anywhere]">{user?.email}</span>
               <ThemeToggle />

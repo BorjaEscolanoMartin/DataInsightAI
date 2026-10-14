@@ -27,7 +27,9 @@ export function ScatterChartComp({ data, xCol, yCol }: Props) {
         />
         <YAxis dataKey="y" name={yCol} type="number" tick={AXIS_TICK} axisLine={AXIS_LINE} tickLine={false} width={48} />
         <Tooltip {...TOOLTIP_PROPS} cursor={{ stroke: "var(--ln)" }} />
-        <Scatter data={clean} fill="var(--fg)" fillOpacity={0.6} />
+        {/* One series. A 0,45 fill alone falls under 3:1 on the light background; the opaque 1 px
+            stroke keeps each point's edge at 4,69:1 (light) and 10,31:1 (dark) (S21). */}
+        <Scatter data={clean} fill="var(--au)" fillOpacity={0.45} stroke="var(--au)" strokeWidth={1} />
       </ScatterChart>
     </ResponsiveContainer>
   )
