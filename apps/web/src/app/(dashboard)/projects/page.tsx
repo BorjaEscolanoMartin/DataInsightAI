@@ -4,7 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useProjects, useCreateProject, useDeleteProject, useUpdateProject } from "@/lib/queries"
 import { ERROR_NOTE, FIELD_INPUT, FIELD_LABEL, PRIMARY_BUTTON, SECONDARY_BUTTON } from "@/components/ui/styles"
-import { formatIsoDate } from "@/lib/format"
+import { formatInstantDate } from "@/lib/format"
 import type { Project } from "@/types/api"
 
 export default function ProjectsPage() {
@@ -123,7 +123,7 @@ export default function ProjectsPage() {
                   <p className="mt-1 text-sm text-f2 [overflow-wrap:anywhere]">{project.description}</p>
                 )}
                 <p className="mt-1 text-xs tabular-nums text-f3">
-                  {formatIsoDate(project.created_at)}
+                  {formatInstantDate(project.created_at)}
                 </p>
               </div>
 
