@@ -49,13 +49,22 @@ export function CategoricalBarChart({ data }: Props) {
  *  a ranking (W2). */
 export function ValueColumnChart({ data }: Props) {
   const reducedMotion = useReducedMotion()
+  const axis = countAxis(Math.max(0, ...data.map((d) => d.count)))
   return (
     <div data-orientation="vertical">
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} barCategoryGap="30%">
           <CartesianGrid stroke={GRID_STROKE} vertical={false} />
           <XAxis dataKey="name" tick={AXIS_TICK} axisLine={AXIS_LINE} tickLine={false} interval={0} />
-          <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={40} />
+          <YAxis
+            domain={axis.domain}
+            ticks={axis.ticks}
+            tickFormatter={numberTick}
+            tick={AXIS_TICK}
+            axisLine={false}
+            tickLine={false}
+            width={48}
+          />
           <Tooltip {...TOOLTIP_PROPS} />
           <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" />
         </BarChart>

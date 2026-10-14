@@ -13,6 +13,7 @@ import {
   type BarProps,
   type RectangleProps,
 } from "recharts"
+import { countAxis, numberTick } from "./axis"
 import { AXIS_LINE, AXIS_TICK, GRID_STROKE, TOOLTIP_PROPS } from "./chartTheme"
 import type { HistogramBar, HistogramView } from "./histogram"
 import { useReducedMotion } from "@/lib/motion"
@@ -33,6 +34,7 @@ interface TickProps {
 export function HistogramChart({ view }: Props) {
   const reducedMotion = useReducedMotion()
   const { bars, axis } = view
+  const counts = countAxis(Math.max(0, ...bars.map((b) => b.count)))
   const firstInner = bars.findIndex((b) => b.side === null)
   const lastInner = bars.findLastIndex((b) => b.side === null)
 
@@ -76,7 +78,15 @@ export function HistogramChart({ view }: Props) {
             tickLine={false}
           />
         )}
-        <YAxis tick={AXIS_TICK} axisLine={false} tickLine={false} width={40} />
+        <YAxis
+          domain={counts.domain}
+          ticks={counts.ticks}
+          tickFormatter={numberTick}
+          tick={AXIS_TICK}
+          axisLine={false}
+          tickLine={false}
+          width={48}
+        />
         <Tooltip {...TOOLTIP_PROPS} />
         <Bar isAnimationActive={!reducedMotion} dataKey="count" name="Filas" fill="var(--fg)" shape={shape}>
           {bars.map((b, i) => (
