@@ -14,9 +14,9 @@ Objective: the regression target and its features never use identifier columns (
 
 | ID | Specs | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1, S2, S5 (summary_target) | inline | done: RED (id chosen as target; all-identifier and measure-plus-id profiles regressed; summary target the id), GREEN; `targets.measures` (numeric, not `is_identifier`) shared by both targets; three `test_breakdowns` tests had a 0..N whole-number column of 50+ rows (a row counter since T7 of charts-fit), now N + 0,5 so they stay measures | (this commit) |
-| T2 | S3 | inline | pending | |
-| T3 | S4, S5 (fixtures) | inline | pending | |
+| T1 | S1, S2, S5 (summary_target) | inline | done: RED (id chosen as target; all-identifier and measure-plus-id profiles regressed; summary target the id), GREEN; `targets.measures` (numeric, not `is_identifier`) shared by both targets; three `test_breakdowns` tests had a 0..N whole-number column of 50+ rows (a row counter since T7 of charts-fit), now N + 0,5 so they stay measures | a7337d6 |
+| T2 | S3 | inline | done: RED (`id` passed as a feature), GREEN; features are `targets.measures` minus the target, plus categorical and boolean columns | (this commit) |
+| T3 | S4, S5 (fixtures) | inline | done: `--keep-insights` regeneration leaves both demo fixtures byte-identical (forecast target Ventas, regression target Precio); saved analyses keep their stored predictions (nothing recomputes them) | (this commit) |
 
 ## Log
 
