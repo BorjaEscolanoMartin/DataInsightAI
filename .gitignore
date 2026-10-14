@@ -27,6 +27,7 @@ node_modules/
 .next/
 .turbo/
 out/
+apps/web/tsconfig.tsbuildinfo
 
 # OS
 .DS_Store
